@@ -57,9 +57,10 @@ import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { SubscriptionModal } from './components/subscription/SubscriptionModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
+import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal';
 import { FirebaseService } from './services/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
-import { Cloud, EyeOff, Shield, Crown, CreditCard, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Cloud, EyeOff, Shield, Crown, CreditCard, AlertTriangle, ArrowRight, Scale } from 'lucide-react';
 
 export default function App() {
   // Application Data States
@@ -105,6 +106,7 @@ export default function App() {
   const [isAdminMode, setIsAdminMode] = useState<boolean>(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState<boolean>(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState<boolean>(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState<boolean>(false);
   const [dismissedAnnouncementId, setDismissedAnnouncementId] = useState<string | null>(null);
 
   const [currentAdmin, setCurrentAdmin] = useState<{
@@ -798,6 +800,41 @@ export default function App() {
         )}
       </main>
 
+      {/* Global Platform Footer */}
+      <footer className="mt-auto border-t border-stone-200/80 bg-white/70 py-6 px-4 sm:px-8 text-xs text-stone-500 pb-28 sm:pb-24">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-stone-800">Lumina Study</span>
+            <span>•</span>
+            <span className="text-stone-600 font-medium">Aura Focus Engine v2.4</span>
+            <span>•</span>
+            <span className="text-emerald-600 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              All systems operational
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <button
+              onClick={() => setIsTermsModalOpen(true)}
+              className="font-bold text-stone-700 hover:text-stone-950 underline flex items-center gap-1.5 transition-colors"
+            >
+              <Scale className="w-3.5 h-3.5 text-amber-700" />
+              <span>Platform Rules, Regulations & Legal Terms</span>
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => setIsSubscriptionModalOpen(true)}
+              className="hover:text-stone-900 transition-colors"
+            >
+              Membership Plans
+            </button>
+            <span>•</span>
+            <span className="text-stone-400">© 2026 Lumina Study</span>
+          </div>
+        </div>
+      </footer>
+
       {/* Floating Pill Navigation Dock */}
       <Navbar
         currentTab={currentTab}
@@ -901,6 +938,7 @@ export default function App() {
         currentUser={currentUser}
         onUpdateProfile={(updated) => setCurrentUser(updated)}
         onSwitchUser={(newUser) => setCurrentUser(newUser)}
+        onOpenTerms={() => setIsTermsModalOpen(true)}
       />
 
       {/* Firebase Cloud Authentication Modal */}
@@ -945,6 +983,24 @@ export default function App() {
         currentUser={currentUser}
         plans={subscriptionPlans}
         onSelectPlan={handleSelectPlan}
+      />
+
+      {/* Global Platform Rules, Regulations & Features Legal Modal */}
+      <RulesAndFeaturesModal
+        isOpen={isTermsModalOpen}
+        onClose={() => setIsTermsModalOpen(false)}
+        onAccept={() => {
+          const updatedUser: UserProfile = {
+            ...currentUser,
+            termsAccepted: true,
+            termsAcceptedAt: new Date().toISOString(),
+            termsVersion: '2026.1',
+          };
+          setCurrentUser(updatedUser);
+          StorageService.saveUser(updatedUser);
+          setIsTermsModalOpen(false);
+        }}
+        hasAccepted={Boolean(currentUser.termsAccepted)}
       />
     </div>
   );

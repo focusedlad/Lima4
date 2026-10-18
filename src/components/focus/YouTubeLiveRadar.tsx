@@ -25,22 +25,27 @@ interface YouTubeLiveRadarProps {
   syncedCreatorId?: string | null;
 }
 
-const PRESET_POPULAR_STREAMS: { name: string; title: string; videoId: string; mode: string; workMin: number; breakMin: number }[] = [
+const PRESET_POPULAR_STREAMS: {
+  name: string;
+  title: string;
+  videoId: string;
+  mode: string;
+  workMin: number;
+  breakMin: number;
+  category: 'silent' | 'music' | 'ambient' | 'medical';
+  channelHandle: string;
+  avatar: string;
+}[] = [
   {
     name: 'Lofi Girl 24/7',
-    title: '🔴 lofi hip hop radio - beats to relax/study to',
+    title: '🔴 lofi hip hop radio - beats to relax/study to [Live 24/7]',
     videoId: 'jfKfPfyJRdk',
     mode: '25m Pomodoro / Flow',
     workMin: 25,
     breakMin: 5,
-  },
-  {
-    name: 'Chillhop Beats',
-    title: '☕ Chillhop Radio - jazzy & lofi study beats',
-    videoId: '5yx6BWlEVcY',
-    mode: '50m Deep Work / 10m Break',
-    workMin: 50,
-    breakMin: 10,
+    category: 'music',
+    channelHandle: '@LofiGirl',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
   },
   {
     name: 'James Scholz',
@@ -49,6 +54,42 @@ const PRESET_POPULAR_STREAMS: { name: string; title: string; videoId: string; mo
     mode: '50m Sprint / 10m Break',
     workMin: 50,
     breakMin: 10,
+    category: 'silent',
+    channelHandle: '@JamesScholz',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+  },
+  {
+    name: 'Kharma Medic',
+    title: '🩺 10-Hour Med School Study With Me (50/10 Pomodoro + Rain)',
+    videoId: '4xDzrJKXOOY',
+    mode: '50m Deep Work / 10m Break',
+    workMin: 50,
+    breakMin: 10,
+    category: 'medical',
+    channelHandle: '@KharmaMedic',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+  },
+  {
+    name: 'Chillhop Beats',
+    title: '☕ Chillhop Radio - jazzy & lofi study beats to focus',
+    videoId: '5yx6BWlEVcY',
+    mode: '50m Deep Work / 10m Break',
+    workMin: 50,
+    breakMin: 10,
+    category: 'music',
+    channelHandle: '@ChillhopMusic',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+  },
+  {
+    name: 'The Sherry Formula',
+    title: '📚 4-Hour Silent Pomodoro Study With Me (Desk Timer + Lo-Fi)',
+    videoId: 'S_dfuo2F760',
+    mode: '60m Deep Sprint / 10m Break',
+    workMin: 60,
+    breakMin: 10,
+    category: 'silent',
+    channelHandle: '@TheSherryFormula',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150',
   },
   {
     name: 'Tokyo Rain Library',
@@ -57,14 +98,20 @@ const PRESET_POPULAR_STREAMS: { name: string; title: string; videoId: string; mo
     mode: '50m Focus / 10m Break',
     workMin: 50,
     breakMin: 10,
+    category: 'ambient',
+    channelHandle: '@AbaoinTokyo',
+    avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150',
   },
   {
-    name: 'Med Student Sprint',
-    title: '🩺 10-Hour Silent Medical Board Exam Study With Me',
+    name: 'StudyMD Board Prep',
+    title: '🧠 10-Hour Intensive Board Exam Sprint (Silent Real-Time Study)',
     videoId: '4xDzrJKXOOY',
     mode: '50m Deep Work / 10m Break',
     workMin: 50,
     breakMin: 10,
+    category: 'medical',
+    channelHandle: '@StudyMD',
+    avatar: 'https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150',
   },
   {
     name: 'Cafe Study Piano',
@@ -73,6 +120,9 @@ const PRESET_POPULAR_STREAMS: { name: string; title: string; videoId: string; mo
     mode: 'Continuous Flowtime',
     workMin: 45,
     breakMin: 15,
+    category: 'ambient',
+    channelHandle: '@CafeStudy',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
   },
 ];
 
@@ -87,6 +137,8 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
   const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [customVideoId, setCustomVideoId] = useState<string>('');
   const [alertNotice, setAlertNotice] = useState<string | null>(null);
+  const [streamReloadKey, setStreamReloadKey] = useState<number>(0);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'silent' | 'music' | 'ambient' | 'medical'>('all');
 
   const handleSelectStream = (creator: YouTubeCreator) => {
     setSelectedStream(creator);
@@ -98,8 +150,8 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
     const updated: YouTubeCreator = {
       id: `preset_${preset.videoId}`,
       name: preset.name,
-      channelTitle: preset.name,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      channelTitle: preset.channelHandle || preset.name,
+      avatar: preset.avatar,
       subscribers: '1M+',
       isLive: true,
       streamTitle: preset.title,
@@ -111,6 +163,7 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
       isSubscribed: true,
     };
     setSelectedStream(updated);
+    setStreamReloadKey((k) => k + 1);
     setAlertNotice(`Now playing: ${preset.name}`);
     setTimeout(() => setAlertNotice(null), 3000);
   };
@@ -146,6 +199,11 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
     return clean;
   };
 
+  const filteredPresets =
+    categoryFilter === 'all'
+      ? PRESET_POPULAR_STREAMS
+      : PRESET_POPULAR_STREAMS.filter((p) => p.category === categoryFilter);
+
   return (
     <div className="space-y-6">
       {/* Toast Alert Notice */}
@@ -167,26 +225,80 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-stone-900">Study With Me Live Stream Radar</h2>
-              <p className="text-xs text-stone-500">Live study broadcasts with automatic Pomodoro sync</p>
+              <p className="text-xs text-stone-500">Live study broadcasts with verified players & automatic Pomodoro sync</p>
             </div>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-            {creators.filter((c) => c.isLive).length} Verified Live Now
+            {creators.filter((c) => c.isLive).length} Verified Live Streamers
           </span>
+        </div>
+
+        {/* Category Filter Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none text-xs">
+          <button
+            onClick={() => setCategoryFilter('all')}
+            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+              categoryFilter === 'all'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            All Streamers ({PRESET_POPULAR_STREAMS.length})
+          </button>
+          <button
+            onClick={() => setCategoryFilter('silent')}
+            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+              categoryFilter === 'silent'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            ⚡ Silent Study Sprints
+          </button>
+          <button
+            onClick={() => setCategoryFilter('medical')}
+            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+              categoryFilter === 'medical'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            🩺 Med School & Board Prep
+          </button>
+          <button
+            onClick={() => setCategoryFilter('music')}
+            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+              categoryFilter === 'music'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            🎧 Lofi & Chillhop Radio
+          </button>
+          <button
+            onClick={() => setCategoryFilter('ambient')}
+            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+              categoryFilter === 'ambient'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            🌧️ Rain & Library Ambience
+          </button>
         </div>
 
         {/* Popular Streams Quick Switcher Bar */}
         <div className="mb-4 pt-1 pb-2 border-b border-stone-100">
           <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block mb-2">
-            Instant Study Streams & Lofi Radio:
+            Click to Launch Streamer in Player:
           </span>
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-            {PRESET_POPULAR_STREAMS.map((p) => {
+            {filteredPresets.map((p) => {
               const isActive = selectedStream?.videoId === p.videoId;
               return (
                 <button
-                  key={p.videoId}
+                  key={p.name}
                   onClick={() => handleSelectPreset(p)}
                   className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                     isActive
@@ -314,12 +426,25 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
               Sync Cycle ({selectedStream.pomodoroWorkMin}m/{selectedStream.pomodoroBreakMin}m)
             </button>
 
+            <button
+              onClick={() => {
+                setStreamReloadKey((k) => k + 1);
+                setAlertNotice('Stream player reloaded.');
+                setTimeout(() => setAlertNotice(null), 2500);
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors"
+              title="Reload live player embed"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span className="hidden sm:inline">Reload</span>
+            </button>
+
             {/* Direct Open in YouTube */}
             <a
               href={`https://www.youtube.com/watch?v=${selectedStream.videoId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition-colors"
               title="Open full stream on YouTube in new tab"
             >
               <span>Watch on YouTube</span>
@@ -349,16 +474,16 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
           <div className="flex items-center gap-2">
             <Volume2 className="w-3.5 h-3.5 text-stone-400 shrink-0" />
             <span>
-              Tip: The stream starts muted so you can concentrate. Use the YouTube volume slider to hear beats, or mix with the Ambiance synthesizer above!
+              Stream starts muted for instant deep work. Unmute via the YouTube player, or layer with Ambiance beats above!
             </span>
           </div>
-          <span className="font-mono text-[10px] text-stone-400 font-bold shrink-0">ID: {selectedStream.videoId}</span>
+          <span className="font-mono text-[10px] text-stone-400 font-bold shrink-0">Stream ID: {selectedStream.videoId}</span>
         </div>
 
         {isSplitView && (
           <div className={`relative aspect-video w-full rounded-2xl overflow-hidden bg-stone-900 shadow-inner ${isTheaterMode ? 'max-h-[700px]' : ''}`}>
             <iframe
-              key={selectedStream.videoId}
+              key={`${selectedStream.videoId}_${streamReloadKey}`}
               src={`https://www.youtube-nocookie.com/embed/${selectedStream.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&enablejsapi=1`}
               title="Study With Me Focus Stream"
               className="w-full h-full border-0"

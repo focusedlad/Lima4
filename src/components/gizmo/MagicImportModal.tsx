@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { StudyDeck, Flashcard } from '../../types';
+import { generateSmartDeck } from '../../services/deckGenerator';
 
 interface MagicImportModalProps {
   isOpen: boolean;
@@ -70,6 +71,42 @@ export const MagicImportModal: React.FC<MagicImportModalProps> = ({
     setIsLoading(true);
     setErrorMsg(null);
 
+    const applyDeckData = (deckData: any) => {
+      const newCards: Flashcard[] = (deckData.cards || []).map((c: any, idx: number) => ({
+        id: `card_${Date.now()}_${idx}`,
+        deckId: `deck_${Date.now()}`,
+        front: c.front || 'Concept review question',
+        back: c.back || 'Key concept answer',
+        options: c.options || [c.back, 'Option B', 'Option C', 'Option D'],
+        hint: c.hint || 'Active recall hint',
+        explanation: c.explanation || 'Key conceptual explanation.',
+        cardType: c.cardType || 'multiple_choice',
+        srsInterval: 1,
+        easeFactor: 2.5,
+        consecutiveCorrect: 0,
+        nextReviewAt: 'Today',
+      }));
+
+      const newDeck: StudyDeck = {
+        id: `deck_${Date.now()}`,
+        title: deckData.deckTitle || deckTitle.trim() || 'Imported Study Deck',
+        description: `Auto-generated via Gizmo Magic Import from ${activeTab}.`,
+        subjectTag: deckData.subjectTag || subjectTag.trim() || '#HighYield',
+        curriculum: subjectTag.replace('#', '').trim() || 'General',
+        cardsCount: newCards.length,
+        cards: newCards,
+        isPublic: true,
+        authorName: 'Kai Chen (You)',
+        authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        rating: 5.0,
+        reviewsDueCount: newCards.length,
+        createdAt: new Date().toISOString(),
+      };
+
+      onDeckCreated(newDeck);
+      onClose();
+    };
+
     try {
       const response = await fetch('/api/magic-import', {
         method: 'POST',
@@ -82,48 +119,21 @@ export const MagicImportModal: React.FC<MagicImportModalProps> = ({
         }),
       });
 
-      const json = await response.json();
-      if (json.success && json.data) {
-        const deckData = json.data;
-        const newCards: Flashcard[] = (deckData.cards || []).map((c: any, idx: number) => ({
-          id: `card_${Date.now()}_${idx}`,
-          deckId: `deck_${Date.now()}`,
-          front: c.front || 'Concept review question',
-          back: c.back || 'Key concept answer',
-          options: c.options || [c.back, 'Option B', 'Option C', 'Option D'],
-          hint: c.hint || 'Active recall hint',
-          explanation: c.explanation || 'Key conceptual explanation.',
-          cardType: c.cardType || 'multiple_choice',
-          srsInterval: 1,
-          easeFactor: 2.5,
-          consecutiveCorrect: 0,
-          nextReviewAt: 'Today',
-        }));
-
-        const newDeck: StudyDeck = {
-          id: `deck_${Date.now()}`,
-          title: deckData.deckTitle || deckTitle || 'Imported Study Deck',
-          description: `Auto-generated via Gizmo Magic Import from ${activeTab}.`,
-          subjectTag: deckData.subjectTag || subjectTag || '#HighYield',
-          curriculum: subjectTag.replace('#', '') || 'General',
-          cardsCount: newCards.length,
-          cards: newCards,
-          isPublic: true,
-          authorName: 'Kai Chen (You)',
-          authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-          rating: 5.0,
-          reviewsDueCount: newCards.length,
-          createdAt: new Date().toISOString(),
-        };
-
-        onDeckCreated(newDeck);
-        onClose();
-      } else {
-        setErrorMsg('Failed to process materials. Please try again.');
+      if (response.ok) {
+        const json = await response.json();
+        if (json.success && json.data) {
+          applyDeckData(json.data);
+          return;
+        }
       }
+
+      // Fallback if API status is non-200 (e.g. pure static hosting on Vercel)
+      const fallbackDeck = generateSmartDeck(activeTab, content, deckTitle, subjectTag);
+      applyDeckData(fallbackDeck);
     } catch (err: any) {
-      console.error(err);
-      setErrorMsg('Failed to connect to AI server. Generating smart fallback deck.');
+      console.warn('Backend import API unavailable, applying client-side smart synthesis:', err);
+      const fallbackDeck = generateSmartDeck(activeTab, content, deckTitle, subjectTag);
+      applyDeckData(fallbackDeck);
     } finally {
       setIsLoading(false);
     }

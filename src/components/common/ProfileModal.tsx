@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
-import { EyeOff, Globe, Crown } from 'lucide-react';
+import { EyeOff, Globe, Crown, Scale } from 'lucide-react';
 
 interface ProfileModalProps {
   currentUser: UserProfile;
@@ -24,6 +24,7 @@ interface ProfileModalProps {
   onClose: () => void;
   onUpdateProfile: (updated: UserProfile) => void;
   onSwitchUser: (newUser: UserProfile) => void;
+  onOpenTerms?: () => void;
 }
 
 const PRESET_ACCOUNTS: UserProfile[] = [
@@ -116,6 +117,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onClose,
   onUpdateProfile,
   onSwitchUser,
+  onOpenTerms,
 }) => {
   const [name, setName] = useState(currentUser.name);
   const [selectedCountryCode, setSelectedCountryCode] = useState(currentUser.countryCode || 'GLOBAL');
@@ -438,21 +440,35 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             </label>
 
-            <div className="pt-2 flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 transition-colors"
+                onClick={() => {
+                  onClose();
+                  onOpenTerms?.();
+                }}
+                className="text-xs font-semibold text-amber-900 hover:text-stone-900 underline flex items-center gap-1.5 self-start sm:self-center"
               >
-                Cancel
+                <Scale className="w-3.5 h-3.5 text-amber-700" />
+                <span>View Platform Rules & Terms of Service</span>
               </button>
-              <button
-                type="submit"
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-stone-900 text-white font-bold hover:bg-stone-800 transition-all shadow-xs active:scale-95"
-              >
-                {isSaved ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
-                {isSaved ? 'Saved!' : 'Save Changes'}
-              </button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-stone-900 text-white font-bold hover:bg-stone-800 transition-all shadow-xs active:scale-95"
+                >
+                  {isSaved ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
+                  {isSaved ? 'Saved!' : 'Save Changes'}
+                </button>
+              </div>
             </div>
           </form>
         ) : (
