@@ -9,9 +9,12 @@ export interface CountryInfo {
   universities: string[];
 }
 
+export type UserRole = 'student' | 'moderator' | 'employee' | 'admin' | 'superadmin';
+
 export interface UserProfile {
   id: string;
   name: string;
+  email?: string;
   avatar: string;
   universityOrLocation: string;
   countryCode?: string;
@@ -26,6 +29,14 @@ export interface UserProfile {
   currentStreak: number;
   totalHoursStudied: number;
   xp: number;
+  role?: UserRole;
+  subscriptionTier?: 'free' | 'pro' | 'campus_elite' | string;
+  subscriptionStatus?: 'active' | 'trial' | 'expired' | 'canceled';
+  isSuspended?: boolean;
+  joinedDate?: string;
+  termsAccepted?: boolean;
+  termsAcceptedAt?: string;
+  termsVersion?: string;
   deskPet: {
     name: string;
     species: 'shiba' | 'capybara' | 'owl';
@@ -188,4 +199,76 @@ export interface DayActivity {
   recallHours: number;
   reviewHours: number;
   sessionsCount: number;
+}
+
+export interface SubscriptionTierLimits {
+  magicImportsPerDay: number; // -1 for unlimited
+  canCreatePrivateRooms: boolean;
+  canUseGhostMode: boolean;
+  hasPriorityTutor: boolean;
+  unlimitedDecks: boolean;
+  maxMembersInRoom: number;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  tagline: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  badge: string;
+  badgeColor?: string;
+  isPopular: boolean;
+  isActive: boolean;
+  features: string[];
+  limits: SubscriptionTierLimits;
+}
+
+export interface GlobalAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'alert' | 'event' | 'update' | 'maintenance';
+  priority: 'normal' | 'high' | 'urgent';
+  author: string;
+  createdAt: string;
+  isActive: boolean;
+  actionLabel?: string;
+  actionUrl?: string;
+}
+
+export type EmployeePermission =
+  | 'overview'
+  | 'users'
+  | 'spaces'
+  | 'announcements'
+  | 'subscriptions'
+  | 'settings'
+  | 'team';
+
+export interface EmployeeAccount {
+  id: string;
+  name: string;
+  email: string;
+  roleTitle: string;
+  status: 'active' | 'suspended';
+  permissions: EmployeePermission[];
+  accessKey: string;
+  hiredAt: string;
+  lastActive: string;
+}
+
+export interface SystemSettings {
+  platformName: string;
+  tagline: string;
+  maintenanceMode: boolean;
+  maintenanceNotice: string;
+  allowNewSignups: boolean;
+  defaultPomodoroWork: number;
+  defaultPomodoroBreak: number;
+  xpMultiplier: number;
+  freeDailyAiLimit: number;
+  proDailyAiLimit: number;
+  ghostModeAllowedForFree: boolean;
+  superAdminEmail: string;
 }

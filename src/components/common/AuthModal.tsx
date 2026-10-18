@@ -16,11 +16,15 @@ import {
   BookOpen,
   EyeOff,
   MapPin,
+  Scale,
+  FileText,
+  Check,
 } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { FirebaseService } from '../../services/firebase';
 import { UserProfile } from '../../types';
 import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
+import { RulesAndFeaturesModal } from './RulesAndFeaturesModal';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -56,6 +60,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [selectedStudyField, setSelectedStudyField] = useState(currentUser.studyField || STUDY_FIELDS[0]);
   const [isGhostMode, setIsGhostMode] = useState(currentUser.isGhostMode || false);
 
+  // Mandatory Rules, Regulations & Features Acceptance
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(() => Boolean(currentUser.termsAccepted));
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+  const [termsError, setTermsError] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -79,6 +88,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       universityOrLocation: `${uni} (${currentCountry.flag} ${currentCountry.name})`,
       studyField: selectedStudyField,
       isGhostMode,
+      termsAccepted: true,
+      termsAcceptedAt: new Date().toISOString(),
+      termsVersion: '2026.1',
     };
 
     if (onUpdateProfile) {
@@ -99,8 +111,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleGoogleSignIn = async () => {
+    if (!hasAcceptedTerms) {
+      setTermsError(true);
+      setErrorMsg('Mandatory: Please review and accept the Rules, Regulations, and Feature Terms before signing in.');
+      return;
+    }
     setLoading(true);
     setErrorMsg(null);
+    setTermsError(false);
     try {
       const user = await FirebaseService.loginGoogle();
       await syncProfileUpdates(user);
@@ -120,9 +138,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasAcceptedTerms) {
+      setTermsError(true);
+      setErrorMsg('Mandatory: Please review and check the agreement box for Rules, Regulations & Features.');
+      return;
+    }
     if (!email || !password) return;
     setLoading(true);
     setErrorMsg(null);
+    setTermsError(false);
 
     try {
       let user: FirebaseUser;
@@ -157,8 +181,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleGuestSignIn = async () => {
+    if (!hasAcceptedTerms) {
+      setTermsError(true);
+      setErrorMsg('Mandatory: Please review and check the agreement box before continuing as Guest.');
+      return;
+    }
     setLoading(true);
     setErrorMsg(null);
+    setTermsError(false);
     try {
       const user = await FirebaseService.loginGuest();
       await syncProfileUpdates(user);
@@ -397,12 +427,103 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         ) : (
           /* Sign In / Sign Up Form */
           <div className="space-y-4 text-xs">
+            {/* Mandatory Rules, Regulations & Features Legal Agreement Container */}
+            <div
+              className={`p-3.5 rounded-2xl border transition-all ${
+                termsError
+                  ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-300 animate-pulse'
+                  : hasAcceptedTerms
+                  ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
+                  : 'bg-amber-50/60 border-amber-200 text-stone-900'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5 font-extrabold text-xs text-stone-900">
+                  <Scale className="w-4 h-4 text-amber-700" />
+                  <span>Platform Rules & Feature Agreement</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRulesModalOpen(true)}
+                  className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-1"
+                >
+                  <FileText className="w-3 h-3" />
+                  <span>Read Full Legal Terms</span>
+                </button>
+              </div>
+
+              {/* Feature Highlights Pills */}
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
+                  🛡️ Zero Harassment
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
+                  🎓 Academic Integrity
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
+                  ⚡ AI Tools As-Is
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
+                  🔒 Ghost Mode Privacy
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
+                  ⚖️ Liability Waiver
+                </span>
+              </div>
+
+              {/* Mandatory Acceptance Checkbox */}
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hasAcceptedTerms}
+                  onChange={(e) => {
+                    setHasAcceptedTerms(e.target.checked);
+                    if (e.target.checked) {
+                      setTermsError(false);
+                      setErrorMsg(null);
+                    }
+                  }}
+                  className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 mt-0.5 shrink-0"
+                />
+                <span className="text-[11px] leading-tight font-medium text-stone-800">
+                  I have read, understand, and agree to the{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsRulesModalOpen(true);
+                    }}
+                    className="font-bold underline text-amber-900 hover:text-stone-950"
+                  >
+                    Lumina Study Rules, Regulations, App Features Terms, and Legal Liability Waiver
+                  </button>
+                  .
+                </span>
+              </label>
+
+              {termsError && (
+                <p className="mt-2 text-[11px] font-bold text-rose-700 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Required: You must check this box to proceed with login or registration.</span>
+                </p>
+              )}
+
+              {hasAcceptedTerms && (
+                <div className="mt-2 text-[10px] font-bold text-emerald-800 flex items-center gap-1 bg-emerald-100/70 px-2 py-1 rounded-lg">
+                  <Check className="w-3 h-3 text-emerald-700" />
+                  <span>Agreement verified & legally accepted for this session.</span>
+                </div>
+              )}
+            </div>
+
             {/* Google One-Click Sign In */}
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-3 px-4 rounded-2xl bg-white border border-stone-300 hover:border-stone-400 hover:bg-stone-50 text-stone-800 font-bold flex items-center justify-center gap-2.5 transition-all shadow-xs active:scale-95 disabled:opacity-50"
+              className={`w-full py-3 px-4 rounded-2xl bg-white border text-stone-800 font-bold flex items-center justify-center gap-2.5 transition-all shadow-xs active:scale-95 disabled:opacity-50 ${
+                !hasAcceptedTerms ? 'border-stone-200 opacity-70 hover:border-amber-400' : 'border-stone-300 hover:border-stone-400 hover:bg-stone-50'
+              }`}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -622,6 +743,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
       </div>
+
+      {/* Full Screen Interactive Rules, Regulations & Features Terms Modal */}
+      <RulesAndFeaturesModal
+        isOpen={isRulesModalOpen}
+        onClose={() => setIsRulesModalOpen(false)}
+        onAccept={() => {
+          setHasAcceptedTerms(true);
+          setTermsError(false);
+          setErrorMsg(null);
+        }}
+        hasAccepted={hasAcceptedTerms}
+      />
     </div>
   );
 };

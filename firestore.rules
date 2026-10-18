@@ -35,5 +35,22 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
+
+    // Subscription Plans (public read, admin write)
+    match /plans/{planId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Global Announcements (public read, admin write)
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Team and Employees (authenticated staff/admin read & write)
+    match /employees/{employeeId} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }

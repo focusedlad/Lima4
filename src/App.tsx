@@ -25,6 +25,10 @@ import {
   FocusSessionLog,
   FocusCategory,
   ActivityFeedItem,
+  SubscriptionPlan,
+  GlobalAnnouncement,
+  EmployeeAccount,
+  SystemSettings,
 } from './types';
 import {
   StorageService,
@@ -49,9 +53,13 @@ import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { ProfileModal } from './components/common/ProfileModal';
 import { AuthModal } from './components/common/AuthModal';
 import { GlobalActivityFeed } from './components/social/GlobalActivityFeed';
+import { AnnouncementBanner } from './components/common/AnnouncementBanner';
+import { SubscriptionModal } from './components/subscription/SubscriptionModal';
+import { AdminDashboard } from './components/admin/AdminDashboard';
+import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { FirebaseService } from './services/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
-import { Cloud, EyeOff } from 'lucide-react';
+import { Cloud, EyeOff, Shield, Crown, CreditCard, AlertTriangle, ArrowRight } from 'lucide-react';
 
 export default function App() {
   // Application Data States
@@ -85,6 +93,75 @@ export default function App() {
   const [knockTargetSpace, setKnockTargetSpace] = useState<StudySpace | null>(null);
   const [activeDeckToPlay, setActiveDeckToPlay] = useState<StudyDeck | null>(null);
   const [activeDeckToBattle, setActiveDeckToBattle] = useState<StudyDeck | null>(null);
+
+  // Admin & Subscription States
+  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => StorageService.getAllUsers());
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>(() => StorageService.getSubscriptionPlans());
+  const [announcements, setAnnouncements] = useState<GlobalAnnouncement[]>(() => StorageService.getAnnouncements());
+  const [employees, setEmployees] = useState<EmployeeAccount[]>(() => StorageService.getEmployees());
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(() => StorageService.getSystemSettings());
+
+  // Admin Navigation & Modals
+  const [isAdminMode, setIsAdminMode] = useState<boolean>(false);
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState<boolean>(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState<boolean>(false);
+  const [dismissedAnnouncementId, setDismissedAnnouncementId] = useState<string | null>(null);
+
+  const [currentAdmin, setCurrentAdmin] = useState<{
+    name: string;
+    email: string;
+    role: 'superadmin' | 'admin' | 'employee';
+    employeeId?: string;
+    permissions: string[];
+  }>({
+    name: 'Ian Tumwebaze',
+    email: 'iantumwebaze75@gmail.com',
+    role: 'superadmin',
+    permissions: ['overview', 'users', 'spaces', 'announcements', 'subscriptions', 'settings', 'team'],
+  });
+
+  const handleUpdateUsers = (updated: UserProfile[]) => {
+    setAllUsers(updated);
+    StorageService.saveAllUsers(updated);
+    const self = updated.find((u) => u.id === currentUser.id);
+    if (self) setCurrentUser(self);
+  };
+
+  const handleUpdatePlans = (updated: SubscriptionPlan[]) => {
+    setSubscriptionPlans(updated);
+    StorageService.saveSubscriptionPlans(updated);
+  };
+
+  const handleUpdateAnnouncements = (updated: GlobalAnnouncement[]) => {
+    setAnnouncements(updated);
+    StorageService.saveAnnouncements(updated);
+  };
+
+  const handleUpdateEmployees = (updated: EmployeeAccount[]) => {
+    setEmployees(updated);
+    StorageService.saveEmployees(updated);
+  };
+
+  const handleUpdateSettings = (updated: SystemSettings) => {
+    setSystemSettings(updated);
+    StorageService.saveSystemSettings(updated);
+  };
+
+  const handleSelectPlan = (planId: string) => {
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      subscriptionTier: planId,
+      subscriptionStatus: 'active',
+    };
+    setCurrentUser(updatedUser);
+    StorageService.saveUser(updatedUser);
+    const updatedUsers = allUsers.map((u) => (u.id === updatedUser.id ? updatedUser : u));
+    setAllUsers(updatedUsers);
+    StorageService.saveAllUsers(updatedUsers);
+  };
+
+  const activeAnnouncement =
+    announcements.find((a) => a.isActive && a.id !== dismissedAnnouncementId) || null;
 
   // Listen to Firebase Auth state
   useEffect(() => {
@@ -144,6 +221,84 @@ export default function App() {
   useEffect(() => {
     StorageService.saveActivityFeed(activityFeed);
   }, [activityFeed]);
+
+  // Dedicated Admin Portal Link routing & secret access
+  const [badgeClicks, setBadgeClicks] = useState<number>(0);
+
+  useEffect(() => {
+    const checkAdminRoute = () => {
+      const hash = window.location.hash.toLowerCase();
+      const pathname = window.location.pathname.toLowerCase();
+      const searchParams = new URLSearchParams(window.location.search);
+
+      const isDirectAdminLink =
+        hash === '#admin' ||
+        hash === '#/admin' ||
+        hash === '#admin-portal' ||
+        hash === '#staff' ||
+        pathname === '/admin' ||
+        pathname === '/admin/' ||
+        searchParams.get('portal') === 'admin' ||
+        searchParams.get('admin') === 'true';
+
+      if (isDirectAdminLink) {
+        if (
+          currentUser.email === systemSettings.superAdminEmail ||
+          currentUser.role === 'superadmin' ||
+          currentUser.role === 'admin'
+        ) {
+          setIsAdminMode(true);
+        } else {
+          setIsAdminLoginOpen(true);
+        }
+      }
+    };
+
+    // Check upon component load
+    checkAdminRoute();
+
+    window.addEventListener('hashchange', checkAdminRoute);
+    window.addEventListener('popstate', checkAdminRoute);
+
+    // Discreet keyboard shortcut for admins: Ctrl+Shift+A or Cmd+Shift+A
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        if (
+          currentUser.email === systemSettings.superAdminEmail ||
+          currentUser.role === 'superadmin' ||
+          currentUser.role === 'admin'
+        ) {
+          setIsAdminMode((prev) => !prev);
+        } else {
+          setIsAdminLoginOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('hashchange', checkAdminRoute);
+      window.removeEventListener('popstate', checkAdminRoute);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentUser, systemSettings]);
+
+  const handleExitAdmin = () => {
+    setIsAdminMode(false);
+    if (
+      window.location.hash.toLowerCase().includes('admin') ||
+      window.location.hash.toLowerCase().includes('staff')
+    ) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    if (
+      window.location.pathname.toLowerCase() === '/admin' ||
+      window.location.pathname.toLowerCase() === '/admin/'
+    ) {
+      window.history.replaceState(null, '', '/' + window.location.search);
+    }
+  };
 
   // Social feed handlers
   const handleCheerActivity = (activityId: string) => {
@@ -357,6 +512,28 @@ export default function App() {
 
   const pendingKnocks = admissions.filter((a) => a.status === 'pending');
 
+  // If in Admin Command Center mode, render full-screen AdminDashboard
+  if (isAdminMode) {
+    return (
+      <AdminDashboard
+        currentAdmin={currentAdmin}
+        onExitAdmin={handleExitAdmin}
+        users={allUsers}
+        onUpdateUsers={handleUpdateUsers}
+        spaces={spaces}
+        onUpdateSpaces={setSpaces}
+        plans={subscriptionPlans}
+        onUpdatePlans={handleUpdatePlans}
+        announcements={announcements}
+        onUpdateAnnouncements={handleUpdateAnnouncements}
+        employees={employees}
+        onUpdateEmployees={handleUpdateEmployees}
+        settings={systemSettings}
+        onUpdateSettings={handleUpdateSettings}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col font-sans selection:bg-amber-200">
       {/* Top Global Header Bar */}
@@ -372,7 +549,20 @@ export default function App() {
                 <span className="font-extrabold text-base tracking-tight text-stone-900">
                   Lumina Study
                 </span>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">
+                <span
+                  onClick={() => {
+                    setBadgeClicks((c) => {
+                      const next = c + 1;
+                      if (next >= 3) {
+                        setIsAdminLoginOpen(true);
+                        return 0;
+                      }
+                      return next;
+                    });
+                  }}
+                  className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold cursor-default select-none"
+                  title="Aura Focus Engine v2.4"
+                >
                   Aura v2.4
                 </span>
               </div>
@@ -452,6 +642,22 @@ export default function App() {
               </button>
             )}
 
+            {/* Upgrade / Subscriptions Button */}
+            <button
+              onClick={() => setIsSubscriptionModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-stone-950 font-extrabold text-xs shadow-xs transition-all active:scale-95"
+              title="View Membership Plans & Pricing"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">
+                {currentUser.subscriptionTier === 'campus_elite'
+                  ? 'Elite Member'
+                  : currentUser.subscriptionTier === 'pro'
+                  ? 'Pro Plan'
+                  : 'Upgrade'}
+              </span>
+            </button>
+
             {/* User Profile & Account Switcher Button */}
             <button
               onClick={() => setIsProfileModalOpen(true)}
@@ -468,6 +674,42 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {/* Real-Time Global Announcement Banner */}
+      <AnnouncementBanner
+        announcement={activeAnnouncement}
+        onDismiss={() => setDismissedAnnouncementId(activeAnnouncement?.id || null)}
+        onActionClick={(ann) => {
+          if (ann.type === 'event') {
+            setCurrentTab('focus');
+          } else if (
+            ann.actionLabel?.toLowerCase().includes('plan') ||
+            ann.actionLabel?.toLowerCase().includes('upgrade')
+          ) {
+            setIsSubscriptionModalOpen(true);
+          } else {
+            setCurrentTab('campus');
+          }
+        }}
+      />
+
+      {/* Emergency Maintenance Mode Notice (if active) */}
+      {systemSettings.maintenanceMode && (
+        <div className="bg-rose-900 text-rose-100 px-4 py-3 border-b border-rose-700 text-xs sm:text-sm font-medium flex items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2.5 max-w-4xl mx-auto">
+            <AlertTriangle className="w-5 h-5 text-rose-300 flex-shrink-0 animate-bounce" />
+            <span>
+              <strong>Platform Notice:</strong> {systemSettings.maintenanceNotice}
+            </span>
+          </div>
+          <button
+            onClick={() => setIsAdminMode(true)}
+            className="px-3 py-1 rounded-lg bg-white text-rose-950 font-bold text-xs hover:bg-rose-100 transition-colors flex-shrink-0"
+          >
+            Admin Bypass
+          </button>
+        </div>
+      )}
 
       {/* Main Page Body */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-8">
@@ -676,6 +918,33 @@ export default function App() {
         onLogout={() => {
           setFirebaseUser(null);
         }}
+      />
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        currentUser={currentUser}
+        employees={employees}
+        onAuthorize={(adminData) => {
+          setCurrentAdmin({
+            name: adminData.name,
+            email: adminData.email,
+            role: adminData.role,
+            employeeId: adminData.employeeId,
+            permissions: adminData.permissions,
+          });
+          setIsAdminMode(true);
+        }}
+      />
+
+      {/* Subscription Plans & Upgrade Modal */}
+      <SubscriptionModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        currentUser={currentUser}
+        plans={subscriptionPlans}
+        onSelectPlan={handleSelectPlan}
       />
     </div>
   );

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
-import { EyeOff, Globe } from 'lucide-react';
+import { EyeOff, Globe, Crown } from 'lucide-react';
 
 interface ProfileModalProps {
   currentUser: UserProfile;
@@ -387,6 +387,36 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 placeholder="What are you currently conquering?"
                 className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200 resize-none"
               />
+            </div>
+
+            {/* Membership Tier Info */}
+            <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-100 text-amber-800">
+                  <Crown className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                    <span>
+                      {currentUser.subscriptionTier === 'campus_elite'
+                        ? 'Campus Elite Tier'
+                        : currentUser.subscriptionTier === 'pro'
+                        ? 'Pro Academic Tier'
+                        : 'Free Scholar Tier'}
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-200 text-amber-900 font-bold uppercase">
+                      {currentUser.subscriptionStatus || 'Active'}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-amber-800">
+                    {currentUser.subscriptionTier === 'campus_elite'
+                      ? 'Verified leader, unlimited AI & private rooms'
+                      : currentUser.subscriptionTier === 'pro'
+                      ? 'Unlimited AI Magic Imports & Ghost mode'
+                      : 'Essential focus tools and public campus rooms'}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Ghost Mode Toggle */}

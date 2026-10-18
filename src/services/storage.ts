@@ -7,6 +7,10 @@ import {
   FocusSessionLog,
   DayActivity,
   ActivityFeedItem,
+  SubscriptionPlan,
+  GlobalAnnouncement,
+  EmployeeAccount,
+  SystemSettings,
 } from '../types';
 
 const USER_KEY = 'lumina_user_profile';
@@ -16,6 +20,11 @@ const CREATORS_KEY = 'lumina_creators';
 const ADMISSIONS_KEY = 'lumina_admissions';
 const LOGS_KEY = 'lumina_focus_logs';
 const FEED_KEY = 'lumina_activity_feed';
+const USERS_LIST_KEY = 'lumina_all_users';
+const PLANS_KEY = 'lumina_subscription_plans';
+const ANNOUNCEMENTS_KEY = 'lumina_announcements';
+const EMPLOYEES_KEY = 'lumina_employees';
+const SETTINGS_KEY = 'lumina_system_settings';
 
 export const INITIAL_USER: UserProfile = {
   id: 'usr_me',
@@ -914,6 +923,369 @@ export function generate31DayHeatmap(): DayActivity[] {
   return days;
 }
 
+export const INITIAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+  {
+    id: 'free',
+    name: 'Free Scholar',
+    tagline: 'Essential focus tools and campus community access for every student.',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    badge: 'Standard',
+    badgeColor: 'bg-stone-100 text-stone-700',
+    isPopular: false,
+    isActive: true,
+    features: [
+      'Access to Public Campus Study Rooms',
+      '3 AI Magic Import Flashcard Decks / day',
+      'Standard Spaced Repetition (SRS) Review',
+      'Global Activity Feed & Cheer participation',
+      'Basic Desk Pet companion',
+      'Standard Pomodoro & Flowtime Timers',
+    ],
+    limits: {
+      magicImportsPerDay: 3,
+      canCreatePrivateRooms: false,
+      canUseGhostMode: false,
+      hasPriorityTutor: false,
+      unlimitedDecks: false,
+      maxMembersInRoom: 8,
+    },
+  },
+  {
+    id: 'pro',
+    name: 'Pro Academic',
+    tagline: 'High-yield AI mastery, private locked rooms, and unlimited active recall.',
+    monthlyPrice: 9.99,
+    yearlyPrice: 89.99,
+    badge: 'Most Popular',
+    badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    isPopular: true,
+    isActive: true,
+    features: [
+      'Unlimited AI Magic Imports (Notes, YouTube, PDF)',
+      'Create Locked & Private Knock-to-Enter Rooms',
+      'Ghost Mode: Complete incognito invisible studying',
+      'Priority Socratic AI Flashcard Tutor',
+      '4K Synchronized YouTube Study-With-Me Audio Radar',
+      'Detailed 31-Day Neural Heatmap Analytics',
+      'Custom Desk Pet Auras & Ambient Sounds',
+    ],
+    limits: {
+      magicImportsPerDay: -1,
+      canCreatePrivateRooms: true,
+      canUseGhostMode: true,
+      hasPriorityTutor: true,
+      unlimitedDecks: true,
+      maxMembersInRoom: 25,
+    },
+  },
+  {
+    id: 'campus_elite',
+    name: 'Campus Elite',
+    tagline: 'Ultimate institutional tier for university leaders, researchers, and power cohorts.',
+    monthlyPrice: 19.99,
+    yearlyPrice: 179.99,
+    badge: 'Institutional',
+    badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
+    isPopular: false,
+    isActive: true,
+    features: [
+      'Everything in Pro Academic tier',
+      'Verified University Leader Badge on Global Feeds',
+      'Host Massive Study Rooms (up to 100 members)',
+      'Export Study Analytics & Flashcard Decks to Anki/PDF',
+      'All Desk Pet Accessories & Mythic Evolutions unlocked',
+      'Direct VIP feedback channel with Lumina engineers',
+      'Cross-campus leaderboard pinned spotlights',
+    ],
+    limits: {
+      magicImportsPerDay: -1,
+      canCreatePrivateRooms: true,
+      canUseGhostMode: true,
+      hasPriorityTutor: true,
+      unlimitedDecks: true,
+      maxMembersInRoom: 100,
+    },
+  },
+];
+
+export const INITIAL_ANNOUNCEMENTS: GlobalAnnouncement[] = [
+  {
+    id: 'ann_welcome',
+    title: '🌟 Welcome to Lumina Global Virtual Campus',
+    message: 'Connect with students across Makerere, Oxford, Tokyo Tech, and worldwide. Stream high-yield Study With Me sessions and leverage AI Magic Import for your exam prep.',
+    type: 'info',
+    priority: 'high',
+    author: 'Platform Admin',
+    createdAt: '2026-10-18T00:00:00Z',
+    isActive: true,
+    actionLabel: 'Explore Campus',
+  },
+  {
+    id: 'ann_exam_cram',
+    title: '⚡ 2x XP Boost Active for Global Exam Cram Week!',
+    message: 'Double experience points are currently awarded for all Pomodoro sessions. Level up your desk pet and climb the global university leaderboard!',
+    type: 'event',
+    priority: 'normal',
+    author: 'Academic Ops',
+    createdAt: '2026-10-17T12:00:00Z',
+    isActive: true,
+    actionLabel: 'Start Sprint',
+  },
+];
+
+export const INITIAL_EMPLOYEES: EmployeeAccount[] = [
+  {
+    id: 'emp_maya',
+    name: 'Maya Lin',
+    email: 'maya.lin@lumina.study',
+    roleTitle: 'Senior Campus Moderator',
+    status: 'active',
+    permissions: ['overview', 'spaces', 'users', 'announcements'],
+    accessKey: 'EMP-MOD-771',
+    hiredAt: '2026-08-15',
+    lastActive: '5 mins ago',
+  },
+  {
+    id: 'emp_david',
+    name: 'David Kigozi',
+    email: 'david.k@lumina.study',
+    roleTitle: 'Curriculum & Decks Admin',
+    status: 'active',
+    permissions: ['overview', 'spaces', 'announcements'],
+    accessKey: 'EMP-CUR-342',
+    hiredAt: '2026-09-01',
+    lastActive: '1 hour ago',
+  },
+  {
+    id: 'emp_sarah',
+    name: 'Sarah Jenkins',
+    email: 'sarah.j@lumina.study',
+    roleTitle: 'Finance & Subscriptions Specialist',
+    status: 'active',
+    permissions: ['overview', 'subscriptions'],
+    accessKey: 'EMP-FIN-908',
+    hiredAt: '2026-09-20',
+    lastActive: 'Yesterday',
+  },
+];
+
+export const INITIAL_SYSTEM_SETTINGS: SystemSettings = {
+  platformName: 'Lumina Study',
+  tagline: 'All-in-one social focus, global virtual campus, and AI-powered study platform.',
+  maintenanceMode: false,
+  maintenanceNotice: 'Lumina Study is undergoing scheduled infrastructure upgrades. We will be back shortly!',
+  allowNewSignups: true,
+  defaultPomodoroWork: 25,
+  defaultPomodoroBreak: 5,
+  xpMultiplier: 1.0,
+  freeDailyAiLimit: 3,
+  proDailyAiLimit: 100,
+  ghostModeAllowedForFree: false,
+  superAdminEmail: 'iantumwebaze75@gmail.com',
+};
+
+export const INITIAL_ALL_USERS: UserProfile[] = [
+  {
+    id: 'usr_admin_ian',
+    name: 'Ian Tumwebaze',
+    email: 'iantumwebaze75@gmail.com',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+    universityOrLocation: 'Makerere University / Uganda',
+    countryCode: 'UG',
+    countryName: 'Uganda',
+    countryFlag: '🇺🇬',
+    university: 'Makerere University',
+    studyField: 'Computer Science, Engineering & Math',
+    isGhostMode: false,
+    currentSubject: '#FullStack / AI Systems',
+    currentGoal: 'Overseeing global platform launch & system scaling',
+    status: 'in_focus',
+    currentStreak: 42,
+    totalHoursStudied: 215.0,
+    xp: 14800,
+    role: 'superadmin',
+    subscriptionTier: 'campus_elite',
+    subscriptionStatus: 'active',
+    isSuspended: false,
+    joinedDate: '2026-01-10',
+    deskPet: {
+      name: 'Titan',
+      species: 'owl',
+      level: 10,
+      currentXp: 850,
+      nextLevelXp: 1000,
+      mood: 'focused',
+      decorations: ['Crown of Wisdom', 'Golden Quill', 'Cosmic Aura'],
+    },
+  },
+  {
+    id: 'usr_me',
+    name: 'Kai Chen',
+    email: 'kai.chen@tokyotech.ac.jp',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    universityOrLocation: 'Tokyo Tech / Global Campus',
+    countryCode: 'JP',
+    countryName: 'Japan',
+    countryFlag: '🇯🇵',
+    university: 'Tokyo Institute of Technology',
+    studyField: 'Medicine & Healthcare (USMLE, Pre-Med)',
+    isGhostMode: false,
+    currentSubject: '#USMLE / Neuro',
+    currentGoal: 'Consolidate cranial nerve pathways & finish 50m sprint',
+    status: 'in_focus',
+    currentStreak: 14,
+    totalHoursStudied: 93.5,
+    xp: 4120,
+    role: 'student',
+    subscriptionTier: 'pro',
+    subscriptionStatus: 'active',
+    isSuspended: false,
+    joinedDate: '2026-03-15',
+    deskPet: {
+      name: 'Mochi',
+      species: 'shiba',
+      level: 4,
+      currentXp: 320,
+      nextLevelXp: 500,
+      mood: 'focused',
+      decorations: ['Steaming Matcha', 'Bonsai Tree', 'Vinyl Turntable'],
+    },
+  },
+  {
+    id: 'usr_elena',
+    name: 'Dr. Elena Rostova',
+    email: 'elena.rostova@oxford.ac.uk',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    universityOrLocation: 'University of Oxford',
+    countryCode: 'GB',
+    countryName: 'United Kingdom',
+    countryFlag: '🇬🇧',
+    university: 'University of Oxford',
+    studyField: 'Biological Sciences & Biotechnology',
+    isGhostMode: false,
+    currentSubject: '#Biochem / CRIPSR',
+    currentGoal: 'Peer review gene editing paper',
+    status: 'in_focus',
+    currentStreak: 31,
+    totalHoursStudied: 184.2,
+    xp: 9400,
+    role: 'student',
+    subscriptionTier: 'campus_elite',
+    subscriptionStatus: 'active',
+    isSuspended: false,
+    joinedDate: '2026-02-01',
+    deskPet: {
+      name: 'Athena',
+      species: 'owl',
+      level: 7,
+      currentXp: 450,
+      nextLevelXp: 700,
+      mood: 'focused',
+      decorations: ['Scholar Glasses', 'Tome Stack'],
+    },
+  },
+  {
+    id: 'usr_liam',
+    name: "Liam O'Connor",
+    email: 'liam.oc@harvard.edu',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    universityOrLocation: 'Harvard Law / Cambridge',
+    countryCode: 'US',
+    countryName: 'United States',
+    countryFlag: '🇺🇸',
+    university: 'Harvard University',
+    studyField: 'Law & Jurisprudence (JD, Bar Exam)',
+    isGhostMode: false,
+    currentSubject: '#ConstitutionalLaw',
+    currentGoal: 'Review 14th amendment precedents',
+    status: 'on_break',
+    currentStreak: 6,
+    totalHoursStudied: 32.0,
+    xp: 1850,
+    role: 'student',
+    subscriptionTier: 'free',
+    subscriptionStatus: 'trial',
+    isSuspended: false,
+    joinedDate: '2026-09-12',
+    deskPet: {
+      name: 'Barnaby',
+      species: 'capybara',
+      level: 2,
+      currentXp: 120,
+      nextLevelXp: 250,
+      mood: 'sleepy',
+      decorations: ['Gavel'],
+    },
+  },
+  {
+    id: 'usr_amara',
+    name: 'Amara Diallo',
+    email: 'amara.diallo@uct.ac.za',
+    avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=150&auto=format&fit=crop&q=80',
+    universityOrLocation: 'University of Cape Town',
+    countryCode: 'ZA',
+    countryName: 'South Africa',
+    countryFlag: '🇿🇦',
+    university: 'University of Cape Town',
+    studyField: 'Business, Economics & Finance',
+    isGhostMode: false,
+    currentSubject: '#MacroEconomics',
+    currentGoal: 'Monetary policy econometric models',
+    status: 'in_focus',
+    currentStreak: 19,
+    totalHoursStudied: 88.5,
+    xp: 5600,
+    role: 'student',
+    subscriptionTier: 'pro',
+    subscriptionStatus: 'active',
+    isSuspended: false,
+    joinedDate: '2026-05-20',
+    deskPet: {
+      name: 'Nala',
+      species: 'shiba',
+      level: 5,
+      currentXp: 300,
+      nextLevelXp: 600,
+      mood: 'happy',
+      decorations: ['Gold Coin', 'Silk Scarf'],
+    },
+  },
+  {
+    id: 'usr_aoi',
+    name: 'Aoi Takahashi',
+    email: 'aoi.t@kyoto-u.ac.jp',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    universityOrLocation: 'Kyoto University',
+    countryCode: 'JP',
+    countryName: 'Japan',
+    countryFlag: '🇯🇵',
+    university: 'Kyoto University',
+    studyField: 'Computer Science, Engineering & Math',
+    isGhostMode: true,
+    currentSubject: '#Algorithms / Graphs',
+    currentGoal: 'Complete LeetCode dynamic programming set',
+    status: 'in_focus',
+    currentStreak: 24,
+    totalHoursStudied: 110.0,
+    xp: 6950,
+    role: 'student',
+    subscriptionTier: 'pro',
+    subscriptionStatus: 'active',
+    isSuspended: false,
+    joinedDate: '2026-04-10',
+    deskPet: {
+      name: 'Yuki',
+      species: 'shiba',
+      level: 6,
+      currentXp: 400,
+      nextLevelXp: 650,
+      mood: 'focused',
+      decorations: ['Headphones', 'Neon Cyber Collar'],
+    },
+  },
+];
+
 export class StorageService {
   public static getUser(): UserProfile {
     try {
@@ -1010,6 +1382,76 @@ export class StorageService {
   public static saveActivityFeed(feed: ActivityFeedItem[]) {
     try {
       localStorage.setItem(FEED_KEY, JSON.stringify(feed));
+    } catch (_) {}
+  }
+
+  public static getAllUsers(): UserProfile[] {
+    try {
+      const data = localStorage.getItem(USERS_LIST_KEY);
+      if (data) return JSON.parse(data);
+    } catch (_) {}
+    return INITIAL_ALL_USERS;
+  }
+
+  public static saveAllUsers(users: UserProfile[]) {
+    try {
+      localStorage.setItem(USERS_LIST_KEY, JSON.stringify(users));
+    } catch (_) {}
+  }
+
+  public static getSubscriptionPlans(): SubscriptionPlan[] {
+    try {
+      const data = localStorage.getItem(PLANS_KEY);
+      if (data) return JSON.parse(data);
+    } catch (_) {}
+    return INITIAL_SUBSCRIPTION_PLANS;
+  }
+
+  public static saveSubscriptionPlans(plans: SubscriptionPlan[]) {
+    try {
+      localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
+    } catch (_) {}
+  }
+
+  public static getAnnouncements(): GlobalAnnouncement[] {
+    try {
+      const data = localStorage.getItem(ANNOUNCEMENTS_KEY);
+      if (data) return JSON.parse(data);
+    } catch (_) {}
+    return INITIAL_ANNOUNCEMENTS;
+  }
+
+  public static saveAnnouncements(announcements: GlobalAnnouncement[]) {
+    try {
+      localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(announcements));
+    } catch (_) {}
+  }
+
+  public static getEmployees(): EmployeeAccount[] {
+    try {
+      const data = localStorage.getItem(EMPLOYEES_KEY);
+      if (data) return JSON.parse(data);
+    } catch (_) {}
+    return INITIAL_EMPLOYEES;
+  }
+
+  public static saveEmployees(employees: EmployeeAccount[]) {
+    try {
+      localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(employees));
+    } catch (_) {}
+  }
+
+  public static getSystemSettings(): SystemSettings {
+    try {
+      const data = localStorage.getItem(SETTINGS_KEY);
+      if (data) return JSON.parse(data);
+    } catch (_) {}
+    return INITIAL_SYSTEM_SETTINGS;
+  }
+
+  public static saveSystemSettings(settings: SystemSettings) {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch (_) {}
   }
 }

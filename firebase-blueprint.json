@@ -73,6 +73,46 @@
         "date": { "type": "string" }
       },
       "required": ["id", "userId", "durationMinutes", "category", "date"]
+    },
+    "SubscriptionPlan": {
+      "title": "SubscriptionPlan",
+      "description": "Configurable subscription tier with pricing and feature gates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "monthlyPrice": { "type": "number" },
+        "yearlyPrice": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["id", "name", "monthlyPrice", "yearlyPrice"]
+    },
+    "GlobalAnnouncement": {
+      "title": "GlobalAnnouncement",
+      "description": "Broadcast alerts and news published by platform admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "message", "isActive"]
+    },
+    "EmployeeAccount": {
+      "title": "EmployeeAccount",
+      "description": "Staff and moderators with granular RBAC permissions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "roleTitle": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "roleTitle"]
     }
   },
   "firestore": {
@@ -87,6 +127,18 @@
     "/decks/{deckId}": {
       "schema": { "$ref": "#/entities/StudyDeck" },
       "description": "Public and user-created flashcard decks"
+    },
+    "/plans/{planId}": {
+      "schema": { "$ref": "#/entities/SubscriptionPlan" },
+      "description": "Platform subscription tiers"
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "#/entities/GlobalAnnouncement" },
+      "description": "Global broadcasts for all students"
+    },
+    "/employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/EmployeeAccount" },
+      "description": "Team staff and permissions"
     },
     "/users/{userId}/focus_logs/{logId}": {
       "schema": { "$ref": "#/entities/FocusLog" },
