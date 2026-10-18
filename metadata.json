@@ -1,0 +1,6 @@
+{
+  "name": "Lumina Study",
+  "description": "All-in-one social focus, global virtual campus, and AI-powered study platform with YouTube Live radar, Gizmo AI flashcards, and synchronized accountability.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

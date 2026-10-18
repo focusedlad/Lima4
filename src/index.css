@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --cream-bg: #FAF8F5;
+    --butter-yellow: #FEF08A;
+    --cherry-pink: #FBCFE8;
+    --baby-blue: #BAE6FD;
+    --mint-green: #BBF7D0;
+    --matte-charcoal: #18181B;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #FAF8F5;
+    color: #18181B;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Squircle Claymorphic Shadows */
+.squircle-card {
+  border-radius: 28px;
+  background: #FFFFFF;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 2px 8px -2px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+}
+
+.squircle-card-dark {
+  border-radius: 28px;
+  background: #18181B;
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.45), 0 0 20px -4px rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
