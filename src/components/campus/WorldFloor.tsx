@@ -27,6 +27,9 @@ interface WorldFloorProps {
   pendingKnocksCount: number;
 }
 
+import { COUNTRIES_CATALOG } from '../../services/universityCatalog';
+import { EyeOff, School, MapPin } from 'lucide-react';
+
 const POPULAR_TAGS = [
   'All',
   '#USMLE',
@@ -49,25 +52,41 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
+  const [selectedCountryCode, setSelectedCountryCode] = useState('ALL');
+  const [selectedUniversity, setSelectedUniversity] = useState('ALL');
   const [privacyFilter, setPrivacyFilter] = useState<'all' | 'public' | 'private'>('all');
   const [modeFilter, setModeFilter] = useState<'all' | 'pomodoro' | 'flowtime' | 'animedoro'>('all');
 
   // Great Hall persistent space
   const greatHall = spaces.find((s) => s.id === 'space_great_hall') || spaces[0];
 
+  const currentCountry = COUNTRIES_CATALOG.find((c) => c.code === selectedCountryCode);
+
   // Filtered spaces
   const filteredSpaces = spaces.filter((space) => {
     // Exclude the Great Hall from the regular listing since it has its own dedicated spotlight hero!
     if (space.id === 'space_great_hall') return false;
 
+    // Ghost Mode enforcement: if space is in Ghost Mode, only the host can see it!
+    if (space.isGhostMode && space.hostId !== currentUser.id) {
+      return false;
+    }
+
     const matchesSearch =
       space.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       space.tagline.toLowerCase().includes(searchQuery.toLowerCase()) ||
       space.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (space.university && space.university.toLowerCase().includes(searchQuery.toLowerCase())) ||
       space.subjectTag.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesTag =
       selectedTag === 'All' || space.subjectTag.toLowerCase() === selectedTag.toLowerCase();
+
+    const matchesCountry =
+      selectedCountryCode === 'ALL' || space.countryCode === selectedCountryCode;
+
+    const matchesUniversity =
+      selectedUniversity === 'ALL' || space.university === selectedUniversity;
 
     const matchesPrivacy =
       privacyFilter === 'all' ||
@@ -76,7 +95,7 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
 
     const matchesMode = modeFilter === 'all' || space.mode === modeFilter;
 
-    return matchesSearch && matchesTag && matchesPrivacy && matchesMode;
+    return matchesSearch && matchesTag && matchesCountry && matchesUniversity && matchesPrivacy && matchesMode;
   });
 
   return (
@@ -209,6 +228,94 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
           ))}
         </div>
 
+        {/* Country & University Explorer Bar */}
+        <div className="pt-2 border-t border-stone-100 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1">
+              <School className="w-3.5 h-3.5 text-stone-400" />
+              Filter by Country & University
+            </span>
+            {selectedCountryCode !== 'ALL' && (
+              <button
+                onClick={() => {
+                  setSelectedCountryCode('ALL');
+                  setSelectedUniversity('ALL');
+                }}
+                className="text-[11px] font-semibold text-amber-700 hover:text-amber-800"
+              >
+                Reset Country Filter
+              </button>
+            )}
+          </div>
+
+          {/* Country Flag Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <button
+              onClick={() => {
+                setSelectedCountryCode('ALL');
+                setSelectedUniversity('ALL');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                selectedCountryCode === 'ALL'
+                  ? 'bg-stone-900 text-white shadow-xs'
+                  : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
+              }`}
+            >
+              <span>🌐</span>
+              <span>All Countries</span>
+            </button>
+
+            {COUNTRIES_CATALOG.filter((c) => c.code !== 'GLOBAL').map((c) => (
+              <button
+                key={c.code}
+                onClick={() => {
+                  setSelectedCountryCode(c.code);
+                  setSelectedUniversity('ALL');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  selectedCountryCode === c.code
+                    ? 'bg-amber-100 text-stone-900 border border-amber-300 shadow-xs'
+                    : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
+                }`}
+              >
+                <span>{c.flag}</span>
+                <span>{c.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Sub-Filter: Universities in Selected Country */}
+          {currentCountry && currentCountry.code !== 'GLOBAL' && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 text-xs">
+              <span className="text-stone-400 text-[11px] font-medium shrink-0">Campus:</span>
+              <button
+                onClick={() => setSelectedUniversity('ALL')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
+                  selectedUniversity === 'ALL'
+                    ? 'bg-stone-800 text-white shadow-xs'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                All in {currentCountry.name}
+              </button>
+
+              {currentCountry.universities.map((uni) => (
+                <button
+                  key={uni}
+                  onClick={() => setSelectedUniversity(uni)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
+                    selectedUniversity === uni
+                      ? 'bg-amber-200 text-stone-950 font-bold shadow-xs'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`}
+                >
+                  {uni}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Secondary Filters: Privacy & Mode */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-stone-100 text-xs">
           <div className="flex items-center gap-2">
@@ -299,6 +406,13 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
                   </span>
 
                   <div className="flex items-center gap-1.5">
+                    {space.isGhostMode && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                        <EyeOff className="w-3 h-3 text-purple-600" />
+                        Ghost Mode
+                      </span>
+                    )}
+
                     {space.isPrivate ? (
                       <span
                         className="flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200"
@@ -323,7 +437,10 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
                 <div className="space-y-1.5 text-[11px] text-stone-500 bg-stone-50 p-2.5 rounded-xl border border-stone-100 mb-4">
                   <div className="flex items-center justify-between">
                     <span className="text-stone-400">Campus:</span>
-                    <span className="font-medium text-stone-800">{space.location}</span>
+                    <span className="font-semibold text-stone-900 flex items-center gap-1">
+                      <span>{space.countryFlag || '🌐'}</span>
+                      <span className="truncate max-w-[160px]">{space.university || space.location}</span>
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-stone-400">Schedule:</span>

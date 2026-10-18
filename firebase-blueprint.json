@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with study identity, streaks, desk pet, and stats",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "avatar": { "type": "string" },
+        "universityOrLocation": { "type": "string" },
+        "currentSubject": { "type": "string" },
+        "currentGoal": { "type": "string" },
+        "status": { "type": "string", "enum": ["in_focus", "on_break", "away"] },
+        "currentStreak": { "type": "number" },
+        "totalHoursStudied": { "type": "number" },
+        "xp": { "type": "number" }
+      },
+      "required": ["id", "name", "currentStreak", "totalHoursStudied", "xp"]
+    },
+    "StudySpace": {
+      "title": "StudySpace",
+      "description": "Public or private knock-to-enter study space",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "tagline": { "type": "string" },
+        "subjectTag": { "type": "string" },
+        "location": { "type": "string" },
+        "mode": { "type": "string" },
+        "isPrivate": { "type": "boolean" },
+        "hostId": { "type": "string" },
+        "hostName": { "type": "string" },
+        "hostAvatar": { "type": "string" },
+        "maxCapacity": { "type": "number" },
+        "isSilentMode": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "subjectTag", "hostId", "isPrivate"]
+    },
+    "StudyDeck": {
+      "title": "StudyDeck",
+      "description": "Gizmo active recall flashcard deck",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "subjectTag": { "type": "string" },
+        "curriculum": { "type": "string" },
+        "cardsCount": { "type": "number" },
+        "isPublic": { "type": "boolean" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "rating": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "subjectTag", "isPublic"]
+    },
+    "FocusLog": {
+      "title": "FocusLog",
+      "description": "Logged focus sprint with duration and category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "durationMinutes": { "type": "number" },
+        "category": { "type": "string", "enum": ["deep_work", "recall", "review"] },
+        "subject": { "type": "string" },
+        "xpEarned": { "type": "number" },
+        "date": { "type": "string" }
+      },
+      "required": ["id", "userId", "durationMinutes", "category", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User account documents keyed by Firebase Auth UID"
+    },
+    "/spaces/{spaceId}": {
+      "schema": { "$ref": "#/entities/StudySpace" },
+      "description": "Study spaces created by studiers"
+    },
+    "/decks/{deckId}": {
+      "schema": { "$ref": "#/entities/StudyDeck" },
+      "description": "Public and user-created flashcard decks"
+    },
+    "/users/{userId}/focus_logs/{logId}": {
+      "schema": { "$ref": "#/entities/FocusLog" },
+      "description": "Private focus logs for each user"
+    }
+  }
+}

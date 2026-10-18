@@ -24,6 +24,7 @@ import {
   AdmissionRequest,
   FocusSessionLog,
   FocusCategory,
+  ActivityFeedItem,
 } from './types';
 import {
   StorageService,
@@ -45,6 +46,12 @@ import { MagicImportModal } from './components/gizmo/MagicImportModal';
 import { DeckPlayerModal } from './components/gizmo/DeckPlayerModal';
 import { GizmoLiveBattle } from './components/gizmo/GizmoLiveBattle';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
+import { ProfileModal } from './components/common/ProfileModal';
+import { AuthModal } from './components/common/AuthModal';
+import { GlobalActivityFeed } from './components/social/GlobalActivityFeed';
+import { FirebaseService } from './services/firebase';
+import { User as FirebaseUser } from 'firebase/auth';
+import { Cloud, EyeOff } from 'lucide-react';
 
 export default function App() {
   // Application Data States
@@ -55,13 +62,18 @@ export default function App() {
   const [admissions, setAdmissions] = useState<AdmissionRequest[]>(() => StorageService.getAdmissions());
   const [focusLogs, setFocusLogs] = useState<FocusSessionLog[]>(() => StorageService.getFocusLogs());
   const [heatmapDays, setHeatmapDays] = useState(() => generate31DayHeatmap());
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>(() => StorageService.getActivityFeed());
 
   // Navigation & Active Screen
-  const [currentTab, setCurrentTab] = useState<'campus' | 'gizmo' | 'focus' | 'analytics'>('campus');
+  const [currentTab, setCurrentTab] = useState<'campus' | 'social' | 'gizmo' | 'focus' | 'analytics'>('campus');
   const [activeSpace, setActiveSpace] = useState<StudySpace | null>(null);
 
   // Sync state
   const [syncedCreator, setSyncedCreator] = useState<YouTubeCreator | null>(null);
+
+  // Firebase Auth & Cloud Sync
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Modals
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
@@ -69,9 +81,40 @@ export default function App() {
   const [isCreateSpaceOpen, setIsCreateSpaceOpen] = useState(false);
   const [isAdmissionsOpen, setIsAdmissionsOpen] = useState(false);
   const [isMagicImportOpen, setIsMagicImportOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [knockTargetSpace, setKnockTargetSpace] = useState<StudySpace | null>(null);
   const [activeDeckToPlay, setActiveDeckToPlay] = useState<StudyDeck | null>(null);
   const [activeDeckToBattle, setActiveDeckToBattle] = useState<StudyDeck | null>(null);
+
+  // Listen to Firebase Auth state
+  useEffect(() => {
+    const unsubscribe = FirebaseService.onAuthChanged(async (fbUser) => {
+      setFirebaseUser(fbUser);
+      if (fbUser) {
+        const remoteProfile = await FirebaseService.getUserProfile(fbUser.uid);
+        if (remoteProfile) {
+          setCurrentUser(remoteProfile);
+        } else {
+          const initialProfile: UserProfile = {
+            ...currentUser,
+            id: fbUser.uid,
+            name: fbUser.displayName || currentUser.name,
+            avatar: fbUser.photoURL || currentUser.avatar,
+          };
+          setCurrentUser(initialProfile);
+          await FirebaseService.saveUserProfile(initialProfile);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync profile to Firestore if authenticated
+  useEffect(() => {
+    if (firebaseUser) {
+      FirebaseService.saveUserProfile(currentUser);
+    }
+  }, [currentUser, firebaseUser]);
 
   // Save changes to storage
   useEffect(() => {
@@ -97,6 +140,59 @@ export default function App() {
   useEffect(() => {
     StorageService.saveFocusLogs(focusLogs);
   }, [focusLogs]);
+
+  useEffect(() => {
+    StorageService.saveActivityFeed(activityFeed);
+  }, [activityFeed]);
+
+  // Social feed handlers
+  const handleCheerActivity = (activityId: string) => {
+    setActivityFeed((prev) =>
+      prev.map((item) => {
+        if (item.id === activityId) {
+          const cheered = !item.userHasCheered;
+          return {
+            ...item,
+            userHasCheered: cheered,
+            cheersCount: cheered ? item.cheersCount + 1 : Math.max(0, item.cheersCount - 1),
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handlePostMilestone = (title: string, description: string, subjectTag: string) => {
+    const newItem: ActivityFeedItem = {
+      id: `act_${Date.now()}`,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userAvatar: currentUser.avatar,
+      countryFlag: currentUser.countryFlag || '🌐',
+      countryName: currentUser.countryName || 'Global',
+      university: currentUser.university || currentUser.universityOrLocation,
+      type: 'streak_milestone',
+      title,
+      description,
+      xpEarned: 50,
+      streakDays: currentUser.currentStreak,
+      timestamp: 'Just now',
+      cheersCount: 1,
+      userHasCheered: true,
+      subjectTag,
+    };
+    setActivityFeed([newItem, ...activityFeed]);
+  };
+
+  const handleToggleGhostMode = () => {
+    setCurrentUser((prev) => {
+      const updatedGhost = !prev.isGhostMode;
+      return {
+        ...prev,
+        isGhostMode: updatedGhost,
+      };
+    });
+  };
 
   // Handle Focus Session Completion
   const handleSessionComplete = (durationMinutes: number, category: FocusCategory, subject: string) => {
@@ -137,6 +233,29 @@ export default function App() {
       xpEarned: earnedXp,
     };
     setFocusLogs([newLog, ...focusLogs]);
+
+    // If Ghost Mode is OFF, broadcast to Global Activity Feed
+    if (!currentUser.isGhostMode) {
+      const newFeedItem: ActivityFeedItem = {
+        id: `act_${Date.now()}`,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        userAvatar: currentUser.avatar,
+        countryFlag: currentUser.countryFlag || '🌐',
+        countryName: currentUser.countryName || 'Global',
+        university: currentUser.university || currentUser.universityOrLocation,
+        type: 'session_completed',
+        title: `Completed ${durationMinutes}m ${category === 'recall' ? 'Active Recall' : 'Deep Work'} Sprint`,
+        description: `Focused sprint on ${subject} at ${currentUser.university || 'Global Campus'}.`,
+        xpEarned: earnedXp,
+        streakDays: currentUser.currentStreak,
+        timestamp: 'Just now',
+        cheersCount: 0,
+        userHasCheered: false,
+        subjectTag: subject,
+      };
+      setActivityFeed((prev) => [newFeedItem, ...prev]);
+    }
   };
 
   // Admission knock handlers
@@ -265,6 +384,20 @@ export default function App() {
 
           {/* Quick Metrics & Ambiance Toggle */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Ghost Mode Quick Toggle */}
+            <button
+              onClick={handleToggleGhostMode}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-xs transition-colors ${
+                currentUser.isGhostMode
+                  ? 'bg-purple-100 border-purple-300 text-purple-900 font-bold ring-1 ring-purple-300'
+                  : 'bg-white border-stone-200/80 text-stone-600 hover:bg-stone-50'
+              }`}
+              title={currentUser.isGhostMode ? 'Ghost Mode ON: Presence hidden from directory' : 'Ghost Mode OFF: Presence visible to peers'}
+            >
+              <EyeOff className={`w-3.5 h-3.5 ${currentUser.isGhostMode ? 'text-purple-700' : 'text-stone-400'}`} />
+              <span className="hidden sm:inline">{currentUser.isGhostMode ? 'Ghost 👻' : 'Visible'}</span>
+            </button>
+
             <button
               onClick={() => setIsAudioModalOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200/80 text-xs font-semibold text-stone-700 shadow-xs transition-colors"
@@ -298,13 +431,40 @@ export default function App() {
               </span>
             </div>
 
-            {/* User Avatar */}
-            <img
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              className="w-8 h-8 rounded-full object-cover ring-2 ring-emerald-400 ring-offset-2"
-              title={`${currentUser.name} • ${currentUser.universityOrLocation}`}
-            />
+            {/* Cloud Login / Sync Button */}
+            {firebaseUser ? (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs hover:bg-emerald-100 transition-colors"
+                title="Cloud Sync Active (Click to manage)"
+              >
+                <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="hidden md:inline">Cloud Synced</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 text-white text-xs font-bold shadow-xs hover:bg-stone-800 transition-all active:scale-95"
+                title="Sign In with Google or Email"
+              >
+                <Cloud className="w-3.5 h-3.5 text-amber-300" />
+                <span>Sign In</span>
+              </button>
+            )}
+
+            {/* User Profile & Account Switcher Button */}
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex items-center gap-2 p-1 pl-2.5 pr-1.5 rounded-2xl bg-white border border-stone-200/80 hover:border-amber-300 text-xs font-semibold text-stone-800 shadow-xs transition-all hover:scale-102"
+              title="Edit Profile or Switch Account"
+            >
+              <span className="hidden sm:inline font-bold text-stone-900">{currentUser.name.split(' ')[0]}</span>
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                className="w-7 h-7 rounded-full object-cover ring-2 ring-emerald-400"
+              />
+            </button>
           </div>
         </div>
       </header>
@@ -335,7 +495,18 @@ export default function App() {
               />
             )}
 
-            {/* Tab 2: Gizmo AI Study Suite */}
+            {/* Tab 2: Social Hub & Global Activity Feed */}
+            {currentTab === 'social' && (
+              <GlobalActivityFeed
+                feed={activityFeed}
+                currentUser={currentUser}
+                onCheerActivity={handleCheerActivity}
+                onPostMilestone={handlePostMilestone}
+                onToggleGhostMode={handleToggleGhostMode}
+              />
+            )}
+
+            {/* Tab 3: Gizmo AI Study Suite */}
             {currentTab === 'gizmo' && (
               <GizmoHub
                 decks={decks}
@@ -480,6 +651,32 @@ export default function App() {
           onBattleComplete={handleFinishLiveBattle}
         />
       )}
+
+      {/* Studier Profile & Account Switcher Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        currentUser={currentUser}
+        onUpdateProfile={(updated) => setCurrentUser(updated)}
+        onSwitchUser={(newUser) => setCurrentUser(newUser)}
+      />
+
+      {/* Firebase Cloud Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        firebaseUser={firebaseUser}
+        currentUser={currentUser}
+        onAuthSuccess={(fbUser) => {
+          setFirebaseUser(fbUser);
+        }}
+        onUpdateProfile={(updates) => {
+          setCurrentUser((prev) => ({ ...prev, ...updates }));
+        }}
+        onLogout={() => {
+          setFirebaseUser(null);
+        }}
+      />
     </div>
   );
 }

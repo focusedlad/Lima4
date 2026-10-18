@@ -12,6 +12,9 @@ import {
   Minimize2,
   Play,
   Check,
+  Volume2,
+  Headphones,
+  Compass,
 } from 'lucide-react';
 import { YouTubeCreator } from '../../types';
 
@@ -22,6 +25,57 @@ interface YouTubeLiveRadarProps {
   syncedCreatorId?: string | null;
 }
 
+const PRESET_POPULAR_STREAMS: { name: string; title: string; videoId: string; mode: string; workMin: number; breakMin: number }[] = [
+  {
+    name: 'Lofi Girl 24/7',
+    title: '🔴 lofi hip hop radio - beats to relax/study to',
+    videoId: 'jfKfPfyJRdk',
+    mode: '25m Pomodoro / Flow',
+    workMin: 25,
+    breakMin: 5,
+  },
+  {
+    name: 'Chillhop Beats',
+    title: '☕ Chillhop Radio - jazzy & lofi study beats',
+    videoId: '5yx6BWlEVcY',
+    mode: '50m Deep Work / 10m Break',
+    workMin: 50,
+    breakMin: 10,
+  },
+  {
+    name: 'James Scholz',
+    title: '⚡ 12-Hour Silent Study Sprint With Me [50-10 Pomodoro]',
+    videoId: 'turb9FvXzM8',
+    mode: '50m Sprint / 10m Break',
+    workMin: 50,
+    breakMin: 10,
+  },
+  {
+    name: 'Tokyo Rain Library',
+    title: '🌧️ Tokyo Evening Rain & Quiet Library Ambience',
+    videoId: '5qap5aO4i9A',
+    mode: '50m Focus / 10m Break',
+    workMin: 50,
+    breakMin: 10,
+  },
+  {
+    name: 'Med Student Sprint',
+    title: '🩺 10-Hour Silent Medical Board Exam Study With Me',
+    videoId: '4xDzrJKXOOY',
+    mode: '50m Deep Work / 10m Break',
+    workMin: 50,
+    breakMin: 10,
+  },
+  {
+    name: 'Cafe Study Piano',
+    title: '☕ Cozy Coffee Shop Ambience & Soft Piano Study',
+    videoId: 'S_dfuo2F760',
+    mode: 'Continuous Flowtime',
+    workMin: 45,
+    breakMin: 15,
+  },
+];
+
 export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
   creators,
   onToggleSubscribe,
@@ -30,11 +84,35 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
 }) => {
   const [selectedStream, setSelectedStream] = useState<YouTubeCreator>(creators[0]);
   const [isSplitView, setIsSplitView] = useState<boolean>(true);
+  const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
   const [customVideoId, setCustomVideoId] = useState<string>('');
   const [alertNotice, setAlertNotice] = useState<string | null>(null);
 
   const handleSelectStream = (creator: YouTubeCreator) => {
     setSelectedStream(creator);
+    setAlertNotice(`Loaded stream: ${creator.name}`);
+    setTimeout(() => setAlertNotice(null), 3000);
+  };
+
+  const handleSelectPreset = (preset: typeof PRESET_POPULAR_STREAMS[0]) => {
+    const updated: YouTubeCreator = {
+      id: `preset_${preset.videoId}`,
+      name: preset.name,
+      channelTitle: preset.name,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      subscribers: '1M+',
+      isLive: true,
+      streamTitle: preset.title,
+      videoId: preset.videoId,
+      currentSessionMode: preset.mode,
+      pomodoroWorkMin: preset.workMin,
+      pomodoroBreakMin: preset.breakMin,
+      liveViewers: 14500,
+      isSubscribed: true,
+    };
+    setSelectedStream(updated);
+    setAlertNotice(`Now playing: ${preset.name}`);
+    setTimeout(() => setAlertNotice(null), 3000);
   };
 
   const handleSync = (creator: YouTubeCreator) => {
@@ -54,11 +132,25 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
     setTimeout(() => setAlertNotice(null), 3500);
   };
 
+  const parseYoutubeInput = (input: string): string => {
+    let clean = input.trim();
+    if (clean.includes('watch?v=')) {
+      clean = clean.split('watch?v=')[1]?.split('&')[0];
+    } else if (clean.includes('youtu.be/')) {
+      clean = clean.split('youtu.be/')[1]?.split('?')[0];
+    } else if (clean.includes('/live/')) {
+      clean = clean.split('/live/')[1]?.split('?')[0];
+    } else if (clean.includes('/embed/')) {
+      clean = clean.split('/embed/')[1]?.split('?')[0];
+    }
+    return clean;
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast Alert Notice */}
       {alertNotice && (
-        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex items-center justify-between shadow-sm animate-fade-in">
+        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center justify-between shadow-xs animate-fade-in">
           <span>{alertNotice}</span>
           <button onClick={() => setAlertNotice(null)} className="text-amber-700 font-bold ml-2">
             ×
@@ -68,26 +160,52 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
 
       {/* Live Radar Creator Carousel / List */}
       <div className="squircle-card p-6 bg-white border border-stone-200">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
               <Radio className="w-4 h-4 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-stone-900">Study With Me Creator Radar</h2>
-              <p className="text-xs text-stone-500">Live streams & WebSub automatic Pomodoro sync</p>
+              <h2 className="text-base font-bold text-stone-900">Study With Me Live Stream Radar</h2>
+              <p className="text-xs text-stone-500">Live study broadcasts with automatic Pomodoro sync</p>
             </div>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-100 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-            {creators.filter((c) => c.isLive).length} Live Now
+            {creators.filter((c) => c.isLive).length} Verified Live Now
           </span>
+        </div>
+
+        {/* Popular Streams Quick Switcher Bar */}
+        <div className="mb-4 pt-1 pb-2 border-b border-stone-100">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block mb-2">
+            Instant Study Streams & Lofi Radio:
+          </span>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+            {PRESET_POPULAR_STREAMS.map((p) => {
+              const isActive = selectedStream?.videoId === p.videoId;
+              return (
+                <button
+                  key={p.videoId}
+                  onClick={() => handleSelectPreset(p)}
+                  className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-rose-100 text-rose-950 border border-rose-300 shadow-xs'
+                      : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border border-stone-200'
+                  }`}
+                >
+                  <Headphones className="w-3.5 h-3.5 text-rose-600" />
+                  <span>{p.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Creator Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {creators.map((creator) => {
-            const isSelected = selectedStream?.id === creator.id;
+            const isSelected = selectedStream?.id === creator.id || selectedStream?.videoId === creator.videoId;
             const isSynced = syncedCreatorId === creator.id;
 
             return (
@@ -96,7 +214,7 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
                 onClick={() => handleSelectStream(creator)}
                 className={`cursor-pointer p-4 rounded-2xl border transition-all text-left relative flex flex-col justify-between ${
                   isSelected
-                    ? 'bg-stone-50 border-stone-400 shadow-sm'
+                    ? 'bg-stone-50 border-stone-400 shadow-xs ring-1 ring-stone-300'
                     : 'bg-white border-stone-100 hover:border-stone-200 hover:bg-stone-50/50'
                 }`}
               >
@@ -123,9 +241,9 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
                           ? 'bg-amber-100 text-amber-800 border-amber-200'
                           : 'bg-stone-100 text-stone-500 border-stone-200 hover:bg-stone-200'
                       }`}
-                      title={creator.isSubscribed ? 'Alerts active' : 'Turn on WebSub live alert'}
+                      title={creator.isSubscribed ? 'WebSub Alerts active' : 'Turn on WebSub live alert'}
                     >
-                      {creator.isSubscribed ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
+                      {creator.isSubscribed ? <Bell className="w-3.5 h-3.5 text-amber-700" /> : <BellOff className="w-3.5 h-3.5" />}
                     </button>
                   </div>
 
@@ -164,18 +282,25 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
       </div>
 
       {/* In-App Distraction-Free Streamer (Dual / Split View) */}
-      <div className="squircle-card p-6 bg-white border border-stone-200 overflow-hidden">
+      <div className={`squircle-card p-6 bg-white border border-stone-200 overflow-hidden transition-all ${isTheaterMode ? 'shadow-2xl' : ''}`}>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <Tv className="w-5 h-5 text-stone-700" />
+            <div className="w-9 h-9 rounded-xl bg-amber-100 text-stone-900 flex items-center justify-center font-bold">
+              <Tv className="w-4 h-4 text-amber-800" />
+            </div>
             <div>
-              <h2 className="text-sm font-bold text-stone-900">
-                {selectedStream ? selectedStream.streamTitle || selectedStream.name : 'Study Stream'}
+              <h2 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                <span>{selectedStream ? selectedStream.streamTitle || selectedStream.name : 'Study Stream'}</span>
+                {selectedStream?.isLive && (
+                  <span className="px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-600 font-bold text-[10px] border border-rose-200">
+                    LIVE
+                  </span>
+                )}
               </h2>
               <div className="flex items-center gap-2 text-xs text-stone-500">
                 <span>Distraction-free focus view</span>
                 <span>•</span>
-                <span>No comments or recommended algorithm</span>
+                <span>No comments or recommendation rabbit holes</span>
               </div>
             </div>
           </div>
@@ -186,7 +311,27 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold text-xs transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Sync Pomodoro ({selectedStream.pomodoroWorkMin}m/{selectedStream.pomodoroBreakMin}m)
+              Sync Cycle ({selectedStream.pomodoroWorkMin}m/{selectedStream.pomodoroBreakMin}m)
+            </button>
+
+            {/* Direct Open in YouTube */}
+            <a
+              href={`https://www.youtube.com/watch?v=${selectedStream.videoId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors"
+              title="Open full stream on YouTube in new tab"
+            >
+              <span>Watch on YouTube</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+
+            <button
+              onClick={() => setIsTheaterMode((prev) => !prev)}
+              className="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs transition-colors hidden sm:inline-flex"
+              title={isTheaterMode ? 'Exit theater mode' : 'Theater mode'}
+            >
+              {isTheaterMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
 
             <button
@@ -199,10 +344,22 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
           </div>
         </div>
 
+        {/* Audio helper notice */}
+        <div className="mb-3 px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200/80 text-[11px] text-stone-600 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Volume2 className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+            <span>
+              Tip: The stream starts muted so you can concentrate. Use the YouTube volume slider to hear beats, or mix with the Ambiance synthesizer above!
+            </span>
+          </div>
+          <span className="font-mono text-[10px] text-stone-400 font-bold shrink-0">ID: {selectedStream.videoId}</span>
+        </div>
+
         {isSplitView && (
-          <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-stone-900 shadow-inner">
+          <div className={`relative aspect-video w-full rounded-2xl overflow-hidden bg-stone-900 shadow-inner ${isTheaterMode ? 'max-h-[700px]' : ''}`}>
             <iframe
-              src={`https://www.youtube-nocookie.com/embed/${selectedStream.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0`}
+              key={selectedStream.videoId}
+              src={`https://www.youtube-nocookie.com/embed/${selectedStream.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&enablejsapi=1`}
               title="Study With Me Focus Stream"
               className="w-full h-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -213,24 +370,19 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
 
         {/* Custom Stream Input */}
         <div className="mt-4 pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-          <span className="text-stone-500">Paste any YouTube study stream or lofi link:</span>
+          <span className="text-stone-500">Paste any YouTube study stream, lofi broadcast or URL:</span>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <input
               type="text"
-              placeholder="e.g. jfKfPfyJRdk or YouTube URL"
+              placeholder="e.g. jfKfPfyJRdk or youtube.com/watch?v=..."
               value={customVideoId}
               onChange={(e) => setCustomVideoId(e.target.value)}
-              className="px-3 py-1.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200 w-full sm:w-60"
+              className="px-3 py-1.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-800 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200 w-full sm:w-72"
             />
             <button
               onClick={() => {
                 if (customVideoId) {
-                  let vid = customVideoId;
-                  if (vid.includes('v=')) {
-                    vid = vid.split('v=')[1]?.split('&')[0];
-                  } else if (vid.includes('youtu.be/')) {
-                    vid = vid.split('youtu.be/')[1]?.split('?')[0];
-                  }
+                  const vid = parseYoutubeInput(customVideoId) || 'jfKfPfyJRdk';
                   setSelectedStream({
                     id: 'custom_' + Date.now(),
                     name: 'Custom Live Stream',
@@ -239,16 +391,18 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
                     subscribers: '100K',
                     isLive: true,
                     streamTitle: 'Custom Study Session',
-                    videoId: vid || 'jfKfPfyJRdk',
+                    videoId: vid,
                     currentSessionMode: '50m Deep Work / 10m Break',
                     pomodoroWorkMin: 50,
                     pomodoroBreakMin: 10,
                     isSubscribed: false,
                   });
+                  setAlertNotice(`Loaded custom video stream ID: ${vid}`);
                   setCustomVideoId('');
+                  setTimeout(() => setAlertNotice(null), 3500);
                 }
               }}
-              className="px-3 py-1.5 rounded-xl bg-stone-900 text-white font-semibold hover:bg-stone-800 shrink-0"
+              className="px-4 py-2 rounded-xl bg-stone-900 text-white font-bold hover:bg-stone-800 shrink-0 shadow-xs"
             >
               Load Stream
             </button>

@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User Profile
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+
+      // Private user focus logs
+      match /focus_logs/{logId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Study Spaces
+    match /spaces/{spaceId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.hostId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.hostId == request.auth.uid || request.resource.data.hostId == request.auth.uid);
+    }
+
+    // Flashcard Decks
+    match /decks/{deckId} {
+      allow read: if resource.data.isPublic == true || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

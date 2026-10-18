@@ -2,11 +2,24 @@ export type FocusCategory = 'deep_work' | 'recall' | 'review';
 
 export type UserStatus = 'in_focus' | 'on_break' | 'away';
 
+export interface CountryInfo {
+  code: string;
+  name: string;
+  flag: string;
+  universities: string[];
+}
+
 export interface UserProfile {
   id: string;
   name: string;
   avatar: string;
   universityOrLocation: string;
+  countryCode?: string;
+  countryName?: string;
+  countryFlag?: string;
+  university?: string;
+  studyField?: string;
+  isGhostMode: boolean; // if true, study sessions are private and unlisted from public directory & feeds
   currentSubject: string;
   currentGoal: string;
   status: UserStatus;
@@ -29,6 +42,8 @@ export interface PeerUser {
   name: string;
   avatar: string;
   location: string;
+  countryFlag?: string;
+  university?: string;
   subjectTag: string;
   currentGoal: string;
   status: UserStatus;
@@ -43,6 +58,10 @@ export interface StudySpace {
   tagline: string;
   subjectTag: string;
   location: string;
+  countryCode?: string;
+  countryFlag?: string;
+  university?: string;
+  isGhostMode?: boolean; // if true, hidden from public global list & country feeds
   mode: 'pomodoro' | 'flowtime' | 'animedoro' | 'discussion';
   isPrivate: boolean;
   hostId: string;
@@ -58,6 +77,25 @@ export interface StudySpace {
   };
   breakScheduleText?: string;
   createdAt: string;
+}
+
+export interface ActivityFeedItem {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  countryFlag: string;
+  countryName: string;
+  university: string;
+  type: 'session_completed' | 'streak_milestone' | 'desk_pet_level' | 'deck_created' | 'battle_won';
+  title: string;
+  description: string;
+  xpEarned?: number;
+  streakDays?: number;
+  timestamp: string;
+  cheersCount: number;
+  userHasCheered?: boolean;
+  subjectTag?: string;
 }
 
 export interface AdmissionRequest {

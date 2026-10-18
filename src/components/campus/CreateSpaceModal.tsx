@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Plus, X, Lock, Globe, VolumeX, Clock } from 'lucide-react';
 import { StudySpace, UserProfile } from '../../types';
 
+import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
+import { EyeOff } from 'lucide-react';
+
 interface CreateSpaceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -18,13 +21,17 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
   const [name, setName] = useState('');
   const [tagline, setTagline] = useState('');
   const [subjectTag, setSubjectTag] = useState('#USMLE');
-  const [location, setLocation] = useState('Global Silent Wing');
+  const [selectedCountryCode, setSelectedCountryCode] = useState(currentUser.countryCode || 'JP');
+  const [selectedUniversity, setSelectedUniversity] = useState(currentUser.university || 'Tokyo Institute of Technology');
   const [mode, setMode] = useState<'pomodoro' | 'flowtime' | 'animedoro' | 'discussion'>('pomodoro');
   const [isPrivate, setIsPrivate] = useState(false);
   const [isSilentMode, setIsSilentMode] = useState(true);
+  const [isGhostMode, setIsGhostMode] = useState(false);
   const [workMin, setWorkMin] = useState(50);
   const [breakMin, setBreakMin] = useState(10);
   const [maxCapacity, setMaxCapacity] = useState(25);
+
+  const currentCountry = COUNTRIES_CATALOG.find((c) => c.code === selectedCountryCode) || COUNTRIES_CATALOG[1];
 
   if (!isOpen) return null;
 
@@ -37,7 +44,11 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
       name: name.trim(),
       tagline: tagline.trim() || 'Focused study and deep accountability room.',
       subjectTag: subjectTag.startsWith('#') ? subjectTag : `#${subjectTag}`,
-      location: location.trim() || 'Global Campus',
+      location: `${selectedUniversity}, ${currentCountry.name}`,
+      countryCode: currentCountry.code,
+      countryFlag: currentCountry.flag,
+      university: selectedUniversity,
+      isGhostMode,
       mode,
       isPrivate,
       hostId: currentUser.id,
@@ -48,7 +59,9 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
           id: currentUser.id,
           name: `${currentUser.name} (Host)`,
           avatar: currentUser.avatar,
-          location: currentUser.universityOrLocation,
+          location: selectedUniversity,
+          countryFlag: currentCountry.flag,
+          university: selectedUniversity,
           subjectTag: subjectTag,
           currentGoal: currentUser.currentGoal,
           status: 'in_focus',
@@ -112,35 +125,61 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
             />
           </div>
 
+          {/* Country & University Selection */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-stone-700 mb-1">Subject / Exam Tag</label>
+              <label className="block font-semibold text-stone-700 mb-1">Country / Region</label>
               <select
-                value={subjectTag}
-                onChange={(e) => setSubjectTag(e.target.value)}
-                className="w-full p-3 rounded-2xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                value={selectedCountryCode}
+                onChange={(e) => {
+                  setSelectedCountryCode(e.target.value);
+                  const found = COUNTRIES_CATALOG.find((c) => c.code === e.target.value);
+                  if (found && found.universities.length > 0) {
+                    setSelectedUniversity(found.universities[0]);
+                  }
+                }}
+                className="w-full p-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
               >
-                <option value="#USMLE">#USMLE</option>
-                <option value="#MCAT">#MCAT</option>
-                <option value="#Coding">#Coding</option>
-                <option value="#CalculusIII">#CalculusIII</option>
-                <option value="#BarExam">#BarExam</option>
-                <option value="#A-Levels">#A-Levels</option>
-                <option value="#Architecture">#Architecture</option>
-                <option value="#GlobalAllSubjects">#GlobalAllSubjects</option>
+                {COUNTRIES_CATALOG.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.name}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
-              <label className="block font-semibold text-stone-700 mb-1">University / Location</label>
-              <input
-                type="text"
-                placeholder="e.g. Tokyo Tech / Seoul SNU"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full p-3 rounded-2xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
-              />
+              <label className="block font-semibold text-stone-700 mb-1">University / Campus</label>
+              <select
+                value={selectedUniversity}
+                onChange={(e) => setSelectedUniversity(e.target.value)}
+                className="w-full p-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
+              >
+                {currentCountry.universities.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block font-semibold text-stone-700 mb-1">Subject / Exam Tag</label>
+            <select
+              value={subjectTag}
+              onChange={(e) => setSubjectTag(e.target.value)}
+              className="w-full p-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
+            >
+              <option value="#USMLE">#USMLE (Medicine / Clinical)</option>
+              <option value="#MCAT">#MCAT (Pre-Med / Biology)</option>
+              <option value="#Coding">#Coding (Computer Science / AI)</option>
+              <option value="#CalculusIII">#CalculusIII (Mathematics & Engineering)</option>
+              <option value="#BarExam">#BarExam (Law & Jurisprudence)</option>
+              <option value="#A-Levels">#A-Levels / High School Prep</option>
+              <option value="#Architecture">#Architecture & Design</option>
+              <option value="#GlobalAllSubjects">#GlobalAllSubjects</option>
+            </select>
           </div>
 
           {/* Privacy Toggle: Public vs Knock to Enter */}
@@ -222,6 +261,25 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
               <span className="font-semibold block">Enforce Silent Mode (Mics forced off)</span>
               <span className="text-[11px] text-stone-500">
                 Maintains universal quiet atmosphere. Communication only via silent board or nudges.
+              </span>
+            </div>
+          </label>
+
+          {/* Ghost Mode Policy */}
+          <label className="flex items-center gap-3 p-3 rounded-2xl bg-purple-50/60 border border-purple-200 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isGhostMode}
+              onChange={(e) => setIsGhostMode(e.target.checked)}
+              className="w-4 h-4 rounded text-purple-600 focus:ring-purple-400"
+            />
+            <div className="text-purple-950">
+              <span className="font-semibold flex items-center gap-1.5">
+                <EyeOff className="w-3.5 h-3.5 text-purple-700" />
+                Ghost Mode 👻 (Incognito Study Space)
+              </span>
+              <span className="text-[11px] text-purple-800">
+                Hide this session from public online directory and country explorer. Only people with direct room link can knock.
               </span>
             </div>
           </label>
