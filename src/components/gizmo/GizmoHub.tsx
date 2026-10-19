@@ -29,7 +29,7 @@ const MARKETPLACE_DECKS: StudyDeck[] = [
     id: 'mkt_usmle_pharm',
     title: 'Autonomic & Cardiovascular Pharmacology (First Aid 2026)',
     description: 'Adrenergic antagonists, ACE inhibitors, antiarrhythmics Class I-IV with mechanisms.',
-    subjectTag: '#USMLE',
+    subjectTag: 'USMLE',
     curriculum: 'USMLE Step 1',
     cardsCount: 28,
     isPublic: true,
@@ -64,7 +64,7 @@ const MARKETPLACE_DECKS: StudyDeck[] = [
     id: 'mkt_mcat_chem',
     title: 'MCAT Chemical Foundations & Thermodynamics',
     description: 'Gibbs free energy, Le Chatelier principle, Henderson-Hasselbalch, and galvanic cells.',
-    subjectTag: '#MCAT',
+    subjectTag: 'MCAT',
     curriculum: 'MCAT',
     cardsCount: 34,
     isPublic: true,
@@ -99,7 +99,7 @@ const MARKETPLACE_DECKS: StudyDeck[] = [
     id: 'mkt_bar_tort',
     title: 'Multistate Bar Exam (MBE): Torts & Negligence',
     description: 'Duty, breach, proximate causation, res ipsa loquitur, and strict products liability.',
-    subjectTag: '#BarExam',
+    subjectTag: 'Bar Exam',
     curriculum: 'Bar Exam',
     cardsCount: 42,
     isPublic: true,
@@ -267,7 +267,7 @@ export const GizmoHub: React.FC<GizmoHubProps> = ({
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <span className="text-[11px] font-bold text-pink-700 bg-pink-50 px-2 py-0.5 rounded-md border border-pink-100">
-                    {deck.subjectTag}
+                    {deck.subjectTag.replace(/^#/, '')}
                   </span>
                   <div className="flex items-center gap-1 text-[11px] text-amber-600 font-semibold">
                     <Star className="w-3 h-3 fill-amber-400" />

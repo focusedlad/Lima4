@@ -32,13 +32,13 @@ import { EyeOff, School, MapPin } from 'lucide-react';
 
 const POPULAR_TAGS = [
   'All',
-  '#USMLE',
-  '#MCAT',
-  '#Coding',
-  '#CalculusIII',
-  '#BarExam',
-  '#A-Levels',
-  '#Architecture',
+  'USMLE',
+  'MCAT',
+  'Coding',
+  'Calculus III',
+  'Bar Exam',
+  'A-Levels',
+  'Architecture',
 ];
 
 export const WorldFloor: React.FC<WorldFloorProps> = ({
@@ -80,7 +80,8 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
       space.subjectTag.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesTag =
-      selectedTag === 'All' || space.subjectTag.toLowerCase() === selectedTag.toLowerCase();
+      selectedTag === 'All' ||
+      space.subjectTag.toLowerCase().replace(/^#/, '') === selectedTag.toLowerCase().replace(/^#/, '');
 
     const matchesCountry =
       selectedCountryCode === 'ALL' || space.countryCode === selectedCountryCode;
@@ -204,7 +205,7 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
           <Search className="w-4 h-4 absolute left-3.5 top-3 text-stone-400" />
           <input
             type="text"
-            placeholder="Search by subject (#MCAT, #Coding), university (Oxford, Tokyo Tech), or room name..."
+            placeholder="Search by subject (MCAT, Coding), university (Oxford, Tokyo Tech), or room name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-800 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:bg-white"
@@ -402,7 +403,7 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
                 {/* Space Top Badges */}
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
-                    {space.subjectTag}
+                    {space.subjectTag.replace(/^#/, '')}
                   </span>
 
                   <div className="flex items-center gap-1.5">

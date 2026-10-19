@@ -35,7 +35,7 @@ export const RoomView: React.FC<RoomViewProps> = ({
   const isHost = space.hostId === currentUser.id;
   const [boardMessages, setBoardMessages] = useState<Array<{ id: string; user: string; text: string; time: string }>>([
     { id: '1', user: 'Kai Chen', text: '50m sprint: finishing Cranial Nerve IV & VI lesions.', time: 'Just now' },
-    { id: '2', user: 'Eleanor Vance', text: 'Contract law remedies drill - phone locked in drawer 📚', time: '5m ago' },
+    { id: '2', user: 'Eleanor Vance', text: 'Contract law remedies drill - phone locked in drawer.', time: '5m ago' },
     { id: '3', user: 'Jin-Woo Park', text: 'Renal cell histology review. Good luck everyone!', time: '12m ago' },
   ]);
   const [newIntention, setNewIntention] = useState('');
@@ -43,7 +43,7 @@ export const RoomView: React.FC<RoomViewProps> = ({
 
   const handleSendNudge = (peer: PeerUser) => {
     audioSynth.playChime('peer_nudge');
-    setNudgeNotice(`Sent gentle focus nudge 🔔 to ${peer.name}`);
+    setNudgeNotice(`Sent gentle focus chime to ${peer.name}`);
     setTimeout(() => setNudgeNotice(null), 3000);
   };
 
@@ -125,7 +125,7 @@ export const RoomView: React.FC<RoomViewProps> = ({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2 border-t border-stone-100">
           <div>
             <div className="flex items-center gap-2 text-xs text-stone-500 mb-1">
-              <span className="font-semibold text-amber-700">{space.subjectTag}</span>
+              <span className="font-semibold text-amber-700">{space.subjectTag.replace(/^#/, '')}</span>
               <span>•</span>
               <span>{space.location}</span>
               <span>•</span>

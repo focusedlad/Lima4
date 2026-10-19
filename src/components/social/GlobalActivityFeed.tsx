@@ -36,7 +36,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
 }) => {
   const [filter, setFilter] = useState<'all' | 'my_university' | 'streaks' | 'sessions'>('all');
   const [postTitle, setPostTitle] = useState('');
-  const [postSubject, setPostSubject] = useState(currentUser.currentSubject || '#USMLE');
+  const [postSubject, setPostSubject] = useState(currentUser.currentSubject?.replace(/^#/, '') || 'USMLE');
   const [isPosting, setIsPosting] = useState(false);
 
   const handleCheer = (activityId: string) => {
@@ -50,7 +50,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
     onPostMilestone(
       postTitle.trim(),
       `Studying at ${currentUser.university || currentUser.universityOrLocation}. Verified focus session.`,
-      postSubject.trim()
+      postSubject.replace(/^#/, '').trim()
     );
     setPostTitle('');
     setIsPosting(false);
@@ -99,7 +99,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
             title="Ghost Mode hides your activity from public feed and global directory"
           >
             <EyeOff className={`w-3.5 h-3.5 ${currentUser.isGhostMode ? 'text-purple-700' : 'text-stone-400'}`} />
-            <span>{currentUser.isGhostMode ? 'Ghost Mode: ON 👻' : 'Ghost Mode: OFF'}</span>
+            <span>{currentUser.isGhostMode ? 'Ghost Mode: ON' : 'Ghost Mode: OFF'}</span>
           </button>
 
           <button
@@ -300,7 +300,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                     <h3 className="text-sm font-bold text-stone-900">{item.title}</h3>
                     {item.subjectTag && (
                       <span className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[10px] font-semibold">
-                        {item.subjectTag}
+                        {item.subjectTag.replace(/^#/, '')}
                       </span>
                     )}
                   </div>
@@ -326,7 +326,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                   }`}
                   title="Send peer cheer"
                 >
-                  <span>👏</span>
+                  <Heart className={`w-3.5 h-3.5 ${item.userHasCheered ? 'fill-amber-700 text-amber-700' : 'text-stone-500'}`} />
                   <span>{item.cheersCount} Cheers</span>
                 </button>
               </div>

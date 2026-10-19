@@ -15,6 +15,20 @@ import {
   Heart,
   Globe,
   Plus,
+  Cloud,
+  EyeOff,
+  Shield,
+  Crown,
+  CreditCard,
+  AlertTriangle,
+  ArrowRight,
+  Scale,
+  Sun,
+  Moon,
+  Dog,
+  Smile,
+  Bird,
+  Tv,
 } from 'lucide-react';
 import {
   UserProfile,
@@ -40,6 +54,7 @@ import { QuickActionModal } from './components/common/QuickActionModal';
 import { SoundSynthesizerModal } from './components/audio/SoundSynthesizerModal';
 import { FocusTimerHero } from './components/focus/FocusTimerHero';
 import { YouTubeLiveRadar } from './components/focus/YouTubeLiveRadar';
+import { FloatingStreamerWidget } from './components/focus/FloatingStreamerWidget';
 import { WorldFloor } from './components/campus/WorldFloor';
 import { RoomView } from './components/campus/RoomView';
 import { KnockModal } from './components/campus/KnockModal';
@@ -60,7 +75,7 @@ import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal';
 import { FirebaseService } from './services/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
-import { Cloud, EyeOff, Shield, Crown, CreditCard, AlertTriangle, ArrowRight, Scale } from 'lucide-react';
+
 
 export default function App() {
   // Application Data States
@@ -77,8 +92,30 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<'campus' | 'social' | 'gizmo' | 'focus' | 'analytics'>('campus');
   const [activeSpace, setActiveSpace] = useState<StudySpace | null>(null);
 
-  // Sync state
+  // Sync state & Floating Streamer Pop-up State
   const [syncedCreator, setSyncedCreator] = useState<YouTubeCreator | null>(null);
+  const [activeWatchingStream, setActiveWatchingStream] = useState<YouTubeCreator | null>(null);
+  const [isStreamWidgetVisible, setIsStreamWidgetVisible] = useState<boolean>(true);
+
+  // Dark Mode Theme State
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('lumina_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('lumina_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   // Firebase Auth & Cloud Sync
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -497,7 +534,14 @@ export default function App() {
 
   const handleSyncWithCreator = (creator: YouTubeCreator) => {
     setSyncedCreator(creator);
+    setActiveWatchingStream(creator);
+    setIsStreamWidgetVisible(true);
     setCurrentTab('focus');
+  };
+
+  const handleWatchStream = (creator: YouTubeCreator) => {
+    setActiveWatchingStream(creator);
+    setIsStreamWidgetVisible(true);
   };
 
   const handleAddMarketplaceDeck = (deck: StudyDeck) => {
@@ -505,11 +549,11 @@ export default function App() {
   };
 
   const handleFinishDeckReview = (deckId: string, cardsCount: number, earnedXp: number) => {
-    handleSessionComplete(Math.round(cardsCount * 3), 'recall', '#ActiveRecall');
+    handleSessionComplete(Math.round(cardsCount * 3), 'recall', 'Active Recall');
   };
 
   const handleFinishLiveBattle = (earnedXp: number, rank: number) => {
-    handleSessionComplete(15, 'recall', '#GizmoBattle');
+    handleSessionComplete(15, 'recall', 'Gizmo Battle');
   };
 
   const pendingKnocks = admissions.filter((a) => a.status === 'pending');
@@ -537,18 +581,18 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col font-sans selection:bg-amber-200">
+    <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#121214] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-200 dark:selection:bg-amber-900 transition-colors duration-200">
       {/* Top Global Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-stone-200/70 px-4 sm:px-8 py-3.5 transition-all">
+      <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 dark:bg-[#121214]/90 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 px-3 sm:px-8 py-3 transition-all pt-safe">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           {/* Logo & Slogan */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-200 text-stone-950 flex items-center justify-center font-bold text-lg shadow-xs ring-2 ring-white">
+            <div className="w-10 h-10 rounded-2xl bg-amber-200 text-stone-950 flex items-center justify-center font-bold text-lg shadow-xs ring-2 ring-white dark:ring-stone-800">
               ✦
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-tight text-stone-900">
+                <span className="font-extrabold text-base tracking-tight text-stone-900 dark:text-white">
                   Lumina Study
                 </span>
                 <span
@@ -562,45 +606,45 @@ export default function App() {
                       return next;
                     });
                   }}
-                  className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold cursor-default select-none"
+                  className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 text-[10px] font-bold cursor-default select-none border border-amber-200 dark:border-amber-800"
                   title="Aura Focus Engine v2.4"
                 >
                   Aura v2.4
                 </span>
               </div>
-              <p className="text-[11px] text-stone-500 hidden sm:block">
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 hidden sm:block">
                 Social Focus • Global Campus • Gizmo AI
               </p>
             </div>
           </div>
 
           {/* Quick Metrics & Ambiance Toggle */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             {/* Ghost Mode Quick Toggle */}
             <button
               onClick={handleToggleGhostMode}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-xs transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-xs transition-colors min-h-[40px] ${
                 currentUser.isGhostMode
-                  ? 'bg-purple-100 border-purple-300 text-purple-900 font-bold ring-1 ring-purple-300'
-                  : 'bg-white border-stone-200/80 text-stone-600 hover:bg-stone-50'
+                  ? 'bg-purple-100 dark:bg-purple-950 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 font-bold ring-1 ring-purple-300'
+                  : 'bg-white dark:bg-stone-800 border-stone-200/80 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
               }`}
               title={currentUser.isGhostMode ? 'Ghost Mode ON: Presence hidden from directory' : 'Ghost Mode OFF: Presence visible to peers'}
             >
-              <EyeOff className={`w-3.5 h-3.5 ${currentUser.isGhostMode ? 'text-purple-700' : 'text-stone-400'}`} />
-              <span className="hidden sm:inline">{currentUser.isGhostMode ? 'Ghost 👻' : 'Visible'}</span>
+              <EyeOff className={`w-3.5 h-3.5 ${currentUser.isGhostMode ? 'text-purple-700 dark:text-purple-300' : 'text-stone-400'}`} />
+              <span className="hidden sm:inline">{currentUser.isGhostMode ? 'Ghost' : 'Visible'}</span>
             </button>
 
             <button
               onClick={() => setIsAudioModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-200/80 text-xs font-semibold text-stone-700 shadow-xs transition-colors"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700 text-xs font-semibold text-stone-700 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
               title="Open Web Audio Synthesizer"
             >
-              <Volume2 className="w-3.5 h-3.5 text-amber-600" />
-              <span className="hidden sm:inline">Ambiance</span>
+              <Volume2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span className="hidden sm:inline">Ambience</span>
             </button>
 
             {/* Streak Counter */}
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-stone-200/80 text-xs font-bold text-stone-800 shadow-xs">
+            <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 text-xs font-bold text-stone-800 dark:text-stone-200 shadow-xs min-h-[40px]">
               <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               <span>{currentUser.currentStreak}d</span>
             </div>
@@ -608,20 +652,36 @@ export default function App() {
             {/* Desk Pet Peek */}
             <div
               onClick={() => setCurrentTab('analytics')}
-              className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-stone-200/80 hover:border-amber-300 text-xs font-semibold text-stone-800 shadow-xs transition-colors"
+              className="cursor-pointer flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-500 text-xs font-semibold text-stone-800 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
               title={`Desk Pet: ${currentUser.deskPet.name} Lv.${currentUser.deskPet.level}`}
             >
-              <span>
-                {currentUser.deskPet.species === 'shiba'
-                  ? '🐕'
-                  : currentUser.deskPet.species === 'capybara'
-                  ? '🦫'
-                  : '🦉'}
+              <span className="flex items-center justify-center">
+                {currentUser.deskPet.species === 'shiba' ? (
+                  <Dog className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                ) : currentUser.deskPet.species === 'capybara' ? (
+                  <Smile className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                ) : (
+                  <Bird className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                )}
               </span>
-              <span className="hidden sm:inline font-mono text-[11px] text-amber-700 font-bold">
+              <span className="hidden sm:inline font-mono text-[11px] text-amber-700 dark:text-amber-400 font-bold">
                 Lv.{currentUser.deskPet.level}
               </span>
             </div>
+
+            {/* Dark / Light Mode Switch */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700 text-stone-700 dark:text-stone-200 shadow-xs transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle Dark Mode"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-stone-600" />
+              )}
+            </button>
 
             {/* Cloud Login / Sync Button */}
             {firebaseUser ? (
@@ -770,15 +830,25 @@ export default function App() {
                   onSessionComplete={handleSessionComplete}
                   syncedCreator={syncedCreator}
                   onDisconnectSync={() => setSyncedCreator(null)}
-                  activeSubject={currentUser.currentSubject}
+                  activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
+                  onToggleFloatingStream={() => {
+                    if (!activeWatchingStream && !syncedCreator && creators.length > 0) {
+                      setActiveWatchingStream(creators[0]);
+                    }
+                    setIsStreamWidgetVisible((prev) => !prev);
+                  }}
+                  isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
                 />
 
-                <YouTubeLiveRadar
-                  creators={creators}
-                  onToggleSubscribe={handleToggleCreatorSub}
-                  onSyncWithCreator={handleSyncWithCreator}
-                  syncedCreatorId={syncedCreator?.id}
-                />
+                <div id="youtube-radar-section">
+                  <YouTubeLiveRadar
+                    creators={creators}
+                    onToggleSubscribe={handleToggleCreatorSub}
+                    onSyncWithCreator={handleSyncWithCreator}
+                    onWatchStream={handleWatchStream}
+                    syncedCreatorId={syncedCreator?.id}
+                  />
+                </div>
               </div>
             )}
 
@@ -1001,6 +1071,22 @@ export default function App() {
           setIsTermsModalOpen(false);
         }}
         hasAccepted={Boolean(currentUser.termsAccepted)}
+      />
+
+      {/* Floating Picture-in-Picture YouTube Video Player (Top Right) */}
+      <FloatingStreamerWidget
+        stream={activeWatchingStream || syncedCreator}
+        isVisible={Boolean((activeWatchingStream || syncedCreator) && isStreamWidgetVisible)}
+        onClose={() => setIsStreamWidgetVisible(false)}
+        onSyncTimer={(stream) => handleSyncWithCreator(stream)}
+        onOpenRadar={() => {
+          setCurrentTab('focus');
+          setTimeout(() => {
+            const el = document.getElementById('youtube-radar-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }}
+        isSynced={syncedCreator?.id === (activeWatchingStream?.id || syncedCreator?.id)}
       />
     </div>
   );

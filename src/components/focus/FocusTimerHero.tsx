@@ -20,6 +20,8 @@ interface FocusTimerHeroProps {
   syncedCreator?: YouTubeCreator | null;
   onDisconnectSync?: () => void;
   activeSubject?: string;
+  onToggleFloatingStream?: () => void;
+  isStreamActive?: boolean;
 }
 
 export type TimerMode = 'pomodoro_50_10' | 'pomodoro_25_5' | 'animedoro' | 'flowtime';
@@ -29,7 +31,9 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   onSessionComplete,
   syncedCreator,
   onDisconnectSync,
-  activeSubject = '#USMLE / Neuro',
+  activeSubject = 'USMLE / Neuro',
+  onToggleFloatingStream,
+  isStreamActive,
 }) => {
   const [mode, setMode] = useState<TimerMode>('pomodoro_50_10');
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -168,7 +172,11 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   };
 
   const togglePlay = () => {
-    setIsRunning((prev) => !prev);
+    const nextRunning = !isRunning;
+    setIsRunning(nextRunning);
+    if (nextRunning && onToggleFloatingStream && !isStreamActive) {
+      onToggleFloatingStream();
+    }
     if (isPhoneAway) {
       setIsPhoneAway(false);
     }
@@ -288,6 +296,21 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
             <Volume2 className="w-3.5 h-3.5 text-amber-300" />
             <span className="hidden sm:inline">Ambience</span>
           </button>
+
+          {onToggleFloatingStream && (
+            <button
+              onClick={onToggleFloatingStream}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                isStreamActive
+                  ? 'bg-rose-500/25 text-rose-200 border-rose-500/40 shadow-xs'
+                  : 'bg-white/10 hover:bg-white/15 border-white/10 text-stone-200'
+              }`}
+              title="Toggle floating study stream in top-right corner"
+            >
+              <Tv className={`w-3.5 h-3.5 ${isStreamActive ? 'text-rose-400 animate-pulse' : 'text-stone-300'}`} />
+              <span className="hidden sm:inline">{isStreamActive ? 'Mini Player' : 'Live Video'}</span>
+            </button>
+          )}
         </div>
       </div>
 

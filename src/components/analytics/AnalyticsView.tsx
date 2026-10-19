@@ -9,6 +9,9 @@ import {
   Award,
   ChevronRight,
   TrendingUp,
+  Dog,
+  Smile,
+  Bird,
 } from 'lucide-react';
 import { UserProfile, DayActivity, FocusSessionLog } from '../../types';
 
@@ -187,10 +190,25 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </div>
 
             {/* Pet Graphic & Avatar Presentation */}
-            <div className="w-24 h-24 mx-auto my-2 rounded-3xl bg-amber-100/70 border-2 border-amber-200 flex items-center justify-center text-4xl shadow-inner relative">
-              {pet.species === 'shiba' && '🐕'}
-              {pet.species === 'capybara' && '🦫'}
-              {pet.species === 'owl' && '🦉'}
+            <div className="w-24 h-24 mx-auto my-2 rounded-3xl bg-amber-100/70 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-800 flex items-center justify-center shadow-inner relative">
+              {pet.species === 'shiba' && (
+                <div className="flex flex-col items-center text-amber-700 dark:text-amber-300">
+                  <Dog className="w-10 h-10 stroke-[1.75]" />
+                  <span className="text-[10px] font-bold tracking-tight">SHIBA</span>
+                </div>
+              )}
+              {pet.species === 'capybara' && (
+                <div className="flex flex-col items-center text-amber-700 dark:text-amber-300">
+                  <Smile className="w-10 h-10 stroke-[1.75]" />
+                  <span className="text-[10px] font-bold tracking-tight">BOBA</span>
+                </div>
+              )}
+              {pet.species === 'owl' && (
+                <div className="flex flex-col items-center text-amber-700 dark:text-amber-300">
+                  <Bird className="w-10 h-10 stroke-[1.75]" />
+                  <span className="text-[10px] font-bold tracking-tight">MATCHA</span>
+                </div>
+              )}
 
               <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 bg-stone-900 text-white rounded-full text-[9px] font-bold">
                 Lv.{pet.level}
@@ -220,33 +238,36 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             <div className="grid grid-cols-3 gap-1.5 mt-4 pt-3 border-t border-stone-100">
               <button
                 onClick={() => handleSwitchPetSpecies('shiba')}
-                className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 ${
                   pet.species === 'shiba'
                     ? 'bg-amber-100 text-amber-900 border border-amber-300'
                     : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
                 }`}
               >
-                🐕 Shiba
+                <Dog className="w-3.5 h-3.5" />
+                <span>Shiba</span>
               </button>
               <button
                 onClick={() => handleSwitchPetSpecies('capybara')}
-                className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 ${
                   pet.species === 'capybara'
                     ? 'bg-amber-100 text-amber-900 border border-amber-300'
                     : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
                 }`}
               >
-                🦫 Boba
+                <Smile className="w-3.5 h-3.5" />
+                <span>Boba</span>
               </button>
               <button
                 onClick={() => handleSwitchPetSpecies('owl')}
-                className={`py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 ${
                   pet.species === 'owl'
                     ? 'bg-amber-100 text-amber-900 border border-amber-300'
                     : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
                 }`}
               >
-                🦉 Matcha
+                <Bird className="w-3.5 h-3.5" />
+                <span>Matcha</span>
               </button>
             </div>
           </div>
@@ -260,9 +281,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {pet.decorations.map((item, i) => (
                 <span
                   key={i}
-                  className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-700 text-[10px] font-medium"
+                  className="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-700 text-[10px] font-medium flex items-center gap-1"
                 >
-                  ✨ {item}
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>{item}</span>
                 </span>
               ))}
             </div>

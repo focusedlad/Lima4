@@ -26,6 +26,11 @@ const ANNOUNCEMENTS_KEY = 'lumina_announcements';
 const EMPLOYEES_KEY = 'lumina_employees';
 const SETTINGS_KEY = 'lumina_system_settings';
 
+export const stripHashtags = (text?: string): string => {
+  if (!text) return '';
+  return text.replace(/^#+/, '').replace(/\s+#+/g, ' ').trim();
+};
+
 export const INITIAL_USER: UserProfile = {
   id: 'usr_me',
   name: 'Kai Chen',
@@ -37,7 +42,7 @@ export const INITIAL_USER: UserProfile = {
   university: 'Tokyo Institute of Technology',
   studyField: 'Medicine & Healthcare (USMLE, Pre-Med)',
   isGhostMode: false,
-  currentSubject: '#USMLE / Neuro',
+  currentSubject: 'USMLE / Neuro',
   currentGoal: 'Consolidate cranial nerve pathways & finish 50m sprint',
   status: 'in_focus',
   currentStreak: 14,
@@ -59,7 +64,7 @@ export const INITIAL_SPACES: StudySpace[] = [
     id: 'space_great_hall',
     name: 'The Great Hall (Universal Silent Floor)',
     tagline: 'Global persistent silent floor where thousands of solo studiers coexist in peace.',
-    subjectTag: '#GlobalAllSubjects',
+    subjectTag: 'Global Campus',
     location: 'Universal Cloud Campus',
     countryCode: 'GLOBAL',
     countryFlag: '🌐',
@@ -83,7 +88,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Tokyo Tech',
         countryFlag: '🇯🇵',
         university: 'Tokyo Institute of Technology',
-        subjectTag: '#USMLE / Neuro',
+        subjectTag: 'USMLE / Neuro',
         currentGoal: 'Cranial nerve nuclei memorization',
         status: 'in_focus',
         streakDays: 14,
@@ -96,7 +101,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Oxford University',
         countryFlag: '🇬🇧',
         university: 'University of Oxford',
-        subjectTag: '#BarExam / Torts',
+        subjectTag: 'Bar Exam / Torts',
         currentGoal: 'Civil procedure summary memo',
         status: 'in_focus',
         streakDays: 22,
@@ -109,7 +114,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Seoul SNU Med',
         countryFlag: '🇰🇷',
         university: 'Seoul National University (SNU)',
-        subjectTag: '#USMLE / Pathology',
+        subjectTag: 'USMLE / Pathology',
         currentGoal: 'Renal cell carcinoma histology',
         status: 'in_focus',
         streakDays: 31,
@@ -122,7 +127,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Imperial College London',
         countryFlag: '🇬🇧',
         university: 'Imperial College London',
-        subjectTag: '#CalculusIII',
+        subjectTag: 'Calculus III',
         currentGoal: 'Surface integrals & Stokes theorem',
         status: 'on_break',
         streakDays: 9,
@@ -135,7 +140,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'MIT Stata Center',
         countryFlag: '🇺🇸',
         university: 'Massachusetts Institute of Technology (MIT)',
-        subjectTag: '#Coding / Rust',
+        subjectTag: 'Coding / Rust',
         currentGoal: 'Implementing zero-copy async buffer',
         status: 'away',
         streakDays: 17,
@@ -147,7 +152,7 @@ export const INITIAL_SPACES: StudySpace[] = [
     id: 'space_tokyo_tech',
     name: 'Tokyo Tech 8th Floor Silent Wing',
     tagline: 'Quiet engineering and algorithmic architecture study pod.',
-    subjectTag: '#Coding',
+    subjectTag: 'Coding',
     location: 'Tokyo Institute of Technology',
     countryCode: 'JP',
     countryFlag: '🇯🇵',
@@ -171,7 +176,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Tokyo Tech',
         countryFlag: '🇯🇵',
         university: 'Tokyo Institute of Technology',
-        subjectTag: '#Coding / Distributed Systems',
+        subjectTag: 'Coding / Distributed Systems',
         currentGoal: 'Raft consensus election timeouts',
         status: 'in_focus',
         streakDays: 45,
@@ -184,7 +189,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Tokyo',
         countryFlag: '🇯🇵',
         university: 'Tokyo Institute of Technology',
-        subjectTag: '#A-Levels / FurtherMath',
+        subjectTag: 'A-Levels / Further Math',
         currentGoal: 'Differential equations problem set',
         status: 'in_focus',
         streakDays: 12,
@@ -196,7 +201,7 @@ export const INITIAL_SPACES: StudySpace[] = [
     id: 'space_jh_med',
     name: 'Johns Hopkins Med Sprint Pod',
     tagline: 'Intense USMLE Step 1 sprint. Knock required with study sprint goal.',
-    subjectTag: '#USMLE',
+    subjectTag: 'USMLE',
     location: 'Johns Hopkins Medical Quad',
     countryCode: 'US',
     countryFlag: '🇺🇸',
@@ -220,7 +225,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Tokyo Tech',
         countryFlag: '🇯🇵',
         university: 'Tokyo Institute of Technology',
-        subjectTag: '#USMLE',
+        subjectTag: 'USMLE',
         currentGoal: 'Organize high-yield neuro sprint',
         status: 'in_focus',
         streakDays: 14,
@@ -233,7 +238,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Baltimore',
         countryFlag: '🇺🇸',
         university: 'Johns Hopkins University',
-        subjectTag: '#USMLE / Cardio',
+        subjectTag: 'USMLE / Cardio',
         currentGoal: 'Murmur sound identification',
         status: 'in_focus',
         streakDays: 19,
@@ -245,7 +250,7 @@ export const INITIAL_SPACES: StudySpace[] = [
     id: 'space_oxford_bodleian',
     name: 'Oxford Bodleian Quiet Chamber',
     tagline: 'Private chamber for law and humanities scholars. Strict silent policy.',
-    subjectTag: '#BarExam',
+    subjectTag: 'Bar Exam',
     location: 'Oxford Bodleian Library',
     countryCode: 'GB',
     countryFlag: '🇬🇧',
@@ -269,7 +274,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Oxford University',
         countryFlag: '🇬🇧',
         university: 'University of Oxford',
-        subjectTag: '#BarExam',
+        subjectTag: 'Bar Exam',
         currentGoal: 'Constitutional law precedent drill',
         status: 'in_focus',
         streakDays: 22,
@@ -281,7 +286,7 @@ export const INITIAL_SPACES: StudySpace[] = [
     id: 'space_makerere',
     name: 'Makerere Tech & Health Quad',
     tagline: 'Intense study space for computer science and medical researchers at Makerere.',
-    subjectTag: '#Coding',
+    subjectTag: 'Coding',
     location: 'Makerere University, Kampala',
     countryCode: 'UG',
     countryFlag: '🇺🇬',
@@ -305,7 +310,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'Makerere University',
         countryFlag: '🇺🇬',
         university: 'Makerere University',
-        subjectTag: '#Coding / AI',
+        subjectTag: 'Coding / AI',
         currentGoal: 'Natural language pipeline for clinical notes',
         status: 'in_focus',
         streakDays: 28,
@@ -317,7 +322,7 @@ export const INITIAL_SPACES: StudySpace[] = [
     id: 'space_uon_law',
     name: 'University of Nairobi Law Chamber',
     tagline: 'Quiet sprint on jurisprudence, commercial law, and constitutional review.',
-    subjectTag: '#BarExam',
+    subjectTag: 'Bar Exam',
     location: 'University of Nairobi, Parklands',
     countryCode: 'KE',
     countryFlag: '🇰🇪',
@@ -341,7 +346,7 @@ export const INITIAL_SPACES: StudySpace[] = [
         location: 'University of Nairobi',
         countryFlag: '🇰🇪',
         university: 'University of Nairobi',
-        subjectTag: '#BarExam',
+        subjectTag: 'Bar Exam',
         currentGoal: 'Commercial contracts analysis',
         status: 'in_focus',
         streakDays: 19,
@@ -353,7 +358,7 @@ export const INITIAL_SPACES: StudySpace[] = [
     id: 'space_seoul_snu',
     name: 'Seoul SNU 24/7 Lofi Lounge',
     tagline: 'Relaxed night owls studying calculus, physics, and organic chemistry.',
-    subjectTag: '#CalculusIII',
+    subjectTag: 'Calculus III',
     location: 'Seoul National University',
     countryCode: 'KR',
     countryFlag: '🇰🇷',
@@ -382,7 +387,7 @@ export const INITIAL_ADMISSIONS: AdmissionRequest[] = [
     userName: 'Clara Oswald, MS1',
     userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
     studyGoal: 'Doing 60 UWorld pharmacology questions & Socratic card review for 90 mins.',
-    subjectTag: '#USMLE',
+    subjectTag: 'USMLE',
     streakDays: 8,
     requestedAt: '3 minutes ago',
     status: 'pending',
@@ -395,7 +400,7 @@ export const INITIAL_ADMISSIONS: AdmissionRequest[] = [
     userName: 'Tariq Hassan',
     userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     studyGoal: 'Cardiology hemodynamics and EKG rhythm breakdown. Silent sprint.',
-    subjectTag: '#Cardiology',
+    subjectTag: 'Cardiology',
     streakDays: 16,
     requestedAt: '7 minutes ago',
     status: 'pending',
@@ -407,7 +412,7 @@ export const INITIAL_DECKS: StudyDeck[] = [
     id: 'deck_usmle_neuro',
     title: 'USMLE Step 1: High-Yield Neuro & Autonomic Pharmacology',
     description: 'Master cranial nerves, stroke syndromes, and cholinergic/adrenergic receptors with active recall.',
-    subjectTag: '#USMLE',
+    subjectTag: 'USMLE',
     curriculum: 'USMLE Step 1',
     cardsCount: 6,
     isPublic: true,
@@ -537,7 +542,7 @@ export const INITIAL_DECKS: StudyDeck[] = [
     id: 'deck_mcat_bio',
     title: 'MCAT Biological & Biochemical Foundations',
     description: 'Enzyme kinetics, amino acid stereochemistry, cellular respiration, and bioenergetics.',
-    subjectTag: '#MCAT',
+    subjectTag: 'MCAT',
     curriculum: 'MCAT',
     cardsCount: 4,
     isPublic: true,
@@ -629,7 +634,7 @@ export const INITIAL_DECKS: StudyDeck[] = [
     id: 'deck_cs_dist',
     title: 'Advanced Distributed Systems & Consensus',
     description: 'Raft consensus, CAP theorem, Paxos leader elections, and vector clocks.',
-    subjectTag: '#Coding',
+    subjectTag: 'Coding',
     curriculum: 'CS Algorithm / Systems',
     cardsCount: 3,
     isPublic: true,
@@ -708,7 +713,7 @@ export const INITIAL_CREATORS: YouTubeCreator[] = [
     avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
     subscribers: '14.2M',
     isLive: true,
-    streamTitle: '🔴 lofi hip hop radio 📚 - beats to relax/study to [24/7 Live]',
+    streamTitle: 'Lofi Hip Hop Radio - Beats to Relax and Study to (24/7 Stream)',
     videoId: 'jfKfPfyJRdk', // 24/7 verified study stream
     currentSessionMode: 'Continuous Flowtime / 25-5 sync',
     pomodoroWorkMin: 25,
@@ -723,7 +728,7 @@ export const INITIAL_CREATORS: YouTubeCreator[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     subscribers: '3.4M',
     isLive: true,
-    streamTitle: '☕ Chillhop Radio - jazzy & lofi hip hop beats to focus & study',
+    streamTitle: 'Chillhop Radio - Jazzy and Lo-Fi Study Beats to Focus',
     videoId: '5yx6BWlEVcY', // verified chillhop stream
     currentSessionMode: '50m Deep Work / 10m Break',
     pomodoroWorkMin: 50,
@@ -738,8 +743,8 @@ export const INITIAL_CREATORS: YouTubeCreator[] = [
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     subscribers: '1.24M',
     isLive: true,
-    streamTitle: '⚡ 12-Hour Deep Study Sprint With Me [50-10 Pomodoro / Silent]',
-    videoId: 'jfKfPfyJRdk',
+    streamTitle: '12-Hour Silent Study Sprint (50-10 Pomodoro Focus Session)',
+    videoId: 'turb9FvXzM8',
     currentSessionMode: '50m Deep Work / 10m Break',
     pomodoroWorkMin: 50,
     pomodoroBreakMin: 10,
@@ -753,7 +758,7 @@ export const INITIAL_CREATORS: YouTubeCreator[] = [
     avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
     subscribers: '890K',
     isLive: true,
-    streamTitle: '🌧️ Tokyo Rainy Evening Library Study With Me [Peaceful Ambient Sounds]',
+    streamTitle: 'Tokyo Rainy Evening Library Study (Peaceful Rain Ambience)',
     videoId: '5qap5aO4i9A',
     currentSessionMode: '50m Deep Work / 10m Break',
     pomodoroWorkMin: 50,
@@ -774,11 +779,11 @@ export const INITIAL_ACTIVITY_FEED: ActivityFeedItem[] = [
     university: 'Tokyo Institute of Technology',
     type: 'session_completed',
     title: 'Completed 50m Deep Work Sprint',
-    description: 'Mastered Cranial Nerve VI lesions & brainstem stroke syndromes in #USMLE.',
+    description: 'Mastered Cranial Nerve VI lesions & brainstem stroke syndromes in USMLE.',
     xpEarned: 200,
     timestamp: '2m ago',
     cheersCount: 14,
-    subjectTag: '#USMLE',
+    subjectTag: 'USMLE',
   },
   {
     id: 'act_2',
@@ -789,12 +794,12 @@ export const INITIAL_ACTIVITY_FEED: ActivityFeedItem[] = [
     countryName: 'United States',
     university: 'MIT',
     type: 'streak_milestone',
-    title: 'Hit 18-Day Focus Streak! 🔥',
+    title: 'Hit 18-Day Focus Streak!',
     description: 'Studied for 4.2 hours today across distributed algorithms and Rust async buffers.',
     streakDays: 18,
     timestamp: '7m ago',
     cheersCount: 29,
-    subjectTag: '#Coding',
+    subjectTag: 'Coding',
   },
   {
     id: 'act_3',
@@ -810,7 +815,7 @@ export const INITIAL_ACTIVITY_FEED: ActivityFeedItem[] = [
     xpEarned: 150,
     timestamp: '14m ago',
     cheersCount: 21,
-    subjectTag: '#Medicine',
+    subjectTag: 'Medicine',
   },
   {
     id: 'act_4',
@@ -821,12 +826,12 @@ export const INITIAL_ACTIVITY_FEED: ActivityFeedItem[] = [
     countryName: 'United Kingdom',
     university: 'University of Oxford',
     type: 'battle_won',
-    title: 'Won Gizmo Live Quiz Battle 🏆',
+    title: 'Won Gizmo Live Quiz Battle',
     description: 'Scored 1,840 pts with a 4x Mega Combo on Constitutional Law MBE questions!',
     xpEarned: 240,
     timestamp: '22m ago',
     cheersCount: 35,
-    subjectTag: '#BarExam',
+    subjectTag: 'Bar Exam',
   },
   {
     id: 'act_5',
@@ -837,12 +842,12 @@ export const INITIAL_ACTIVITY_FEED: ActivityFeedItem[] = [
     countryName: 'South Korea',
     university: 'Seoul National University',
     type: 'desk_pet_level',
-    title: 'Desk Pet Leveled Up! 🦫',
+    title: 'Desk Pet Leveled Up!',
     description: 'Boba the Capybara reached Level 7 and unlocked "Hot Spring Tub" room decor.',
     xpEarned: 300,
     timestamp: '35m ago',
     cheersCount: 42,
-    subjectTag: '#Productivity',
+    subjectTag: 'Productivity',
   },
   {
     id: 'act_6',
@@ -858,19 +863,19 @@ export const INITIAL_ACTIVITY_FEED: ActivityFeedItem[] = [
     xpEarned: 240,
     timestamp: '48m ago',
     cheersCount: 18,
-    subjectTag: '#Law',
+    subjectTag: 'Law',
   },
 ];
 
 export const INITIAL_FOCUS_LOGS: FocusSessionLog[] = [
-  { id: 'log_1', date: '2026-10-17', durationMinutes: 50, category: 'deep_work', subject: '#USMLE', xpEarned: 100 },
-  { id: 'log_2', date: '2026-10-17', durationMinutes: 25, category: 'recall', subject: '#USMLE', xpEarned: 60 },
-  { id: 'log_3', date: '2026-10-17', durationMinutes: 40, category: 'review', subject: '#USMLE', xpEarned: 80 },
-  { id: 'log_4', date: '2026-10-16', durationMinutes: 120, category: 'deep_work', subject: '#Coding', xpEarned: 240 },
-  { id: 'log_5', date: '2026-10-16', durationMinutes: 45, category: 'recall', subject: '#Coding', xpEarned: 90 },
-  { id: 'log_6', date: '2026-10-15', durationMinutes: 180, category: 'deep_work', subject: '#USMLE', xpEarned: 360 },
-  { id: 'log_7', date: '2026-10-14', durationMinutes: 90, category: 'recall', subject: '#MCAT', xpEarned: 180 },
-  { id: 'log_8', date: '2026-10-13', durationMinutes: 150, category: 'deep_work', subject: '#BarExam', xpEarned: 300 },
+  { id: 'log_1', date: '2026-10-17', durationMinutes: 50, category: 'deep_work', subject: 'USMLE', xpEarned: 100 },
+  { id: 'log_2', date: '2026-10-17', durationMinutes: 25, category: 'recall', subject: 'USMLE', xpEarned: 60 },
+  { id: 'log_3', date: '2026-10-17', durationMinutes: 40, category: 'review', subject: 'USMLE', xpEarned: 80 },
+  { id: 'log_4', date: '2026-10-16', durationMinutes: 120, category: 'deep_work', subject: 'Coding', xpEarned: 240 },
+  { id: 'log_5', date: '2026-10-16', durationMinutes: 45, category: 'recall', subject: 'Coding', xpEarned: 90 },
+  { id: 'log_6', date: '2026-10-15', durationMinutes: 180, category: 'deep_work', subject: 'USMLE', xpEarned: 360 },
+  { id: 'log_7', date: '2026-10-14', durationMinutes: 90, category: 'recall', subject: 'MCAT', xpEarned: 180 },
+  { id: 'log_8', date: '2026-10-13', durationMinutes: 150, category: 'deep_work', subject: 'Bar Exam', xpEarned: 300 },
 ];
 
 export function generate31DayHeatmap(): DayActivity[] {
@@ -1023,7 +1028,7 @@ export const INITIAL_ANNOUNCEMENTS: GlobalAnnouncement[] = [
   },
   {
     id: 'ann_exam_cram',
-    title: '⚡ 2x XP Boost Active for Global Exam Cram Week!',
+    title: '2x XP Boost Active for Global Exam Cram Week!',
     message: 'Double experience points are currently awarded for all Pomodoro sessions. Level up your desk pet and climb the global university leaderboard!',
     type: 'event',
     priority: 'normal',
@@ -1098,7 +1103,7 @@ export const INITIAL_ALL_USERS: UserProfile[] = [
     university: 'Makerere University',
     studyField: 'Computer Science, Engineering & Math',
     isGhostMode: false,
-    currentSubject: '#FullStack / AI Systems',
+    currentSubject: 'FullStack / AI Systems',
     currentGoal: 'Overseeing global platform launch & system scaling',
     status: 'in_focus',
     currentStreak: 42,
@@ -1131,7 +1136,7 @@ export const INITIAL_ALL_USERS: UserProfile[] = [
     university: 'Tokyo Institute of Technology',
     studyField: 'Medicine & Healthcare (USMLE, Pre-Med)',
     isGhostMode: false,
-    currentSubject: '#USMLE / Neuro',
+    currentSubject: 'USMLE / Neuro',
     currentGoal: 'Consolidate cranial nerve pathways & finish 50m sprint',
     status: 'in_focus',
     currentStreak: 14,
@@ -1164,7 +1169,7 @@ export const INITIAL_ALL_USERS: UserProfile[] = [
     university: 'University of Oxford',
     studyField: 'Biological Sciences & Biotechnology',
     isGhostMode: false,
-    currentSubject: '#Biochem / CRIPSR',
+    currentSubject: 'Biochem / CRISPR',
     currentGoal: 'Peer review gene editing paper',
     status: 'in_focus',
     currentStreak: 31,
@@ -1197,7 +1202,7 @@ export const INITIAL_ALL_USERS: UserProfile[] = [
     university: 'Harvard University',
     studyField: 'Law & Jurisprudence (JD, Bar Exam)',
     isGhostMode: false,
-    currentSubject: '#ConstitutionalLaw',
+    currentSubject: 'Constitutional Law',
     currentGoal: 'Review 14th amendment precedents',
     status: 'on_break',
     currentStreak: 6,
@@ -1230,7 +1235,7 @@ export const INITIAL_ALL_USERS: UserProfile[] = [
     university: 'University of Cape Town',
     studyField: 'Business, Economics & Finance',
     isGhostMode: false,
-    currentSubject: '#MacroEconomics',
+    currentSubject: 'Macroeconomics',
     currentGoal: 'Monetary policy econometric models',
     status: 'in_focus',
     currentStreak: 19,
@@ -1263,7 +1268,7 @@ export const INITIAL_ALL_USERS: UserProfile[] = [
     university: 'Kyoto University',
     studyField: 'Computer Science, Engineering & Math',
     isGhostMode: true,
-    currentSubject: '#Algorithms / Graphs',
+    currentSubject: 'Algorithms / Graphs',
     currentGoal: 'Complete LeetCode dynamic programming set',
     status: 'in_focus',
     currentStreak: 24,
@@ -1290,13 +1295,18 @@ export class StorageService {
   public static getUser(): UserProfile {
     try {
       const data = localStorage.getItem(USER_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const u = JSON.parse(data);
+        if (u.currentSubject) u.currentSubject = stripHashtags(u.currentSubject);
+        return u;
+      }
     } catch (_) {}
     return INITIAL_USER;
   }
 
   public static saveUser(user: UserProfile) {
     try {
+      if (user.currentSubject) user.currentSubject = stripHashtags(user.currentSubject);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
     } catch (_) {}
   }
@@ -1304,7 +1314,17 @@ export class StorageService {
   public static getSpaces(): StudySpace[] {
     try {
       const data = localStorage.getItem(SPACES_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const list: StudySpace[] = JSON.parse(data);
+        return list.map((s) => ({
+          ...s,
+          subjectTag: stripHashtags(s.subjectTag),
+          currentMembers: s.currentMembers?.map((m) => ({
+            ...m,
+            subjectTag: stripHashtags(m.subjectTag),
+          })) || [],
+        }));
+      }
     } catch (_) {}
     return INITIAL_SPACES;
   }
@@ -1318,7 +1338,13 @@ export class StorageService {
   public static getDecks(): StudyDeck[] {
     try {
       const data = localStorage.getItem(DECKS_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const list: StudyDeck[] = JSON.parse(data);
+        return list.map((d) => ({
+          ...d,
+          subjectTag: stripHashtags(d.subjectTag),
+        }));
+      }
     } catch (_) {}
     return INITIAL_DECKS;
   }
@@ -1346,7 +1372,13 @@ export class StorageService {
   public static getAdmissions(): AdmissionRequest[] {
     try {
       const data = localStorage.getItem(ADMISSIONS_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const list: AdmissionRequest[] = JSON.parse(data);
+        return list.map((a) => ({
+          ...a,
+          subjectTag: stripHashtags(a.subjectTag),
+        }));
+      }
     } catch (_) {}
     return INITIAL_ADMISSIONS;
   }
@@ -1360,7 +1392,13 @@ export class StorageService {
   public static getFocusLogs(): FocusSessionLog[] {
     try {
       const data = localStorage.getItem(LOGS_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const list: FocusSessionLog[] = JSON.parse(data);
+        return list.map((l) => ({
+          ...l,
+          subject: stripHashtags(l.subject),
+        }));
+      }
     } catch (_) {}
     return INITIAL_FOCUS_LOGS;
   }
@@ -1374,7 +1412,13 @@ export class StorageService {
   public static getActivityFeed(): ActivityFeedItem[] {
     try {
       const data = localStorage.getItem(FEED_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const list: ActivityFeedItem[] = JSON.parse(data);
+        return list.map((item) => ({
+          ...item,
+          subjectTag: item.subjectTag ? stripHashtags(item.subjectTag) : undefined,
+        }));
+      }
     } catch (_) {}
     return INITIAL_ACTIVITY_FEED;
   }
@@ -1388,7 +1432,13 @@ export class StorageService {
   public static getAllUsers(): UserProfile[] {
     try {
       const data = localStorage.getItem(USERS_LIST_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const list: UserProfile[] = JSON.parse(data);
+        return list.map((u) => ({
+          ...u,
+          currentSubject: stripHashtags(u.currentSubject),
+        }));
+      }
     } catch (_) {}
     return INITIAL_ALL_USERS;
   }

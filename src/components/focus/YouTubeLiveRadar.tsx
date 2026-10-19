@@ -15,6 +15,10 @@ import {
   Volume2,
   Headphones,
   Compass,
+  Zap,
+  Stethoscope,
+  CloudRain,
+  Eye,
 } from 'lucide-react';
 import { YouTubeCreator } from '../../types';
 
@@ -23,6 +27,7 @@ interface YouTubeLiveRadarProps {
   onToggleSubscribe: (creatorId: string) => void;
   onSyncWithCreator: (creator: YouTubeCreator) => void;
   syncedCreatorId?: string | null;
+  onWatchStream?: (stream: YouTubeCreator) => void;
 }
 
 const PRESET_POPULAR_STREAMS: {
@@ -38,7 +43,7 @@ const PRESET_POPULAR_STREAMS: {
 }[] = [
   {
     name: 'Lofi Girl 24/7',
-    title: '🔴 lofi hip hop radio - beats to relax/study to [Live 24/7]',
+    title: 'Lofi Hip Hop Radio - Beats to Relax/Study to [Live 24/7]',
     videoId: 'jfKfPfyJRdk',
     mode: '25m Pomodoro / Flow',
     workMin: 25,
@@ -49,7 +54,7 @@ const PRESET_POPULAR_STREAMS: {
   },
   {
     name: 'James Scholz',
-    title: '⚡ 12-Hour Silent Study Sprint With Me [50-10 Pomodoro]',
+    title: '12-Hour Silent Study Sprint (50-10 Pomodoro Focus Session)',
     videoId: 'turb9FvXzM8',
     mode: '50m Sprint / 10m Break',
     workMin: 50,
@@ -60,7 +65,7 @@ const PRESET_POPULAR_STREAMS: {
   },
   {
     name: 'Kharma Medic',
-    title: '🩺 10-Hour Med School Study With Me (50/10 Pomodoro + Rain)',
+    title: '10-Hour Med School Study Session (50/10 Pomodoro + Rain)',
     videoId: '4xDzrJKXOOY',
     mode: '50m Deep Work / 10m Break',
     workMin: 50,
@@ -71,7 +76,7 @@ const PRESET_POPULAR_STREAMS: {
   },
   {
     name: 'Chillhop Beats',
-    title: '☕ Chillhop Radio - jazzy & lofi study beats to focus',
+    title: 'Chillhop Radio - Jazzy & Lo-Fi Study Beats to Focus',
     videoId: '5yx6BWlEVcY',
     mode: '50m Deep Work / 10m Break',
     workMin: 50,
@@ -82,7 +87,7 @@ const PRESET_POPULAR_STREAMS: {
   },
   {
     name: 'The Sherry Formula',
-    title: '📚 4-Hour Silent Pomodoro Study With Me (Desk Timer + Lo-Fi)',
+    title: '4-Hour Silent Pomodoro Study Sprint (Desk Timer + Lo-Fi)',
     videoId: 'S_dfuo2F760',
     mode: '60m Deep Sprint / 10m Break',
     workMin: 60,
@@ -93,7 +98,7 @@ const PRESET_POPULAR_STREAMS: {
   },
   {
     name: 'Tokyo Rain Library',
-    title: '🌧️ Tokyo Evening Rain & Quiet Library Ambience',
+    title: 'Tokyo Evening Rain & Quiet Library Ambience',
     videoId: '5qap5aO4i9A',
     mode: '50m Focus / 10m Break',
     workMin: 50,
@@ -104,7 +109,7 @@ const PRESET_POPULAR_STREAMS: {
   },
   {
     name: 'StudyMD Board Prep',
-    title: '🧠 10-Hour Intensive Board Exam Sprint (Silent Real-Time Study)',
+    title: '10-Hour Intensive Board Exam Sprint (Silent Real-Time Study)',
     videoId: '4xDzrJKXOOY',
     mode: '50m Deep Work / 10m Break',
     workMin: 50,
@@ -115,7 +120,7 @@ const PRESET_POPULAR_STREAMS: {
   },
   {
     name: 'Cafe Study Piano',
-    title: '☕ Cozy Coffee Shop Ambience & Soft Piano Study',
+    title: 'Cozy Coffee Shop Ambience & Soft Piano Study',
     videoId: 'S_dfuo2F760',
     mode: 'Continuous Flowtime',
     workMin: 45,
@@ -131,6 +136,7 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
   onToggleSubscribe,
   onSyncWithCreator,
   syncedCreatorId,
+  onWatchStream,
 }) => {
   const [selectedStream, setSelectedStream] = useState<YouTubeCreator>(creators[0]);
   const [isSplitView, setIsSplitView] = useState<boolean>(true);
@@ -142,7 +148,8 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
 
   const handleSelectStream = (creator: YouTubeCreator) => {
     setSelectedStream(creator);
-    setAlertNotice(`Loaded stream: ${creator.name}`);
+    onWatchStream?.(creator);
+    setAlertNotice(`Watching live stream: ${creator.name}`);
     setTimeout(() => setAlertNotice(null), 3000);
   };
 
@@ -163,6 +170,7 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
       isSubscribed: true,
     };
     setSelectedStream(updated);
+    onWatchStream?.(updated);
     setStreamReloadKey((k) => k + 1);
     setAlertNotice(`Now playing: ${preset.name}`);
     setTimeout(() => setAlertNotice(null), 3000);
@@ -238,7 +246,7 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
         <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none text-xs">
           <button
             onClick={() => setCategoryFilter('all')}
-            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               categoryFilter === 'all'
                 ? 'bg-stone-900 text-white shadow-xs'
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
@@ -248,43 +256,47 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
           </button>
           <button
             onClick={() => setCategoryFilter('silent')}
-            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               categoryFilter === 'silent'
-                ? 'bg-stone-900 text-white shadow-xs'
+                ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-xs'
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
           >
-            ⚡ Silent Study Sprints
+            <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+            <span>Silent Study Sprints</span>
           </button>
           <button
             onClick={() => setCategoryFilter('medical')}
-            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               categoryFilter === 'medical'
-                ? 'bg-stone-900 text-white shadow-xs'
+                ? 'bg-rose-100 text-rose-900 border border-rose-300 shadow-xs'
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
           >
-            🩺 Med School & Board Prep
+            <Stethoscope className="w-3.5 h-3.5 text-rose-600" />
+            <span>Med School & Prep</span>
           </button>
           <button
             onClick={() => setCategoryFilter('music')}
-            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               categoryFilter === 'music'
-                ? 'bg-stone-900 text-white shadow-xs'
+                ? 'bg-sky-100 text-sky-900 border border-sky-300 shadow-xs'
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
           >
-            🎧 Lofi & Chillhop Radio
+            <Headphones className="w-3.5 h-3.5 text-sky-600" />
+            <span>Lo-Fi & Study Beats</span>
           </button>
           <button
             onClick={() => setCategoryFilter('ambient')}
-            className={`px-3 py-1 rounded-xl font-bold whitespace-nowrap transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
               categoryFilter === 'ambient'
-                ? 'bg-stone-900 text-white shadow-xs'
+                ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs'
                 : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
             }`}
           >
-            🌧️ Rain & Library Ambience
+            <CloudRain className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Rain & Library Ambience</span>
           </button>
         </div>
 

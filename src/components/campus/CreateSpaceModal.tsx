@@ -20,7 +20,7 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [tagline, setTagline] = useState('');
-  const [subjectTag, setSubjectTag] = useState('#USMLE');
+  const [subjectTag, setSubjectTag] = useState('USMLE');
   const [selectedCountryCode, setSelectedCountryCode] = useState(currentUser.countryCode || 'JP');
   const [selectedUniversity, setSelectedUniversity] = useState(currentUser.university || 'Tokyo Institute of Technology');
   const [mode, setMode] = useState<'pomodoro' | 'flowtime' | 'animedoro' | 'discussion'>('pomodoro');
@@ -39,11 +39,13 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
     e.preventDefault();
     if (!name.trim()) return;
 
+    const cleanSubject = subjectTag.replace(/^#+/, '').trim() || 'General Study';
+
     const newSpace: StudySpace = {
       id: 'space_' + Date.now(),
       name: name.trim(),
       tagline: tagline.trim() || 'Focused study and deep accountability room.',
-      subjectTag: subjectTag.startsWith('#') ? subjectTag : `#${subjectTag}`,
+      subjectTag: cleanSubject,
       location: `${selectedUniversity}, ${currentCountry.name}`,
       countryCode: currentCountry.code,
       countryFlag: currentCountry.flag,
@@ -62,7 +64,7 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
           location: selectedUniversity,
           countryFlag: currentCountry.flag,
           university: selectedUniversity,
-          subjectTag: subjectTag,
+          subjectTag: cleanSubject,
           currentGoal: currentUser.currentGoal,
           status: 'in_focus',
           streakDays: currentUser.currentStreak,
@@ -165,20 +167,20 @@ export const CreateSpaceModal: React.FC<CreateSpaceModalProps> = ({
           </div>
 
           <div>
-            <label className="block font-semibold text-stone-700 mb-1">Subject / Exam Tag</label>
+            <label className="block font-semibold text-stone-700 mb-1">Subject / Curriculum Area</label>
             <select
               value={subjectTag}
               onChange={(e) => setSubjectTag(e.target.value)}
               className="w-full p-2.5 rounded-2xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
             >
-              <option value="#USMLE">#USMLE (Medicine / Clinical)</option>
-              <option value="#MCAT">#MCAT (Pre-Med / Biology)</option>
-              <option value="#Coding">#Coding (Computer Science / AI)</option>
-              <option value="#CalculusIII">#CalculusIII (Mathematics & Engineering)</option>
-              <option value="#BarExam">#BarExam (Law & Jurisprudence)</option>
-              <option value="#A-Levels">#A-Levels / High School Prep</option>
-              <option value="#Architecture">#Architecture & Design</option>
-              <option value="#GlobalAllSubjects">#GlobalAllSubjects</option>
+              <option value="USMLE">USMLE (Medicine / Clinical)</option>
+              <option value="MCAT">MCAT (Pre-Med / Biology)</option>
+              <option value="Coding">Coding (Computer Science / AI)</option>
+              <option value="Calculus III">Calculus III (Mathematics & Engineering)</option>
+              <option value="Bar Exam">Bar Exam (Law & Jurisprudence)</option>
+              <option value="A-Levels">A-Levels / High School Prep</option>
+              <option value="Architecture">Architecture & Design</option>
+              <option value="General Campus">General Campus (All Subjects)</option>
             </select>
           </div>
 
