@@ -326,8 +326,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </div>
         </div>
 
-        {/* 31-Day Grid */}
-        <div className="grid grid-cols-7 sm:grid-cols-11 md:grid-cols-16 lg:grid-cols-31 gap-2 py-2">
+        {/* 31-Day Grid - Responsive calendar style, zero horizontal scroll */}
+        <div className="w-full">
+          <div className="grid grid-cols-7 sm:grid-cols-11 md:grid-cols-16 lg:grid-cols-31 gap-1.5 sm:gap-2 py-2 w-full">
           {heatmapDays.map((day) => {
             let color = 'bg-stone-100 text-stone-400 hover:border-stone-400';
             if (day.hours > 6) {
@@ -354,6 +355,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               </button>
             );
           })}
+          </div>
         </div>
 
         {/* Day Breakdown Inspector */}

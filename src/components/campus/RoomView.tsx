@@ -172,81 +172,93 @@ export const RoomView: React.FC<RoomViewProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {space.currentMembers.map((peer) => {
-              const ringColor =
-                peer.status === 'in_focus'
-                  ? 'ring-emerald-500 ring-offset-2'
-                  : peer.status === 'on_break'
-                  ? 'ring-amber-500 ring-offset-2'
-                  : 'ring-rose-500 ring-offset-2';
+          {space.currentMembers && space.currentMembers.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {space.currentMembers.map((peer) => {
+                const ringColor =
+                  peer.status === 'in_focus'
+                    ? 'ring-emerald-500 ring-offset-2'
+                    : peer.status === 'on_break'
+                    ? 'ring-amber-500 ring-offset-2'
+                    : 'ring-rose-500 ring-offset-2';
 
-              const statusBadge =
-                peer.status === 'in_focus' ? (
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-semibold">
-                    In Focus
-                  </span>
-                ) : peer.status === 'on_break' ? (
-                  <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-semibold">
-                    On Break
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md font-semibold">
-                    Away (Phone)
-                  </span>
-                );
-
-              return (
-                <div
-                  key={peer.id}
-                  className="squircle-card p-4 bg-white border border-stone-200 hover:shadow-md transition-all flex flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img
-                          src={peer.avatar}
-                          alt={peer.name}
-                          className={`w-11 h-11 rounded-full object-cover ring-2 ${ringColor}`}
-                        />
-                        {peer.status === 'in_focus' && (
-                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold text-stone-900">{peer.name}</h3>
-                        <p className="text-[11px] text-stone-500">{peer.location}</p>
-                      </div>
-                    </div>
-                    {statusBadge}
-                  </div>
-
-                  <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 text-xs text-stone-700 mb-3">
-                    <span className="text-[10px] uppercase font-bold text-stone-400 block mb-0.5">Sprint Goal</span>
-                    <p className="line-clamp-2 italic font-serif">"{peer.currentGoal}"</p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
-                    <span className="flex items-center text-amber-600 font-semibold text-[11px]">
-                      <Flame className="w-3.5 h-3.5 fill-amber-500 mr-1" />
-                      {peer.streakDays}d Streak
+                const statusBadge =
+                  peer.status === 'in_focus' ? (
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-semibold">
+                      In Focus
                     </span>
+                  ) : peer.status === 'on_break' ? (
+                    <span className="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-semibold">
+                      On Break
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md font-semibold">
+                      Away (Phone)
+                    </span>
+                  );
 
-                    {peer.id !== currentUser.id && (
-                      <button
-                        onClick={() => handleSendNudge(peer)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-semibold transition-colors"
-                        title="Send focus chime"
-                      >
-                        <Bell className="w-3 h-3 text-amber-600" />
-                        Nudge
-                      </button>
-                    )}
+                return (
+                  <div
+                    key={peer.id}
+                    className="squircle-card p-4 bg-white border border-stone-200 hover:shadow-md transition-all flex flex-col justify-between"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <img
+                            src={peer.avatar}
+                            alt={peer.name}
+                            className={`w-11 h-11 rounded-full object-cover ring-2 ${ringColor}`}
+                          />
+                          {peer.status === 'in_focus' && (
+                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-bold text-stone-900">{peer.name}</h3>
+                          <p className="text-[11px] text-stone-500">{peer.location}</p>
+                        </div>
+                      </div>
+                      {statusBadge}
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-100 text-xs text-stone-700 mb-3">
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block mb-0.5">Sprint Goal</span>
+                      <p className="line-clamp-2 italic font-serif">"{peer.currentGoal}"</p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
+                      <span className="flex items-center text-amber-600 font-semibold text-[11px]">
+                        <Flame className="w-3.5 h-3.5 fill-amber-500 mr-1" />
+                        {peer.streakDays}d Streak
+                      </span>
+
+                      {peer.id !== currentUser.id && (
+                        <button
+                          onClick={() => handleSendNudge(peer)}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-semibold transition-colors"
+                          title="Send focus chime"
+                        >
+                          <Bell className="w-3 h-3 text-amber-600" />
+                          Nudge
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="squircle-card p-8 bg-white border border-stone-200 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
+                <Users className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-stone-900">Room Ready for Real Studiers</h3>
+              <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
+                You are holding the floor in this room! Start your focus sprint below — as classmates or global peers enter this room, their live presence cards will appear here in real time.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Right: Silent Intention & Accountability Board */}

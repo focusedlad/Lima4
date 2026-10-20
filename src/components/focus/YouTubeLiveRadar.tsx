@@ -242,8 +242,8 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
           </span>
         </div>
 
-        {/* Category Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none text-xs">
+        {/* Category Filter Tabs - Wrapped neatly without horizontal scroll */}
+        <div className="flex flex-wrap items-center gap-1.5 mb-3 text-xs max-w-full">
           <button
             onClick={() => setCategoryFilter('all')}
             className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all ${
@@ -300,12 +300,12 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
           </button>
         </div>
 
-        {/* Popular Streams Quick Switcher Bar */}
+        {/* Popular Streams Quick Switcher Bar - Wrapped without horizontal scroll */}
         <div className="mb-4 pt-1 pb-2 border-b border-stone-100">
           <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block mb-2">
             Click to Launch Streamer in Player:
           </span>
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
             {filteredPresets.map((p) => {
               const isActive = selectedStream?.videoId === p.videoId;
               return (

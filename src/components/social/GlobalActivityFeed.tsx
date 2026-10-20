@@ -186,7 +186,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
 
       {/* Feed Filters */}
       <div className="squircle-card p-3 sm:p-4 bg-white border border-stone-200 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => setFilter('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${

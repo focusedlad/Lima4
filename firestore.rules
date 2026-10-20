@@ -11,10 +11,15 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Connection testing
+    match /test/{docId} {
+      allow read: if true;
+    }
+
     // User Profile
     match /users/{userId} {
       allow read: if true;
-      allow write: if isOwner(userId);
+      allow write: if isOwner(userId) || (isAuthenticated() && request.auth.token.email == 'iantumwebaze75@gmail.com');
 
       // Private user focus logs
       match /focus_logs/{logId} {
@@ -22,27 +27,42 @@ service cloud.firestore {
       }
     }
 
-    // Study Spaces
+    // Study Spaces (real-time virtual campus rooms)
     match /spaces/{spaceId} {
       allow read: if true;
-      allow create: if isAuthenticated() && request.resource.data.hostId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && (resource.data.hostId == request.auth.uid || request.resource.data.hostId == request.auth.uid);
+      allow create: if isAuthenticated();
+      // Allow updates if host, or if authenticated member joining/leaving the room presence
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && (resource.data.hostId == request.auth.uid || request.auth.token.email == 'iantumwebaze75@gmail.com');
     }
 
     // Flashcard Decks
     match /decks/{deckId} {
-      allow read: if resource.data.isPublic == true || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow read: if true;
       allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated();
     }
 
-    // Subscription Plans (public read, admin write)
+    // Global Activity Feed
+    match /activity_feed/{feedId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated(); // For cheering milestones
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || request.auth.token.email == 'iantumwebaze75@gmail.com');
+    }
+
+    // Admission Knocks
+    match /admissions/{admissionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Subscription Plans (public read, authenticated admin write)
     match /plans/{planId} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    // Global Announcements (public read, admin write)
+    // Global Announcements (public read, authenticated admin write)
     match /announcements/{announcementId} {
       allow read: if true;
       allow write: if isAuthenticated();

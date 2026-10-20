@@ -43,6 +43,7 @@ import {
   GlobalAnnouncement,
   EmployeeAccount,
   SystemSettings,
+  PeerUser,
 } from './types';
 import {
   StorageService,
@@ -225,6 +226,44 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Real-time Firebase Firestore Subscriptions for all Live Data
+  useEffect(() => {
+    const unsubSpaces = FirebaseService.subscribeSpaces((remoteSpaces) => {
+      if (remoteSpaces && remoteSpaces.length > 0) {
+        setSpaces(remoteSpaces);
+        if (activeSpace) {
+          const currentRemoteSpace = remoteSpaces.find((s) => s.id === activeSpace.id);
+          if (currentRemoteSpace) setActiveSpace(currentRemoteSpace);
+        }
+      }
+    }, INITIAL_SPACES);
+
+    const unsubFeed = FirebaseService.subscribeActivityFeed((remoteFeed) => {
+      if (remoteFeed && remoteFeed.length > 0) {
+        setActivityFeed(remoteFeed);
+      }
+    }, INITIAL_ACTIVITY_FEED);
+
+    const unsubDecks = FirebaseService.subscribeDecks((remoteDecks) => {
+      if (remoteDecks && remoteDecks.length > 0) {
+        setDecks(remoteDecks);
+      }
+    }, INITIAL_DECKS);
+
+    const unsubAdmissions = FirebaseService.subscribeAdmissions((remoteAdmissions) => {
+      if (remoteAdmissions) {
+        setAdmissions(remoteAdmissions);
+      }
+    });
+
+    return () => {
+      unsubSpaces();
+      unsubFeed();
+      unsubDecks();
+      unsubAdmissions();
+    };
+  }, [activeSpace?.id]);
+
   // Sync profile to Firestore if authenticated
   useEffect(() => {
     if (firebaseUser) {
@@ -339,7 +378,7 @@ export default function App() {
     }
   };
 
-  // Social feed handlers
+  // Social feed handlers with Firebase Sync
   const handleCheerActivity = (activityId: string) => {
     setActivityFeed((prev) =>
       prev.map((item) => {
@@ -354,6 +393,7 @@ export default function App() {
         return item;
       })
     );
+    FirebaseService.cheerActivity(activityId).catch(() => {});
   };
 
   const handlePostMilestone = (title: string, description: string, subjectTag: string) => {
@@ -376,6 +416,7 @@ export default function App() {
       subjectTag,
     };
     setActivityFeed([newItem, ...activityFeed]);
+    FirebaseService.addActivityItem(newItem).catch(() => {});
   };
 
   const handleToggleGhostMode = () => {
@@ -386,6 +427,68 @@ export default function App() {
         isGhostMode: updatedGhost,
       };
     });
+  };
+
+  // Real-Time Study Space Enter & Leave Handlers (Connects to Firebase Firestore)
+  const handleEnterSpace = async (space: StudySpace) => {
+    setActiveSpace(space);
+    const peer: PeerUser = {
+      id: currentUser.id,
+      name: currentUser.name,
+      avatar: currentUser.avatar,
+      location: currentUser.university || currentUser.universityOrLocation,
+      countryFlag: currentUser.countryFlag,
+      university: currentUser.university,
+      subjectTag: currentUser.currentSubject,
+      currentGoal: currentUser.currentGoal,
+      status: currentUser.status,
+      streakDays: currentUser.currentStreak,
+      focusMinutesToday: Math.round(currentUser.totalHoursStudied * 60),
+    };
+
+    // Optimistically update locally
+    setSpaces((prev) =>
+      prev.map((s) =>
+        s.id === space.id
+          ? {
+              ...s,
+              currentMembers: [
+                ...(s.currentMembers || []).filter((m) => m.id !== peer.id),
+                peer,
+              ],
+            }
+          : s
+      )
+    );
+
+    // Sync to Firestore backend
+    try {
+      await FirebaseService.joinSpace(space.id, peer);
+    } catch (e) {
+      console.warn('Could not join room on Firebase:', e);
+    }
+  };
+
+  const handleLeaveSpace = async () => {
+    if (activeSpace) {
+      const spaceId = activeSpace.id;
+      setSpaces((prev) =>
+        prev.map((s) =>
+          s.id === spaceId
+            ? {
+                ...s,
+                currentMembers: (s.currentMembers || []).filter((m) => m.id !== currentUser.id),
+              }
+            : s
+        )
+      );
+      try {
+        await FirebaseService.leaveSpace(spaceId, currentUser.id);
+      } catch (e) {
+        console.warn('Could not leave room on Firebase:', e);
+      }
+    }
+    setActiveSpace(null);
   };
 
   // Handle Focus Session Completion
@@ -417,7 +520,7 @@ export default function App() {
     };
     setCurrentUser(updatedUser);
 
-    // Append log
+    // Append log and persist to Firebase backend
     const newLog: FocusSessionLog = {
       id: `log_${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
@@ -427,8 +530,9 @@ export default function App() {
       xpEarned: earnedXp,
     };
     setFocusLogs([newLog, ...focusLogs]);
+    FirebaseService.saveFocusLog(currentUser.id, newLog).catch(() => {});
 
-    // If Ghost Mode is OFF, broadcast to Global Activity Feed
+    // If Ghost Mode is OFF, broadcast to Global Activity Feed & Firestore backend
     if (!currentUser.isGhostMode) {
       const newFeedItem: ActivityFeedItem = {
         id: `act_${Date.now()}`,
@@ -449,10 +553,11 @@ export default function App() {
         subjectTag: subject,
       };
       setActivityFeed((prev) => [newFeedItem, ...prev]);
+      FirebaseService.addActivityItem(newFeedItem).catch(() => {});
     }
   };
 
-  // Admission knock handlers
+  // Admission knock handlers with Firebase backend sync
   const handleKnockSpace = (space: StudySpace) => {
     setKnockTargetSpace(space);
   };
@@ -476,6 +581,7 @@ export default function App() {
     };
 
     setAdmissions([newAdmission, ...admissions]);
+    FirebaseService.submitAdmission(newAdmission).catch(() => {});
   };
 
   const handleAcceptAdmission = (admissionId: string) => {
@@ -485,6 +591,7 @@ export default function App() {
     setAdmissions((prev) =>
       prev.map((a) => (a.id === admissionId ? { ...a, status: 'approved' } : a))
     );
+    FirebaseService.updateAdmissionStatus(admissionId, 'approved').catch(() => {});
 
     // Add admitted member to space
     setSpaces((prev) =>
@@ -519,11 +626,13 @@ export default function App() {
     setAdmissions((prev) =>
       prev.map((a) => (a.id === admissionId ? { ...a, status: 'rejected' } : a))
     );
+    FirebaseService.updateAdmissionStatus(admissionId, 'rejected').catch(() => {});
   };
 
   const handleCreateSpace = (newSpace: StudySpace) => {
     setSpaces([newSpace, ...spaces]);
     setActiveSpace(newSpace);
+    FirebaseService.saveSpace(newSpace).catch(() => {});
   };
 
   const handleToggleCreatorSub = (creatorId: string) => {
@@ -546,6 +655,7 @@ export default function App() {
 
   const handleAddMarketplaceDeck = (deck: StudyDeck) => {
     setDecks([deck, ...decks]);
+    FirebaseService.saveDeck(deck).catch(() => {});
   };
 
   const handleFinishDeckReview = (deckId: string, cardsCount: number, earnedXp: number) => {
@@ -581,18 +691,18 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#121214] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-200 dark:selection:bg-amber-900 transition-colors duration-200">
+    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#FAF8F5] dark:bg-[#121214] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-200 dark:selection:bg-amber-900 transition-colors duration-200">
       {/* Top Global Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 dark:bg-[#121214]/90 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 px-3 sm:px-8 py-3 transition-all pt-safe">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 dark:bg-[#121214]/90 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Logo & Slogan */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-200 text-stone-950 flex items-center justify-center font-bold text-lg shadow-xs ring-2 ring-white dark:ring-stone-800">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-200 text-stone-950 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-white dark:ring-stone-800 shrink-0">
               ✦
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-tight text-stone-900 dark:text-white">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="font-extrabold text-sm sm:text-base tracking-tight text-stone-900 dark:text-white truncate">
                   Lumina Study
                 </span>
                 <span
@@ -606,24 +716,24 @@ export default function App() {
                       return next;
                     });
                   }}
-                  className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 text-[10px] font-bold cursor-default select-none border border-amber-200 dark:border-amber-800"
+                  className="hidden md:inline-block px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 text-[10px] font-bold cursor-default select-none border border-amber-200 dark:border-amber-800 shrink-0"
                   title="Aura Focus Engine v2.4"
                 >
                   Aura v2.4
                 </span>
               </div>
-              <p className="text-[11px] text-stone-500 dark:text-stone-400 hidden sm:block">
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 hidden md:block truncate">
                 Social Focus • Global Campus • Gizmo AI
               </p>
             </div>
           </div>
 
           {/* Quick Metrics & Ambiance Toggle */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Ghost Mode Quick Toggle */}
             <button
               onClick={handleToggleGhostMode}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-xs transition-colors min-h-[40px] ${
+              className={`hidden lg:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-xs transition-colors min-h-[40px] ${
                 currentUser.isGhostMode
                   ? 'bg-purple-100 dark:bg-purple-950 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 font-bold ring-1 ring-purple-300'
                   : 'bg-white dark:bg-stone-800 border-stone-200/80 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
@@ -631,20 +741,20 @@ export default function App() {
               title={currentUser.isGhostMode ? 'Ghost Mode ON: Presence hidden from directory' : 'Ghost Mode OFF: Presence visible to peers'}
             >
               <EyeOff className={`w-3.5 h-3.5 ${currentUser.isGhostMode ? 'text-purple-700 dark:text-purple-300' : 'text-stone-400'}`} />
-              <span className="hidden sm:inline">{currentUser.isGhostMode ? 'Ghost' : 'Visible'}</span>
+              <span>{currentUser.isGhostMode ? 'Ghost' : 'Visible'}</span>
             </button>
 
             <button
               onClick={() => setIsAudioModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700 text-xs font-semibold text-stone-700 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700 text-xs font-semibold text-stone-700 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
               title="Open Web Audio Synthesizer"
             >
               <Volume2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span className="hidden sm:inline">Ambience</span>
+              <span>Ambience</span>
             </button>
 
             {/* Streak Counter */}
-            <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 text-xs font-bold text-stone-800 dark:text-stone-200 shadow-xs min-h-[40px]">
+            <div className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 text-xs font-bold text-stone-800 dark:text-stone-200 shadow-xs min-h-[40px]">
               <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               <span>{currentUser.currentStreak}d</span>
             </div>
@@ -652,7 +762,7 @@ export default function App() {
             {/* Desk Pet Peek */}
             <div
               onClick={() => setCurrentTab('analytics')}
-              className="cursor-pointer flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-500 text-xs font-semibold text-stone-800 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
+              className="hidden md:flex cursor-pointer items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-500 text-xs font-semibold text-stone-800 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
               title={`Desk Pet: ${currentUser.deskPet.name} Lv.${currentUser.deskPet.level}`}
             >
               <span className="flex items-center justify-center">
@@ -664,7 +774,7 @@ export default function App() {
                   <Bird className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                 )}
               </span>
-              <span className="hidden sm:inline font-mono text-[11px] text-amber-700 dark:text-amber-400 font-bold">
+              <span className="font-mono text-[11px] text-amber-700 dark:text-amber-400 font-bold">
                 Lv.{currentUser.deskPet.level}
               </span>
             </div>
@@ -687,19 +797,19 @@ export default function App() {
             {firebaseUser ? (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs hover:bg-emerald-100 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-semibold shadow-xs hover:bg-emerald-100 transition-colors min-h-[40px]"
                 title="Cloud Sync Active (Click to manage)"
               >
-                <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="hidden md:inline">Cloud Synced</span>
+                <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="hidden sm:inline">Synced</span>
               </button>
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 text-white text-xs font-bold shadow-xs hover:bg-stone-800 transition-all active:scale-95"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-stone-900 dark:bg-amber-400 text-white dark:text-stone-950 text-xs font-bold shadow-xs hover:bg-stone-800 dark:hover:bg-amber-300 transition-all active:scale-95 min-h-[40px]"
                 title="Sign In with Google or Email"
               >
-                <Cloud className="w-3.5 h-3.5 text-amber-300" />
+                <Cloud className="w-3.5 h-3.5 text-amber-300 dark:text-stone-950" />
                 <span>Sign In</span>
               </button>
             )}
@@ -707,15 +817,15 @@ export default function App() {
             {/* Upgrade / Subscriptions Button */}
             <button
               onClick={() => setIsSubscriptionModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-stone-950 font-extrabold text-xs shadow-xs transition-all active:scale-95"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-stone-950 font-extrabold text-xs shadow-xs transition-all active:scale-95 min-h-[40px]"
               title="View Membership Plans & Pricing"
             >
               <Crown className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">
+              <span>
                 {currentUser.subscriptionTier === 'campus_elite'
-                  ? 'Elite Member'
+                  ? 'Elite'
                   : currentUser.subscriptionTier === 'pro'
-                  ? 'Pro Plan'
+                  ? 'Pro'
                   : 'Upgrade'}
               </span>
             </button>
@@ -774,13 +884,13 @@ export default function App() {
       )}
 
       {/* Main Page Body */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-8 overflow-x-hidden">
         {/* If user is inside a specific space, render RoomView */}
         {activeSpace ? (
           <RoomView
             space={activeSpace}
             currentUser={currentUser}
-            onLeaveSpace={() => setActiveSpace(null)}
+            onLeaveSpace={handleLeaveSpace}
             onOpenAdmissions={() => setIsAdmissionsOpen(true)}
             pendingKnocksCount={pendingKnocks.length}
           />
@@ -791,7 +901,7 @@ export default function App() {
               <WorldFloor
                 spaces={spaces}
                 currentUser={currentUser}
-                onSelectSpace={(space) => setActiveSpace(space)}
+                onSelectSpace={handleEnterSpace}
                 onKnockSpace={handleKnockSpace}
                 onCreateSpaceOpen={() => setIsCreateSpaceOpen(true)}
                 onOpenAdmissions={() => setIsAdmissionsOpen(true)}

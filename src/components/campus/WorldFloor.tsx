@@ -100,7 +100,7 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
   });
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-20 w-full max-w-full overflow-x-hidden">
       {/* Top Header & Search Bar */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -145,7 +145,7 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Live Worldwide Presence
+                Live Worldwide Floor
               </span>
               <span className="text-xs text-stone-400">Universal Silent Floor</span>
             </div>
@@ -154,37 +154,43 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
               The Great Hall (Universal Silent Floor)
             </h2>
             <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
-              <strong>14,280 students</strong> are studying together in silence right now across 86 countries. No talking, strictly flow state.
+              {greatHall.currentMembers && greatHall.currentMembers.length > 0 ? (
+                <>
+                  <strong className="text-emerald-400">{greatHall.currentMembers.length} studier{greatHall.currentMembers.length === 1 ? '' : 's'}</strong> in the room right now. Real-time synchronous quiet focus.
+                </>
+              ) : (
+                <>
+                  Universal quiet room open for students worldwide. Step in, turn on your timer, and study in shared focus.
+                </>
+              )}
             </p>
 
-            {/* Overlapping Avatar Cluster */}
+            {/* Live Real Members Cluster */}
             <div className="flex items-center gap-3 pt-2">
-              <div className="flex -space-x-2.5 overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                  alt="Student avatar"
-                  className="inline-block h-8 w-8 rounded-full ring-2 ring-stone-900 object-cover"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80"
-                  alt="Student avatar"
-                  className="inline-block h-8 w-8 rounded-full ring-2 ring-stone-900 object-cover"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80"
-                  alt="Student avatar"
-                  className="inline-block h-8 w-8 rounded-full ring-2 ring-stone-900 object-cover"
-                />
-                <img
-                  src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&auto=format&fit=crop&q=80"
-                  alt="Student avatar"
-                  className="inline-block h-8 w-8 rounded-full ring-2 ring-stone-900 object-cover"
-                />
-                <div className="h-8 w-8 rounded-full bg-stone-800 ring-2 ring-stone-900 flex items-center justify-center text-[10px] font-bold text-amber-300">
-                  +14k
+              {greatHall.currentMembers && greatHall.currentMembers.length > 0 ? (
+                <div className="flex -space-x-2.5 overflow-hidden">
+                  {greatHall.currentMembers.slice(0, 5).map((m) => (
+                    <img
+                      key={m.id}
+                      src={m.avatar}
+                      alt={m.name}
+                      className="inline-block h-8 w-8 rounded-full ring-2 ring-stone-900 object-cover"
+                      title={m.name}
+                    />
+                  ))}
+                  {greatHall.currentMembers.length > 5 && (
+                    <div className="h-8 w-8 rounded-full bg-stone-800 ring-2 ring-stone-900 flex items-center justify-center text-[10px] font-bold text-amber-300">
+                      +{greatHall.currentMembers.length - 5}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <span className="text-xs text-stone-300 font-medium">Tokyo, Oxford, Seoul, Boston...</span>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-stone-400">
+                  <span className="w-2 h-2 rounded-full bg-stone-600" />
+                  <span>Silent space ready • Enter to start</span>
+                </div>
+              )}
+              <span className="text-xs text-stone-300 font-medium">Tokyo, Oxford, Seoul, Kampala, Boston...</span>
             </div>
           </div>
 
@@ -212,8 +218,8 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
           />
         </div>
 
-        {/* Tag Filters (Subject / Exam Tag) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {/* Tag Filters (Subject / Exam Tag) - Wrapped neatly without horizontal scroll */}
+        <div className="flex flex-wrap items-center gap-1.5 py-0.5">
           {POPULAR_TAGS.map((tag) => (
             <button
               key={tag}
@@ -249,8 +255,8 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
             )}
           </div>
 
-          {/* Country Flag Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {/* Country Flag Pills - Wrapped neatly without horizontal scroll */}
+          <div className="flex flex-wrap items-center gap-1.5 py-0.5">
             <button
               onClick={() => {
                 setSelectedCountryCode('ALL');
@@ -285,9 +291,9 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
             ))}
           </div>
 
-          {/* Sub-Filter: Universities in Selected Country */}
+          {/* Sub-Filter: Universities in Selected Country - Wrapped without horizontal scroll */}
           {currentCountry && currentCountry.code !== 'GLOBAL' && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
               <span className="text-stone-400 text-[11px] font-medium shrink-0">Campus:</span>
               <button
                 onClick={() => setSelectedUniversity('ALL')}

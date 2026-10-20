@@ -113,6 +113,37 @@
         "status": { "type": "string" }
       },
       "required": ["id", "name", "email", "roleTitle"]
+    },
+    "ActivityFeedItem": {
+      "title": "ActivityFeedItem",
+      "description": "Social feed item representing user study milestones, streaks, and deck creations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userAvatar": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "cheersCount": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "userName", "type", "title"]
+    },
+    "AdmissionRequest": {
+      "title": "AdmissionRequest",
+      "description": "Knock to enter private study space request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "spaceId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "studyGoal": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
+      },
+      "required": ["id", "spaceId", "userId", "status"]
     }
   },
   "firestore": {
@@ -139,6 +170,14 @@
     "/employees/{employeeId}": {
       "schema": { "$ref": "#/entities/EmployeeAccount" },
       "description": "Team staff and permissions"
+    },
+    "/activity_feed/{feedId}": {
+      "schema": { "$ref": "#/entities/ActivityFeedItem" },
+      "description": "Real-time global social feed"
+    },
+    "/admissions/{admissionId}": {
+      "schema": { "$ref": "#/entities/AdmissionRequest" },
+      "description": "Room admission knock requests"
     },
     "/users/{userId}/focus_logs/{logId}": {
       "schema": { "$ref": "#/entities/FocusLog" },

@@ -43,8 +43,8 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
     <div
       className={`fixed z-40 transition-all duration-300 pointer-events-auto ${
         isMinimized
-          ? 'top-16 sm:top-20 right-2 sm:right-6 w-auto'
-          : 'top-16 sm:top-20 right-2 sm:right-6 w-[calc(100vw-1rem)] sm:w-80 max-w-[340px]'
+          ? 'top-16 sm:top-20 right-3 sm:right-6 w-auto'
+          : 'top-16 sm:top-20 right-3 sm:right-6 w-[calc(100vw-1.5rem)] sm:w-80 max-w-[320px] sm:max-w-[340px]'
       }`}
       style={{
         top: 'max(env(safe-area-inset-top, 16px) + 54px, 68px)',

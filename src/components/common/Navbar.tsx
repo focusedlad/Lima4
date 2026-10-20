@@ -17,7 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAdmissions,
 }) => {
   return (
-    <div className="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-50 px-2.5 sm:px-3 w-full max-w-lg pb-safe">
+    <div className="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-50 px-2 sm:px-3 w-[calc(100%-1rem)] max-w-lg pb-safe">
       <nav
         aria-label="Primary Navigation"
         className="relative bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border border-stone-200/90 dark:border-stone-800 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.15)] dark:shadow-[0_16px_40px_-10px_rgba(0,0,0,0.6)] rounded-[32px] px-2 py-1.5 flex items-center justify-between transition-all"
