@@ -227,7 +227,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
       {/* Top Bar: Mode Selectors & Creator Sync Badge */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 mb-6">
         {/* Segmented Mode Control */}
-        <div className="flex items-center gap-1 p-1 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-xs">
+        <div className="flex flex-wrap items-center gap-1 p-1 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-xs max-w-full">
           <button
             onClick={() => switchMode('pomodoro_50_10')}
             className={`px-3 py-1.5 rounded-xl font-medium transition-all ${
@@ -271,7 +271,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
         </div>
 
         {/* Ambient Sound & Stream Sync badges */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {syncedCreator && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs">
               <Tv className="w-3.5 h-3.5 animate-pulse" />

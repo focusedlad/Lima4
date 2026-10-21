@@ -441,7 +441,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto mt-3 flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+        <div className="max-w-7xl mx-auto mt-3 flex flex-wrap items-center gap-1.5 pb-1">
           {hasPerm('overview') && (
             <button
               onClick={() => setActiveTab('overview')}

@@ -867,6 +867,7 @@ export const INITIAL_ALL_USERS: UserProfile[] = [
       mood: 'focused',
       decorations: ['Crown of Wisdom', 'Golden Quill', 'Cosmic Aura'],
     },
+  },
 ];
 
 export class StorageService {

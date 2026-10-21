@@ -48,6 +48,9 @@ import {
 import {
   StorageService,
   generate31DayHeatmap,
+  INITIAL_SPACES,
+  INITIAL_ACTIVITY_FEED,
+  INITIAL_DECKS,
 } from './services/storage';
 import { audioSynth } from './services/audioSynth';
 import { Navbar } from './components/common/Navbar';
@@ -717,9 +720,9 @@ export default function App() {
                     });
                   }}
                   className="hidden md:inline-block px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 text-[10px] font-bold cursor-default select-none border border-amber-200 dark:border-amber-800 shrink-0"
-                  title="Aura Focus Engine v2.4"
+                  title="Campus Admin Access"
                 >
-                  Aura v2.4
+                  Campus
                 </span>
               </div>
               <p className="text-[11px] text-stone-500 dark:text-stone-400 hidden md:block truncate">
