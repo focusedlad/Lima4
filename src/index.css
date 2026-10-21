@@ -104,3 +104,95 @@ html.dark .squircle-card {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Claymorphic Pastel Cards inspired by UI references */
+.clay-card-purple {
+  border-radius: 28px;
+  background: #EEF2FF;
+  border: 1px solid #C7D2FE;
+  box-shadow: 0 12px 28px -10px rgba(99, 102, 241, 0.15), 0 2px 8px -2px rgba(99, 102, 241, 0.06);
+}
+html.dark .clay-card-purple {
+  background: #1E1B4B;
+  border: 1px solid rgba(165, 180, 252, 0.2);
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.5);
+}
+
+.clay-card-yellow {
+  border-radius: 28px;
+  background: #FEF9C3;
+  border: 1px solid #FEF08A;
+  box-shadow: 0 12px 28px -10px rgba(234, 179, 8, 0.15), 0 2px 8px -2px rgba(234, 179, 8, 0.06);
+}
+html.dark .clay-card-yellow {
+  background: #2E250A;
+  border: 1px solid rgba(253, 224, 71, 0.25);
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.5);
+}
+
+.clay-card-mint {
+  border-radius: 28px;
+  background: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  box-shadow: 0 12px 28px -10px rgba(34, 197, 94, 0.15), 0 2px 8px -2px rgba(34, 197, 94, 0.06);
+}
+html.dark .clay-card-mint {
+  background: #064E3B;
+  border: 1px solid rgba(134, 239, 172, 0.2);
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.5);
+}
+
+.clay-card-pink {
+  border-radius: 28px;
+  background: #FCE7F3;
+  border: 1px solid #FBCFE8;
+  box-shadow: 0 12px 28px -10px rgba(236, 72, 153, 0.15), 0 2px 8px -2px rgba(236, 72, 153, 0.06);
+}
+html.dark .clay-card-pink {
+  background: #500724;
+  border: 1px solid rgba(244, 114, 182, 0.25);
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.5);
+}
+
+.clay-card-coral {
+  border-radius: 28px;
+  background: #FFEDD5;
+  border: 1px solid #FED7AA;
+  box-shadow: 0 12px 28px -10px rgba(249, 115, 22, 0.15), 0 2px 8px -2px rgba(249, 115, 22, 0.06);
+}
+html.dark .clay-card-coral {
+  background: #431407;
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.5);
+}
+
+.clay-card-sky {
+  border-radius: 28px;
+  background: #E0F2FE;
+  border: 1px solid #BAE6FD;
+  box-shadow: 0 12px 28px -10px rgba(14, 165, 233, 0.15), 0 2px 8px -2px rgba(14, 165, 233, 0.06);
+}
+html.dark .clay-card-sky {
+  background: #082F49;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Fluid Clay Orb Animation for Audio / Focus State (Picture 3 inspired) */
+@keyframes floatOrb {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  }
+  33% {
+    transform: translateY(-4px) scale(1.02);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  66% {
+    transform: translateY(3px) scale(0.98);
+    border-radius: 50% 60% 40% 60% / 40% 60% 50% 60%;
+  }
+}
+
+.animate-clay-orb {
+  animation: floatOrb 6s ease-in-out infinite;
+}

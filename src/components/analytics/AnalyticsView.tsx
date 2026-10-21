@@ -137,33 +137,33 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               />
             </div>
 
-            {/* Labels Strip */}
-            <div className="grid grid-cols-3 gap-3 pt-2 text-xs">
-              <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100">
-                <div className="flex items-center gap-1.5 font-bold text-emerald-900 mb-0.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            {/* Labels Strip with Pastel Clay Cards (IMG_4392 Macronutrient style) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+              <div className="p-4 rounded-3xl clay-card-mint">
+                <div className="flex items-center gap-1.5 font-bold text-emerald-900 dark:text-emerald-100 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
                   Deep Work
                 </div>
-                <div className="text-lg font-bold font-mono text-stone-900">{totalDeepWorkHours}h</div>
-                <div className="text-[11px] text-emerald-700">{deepPct}% of focus nutrition</div>
+                <div className="text-2xl font-extrabold font-mono text-emerald-950 dark:text-emerald-100">{totalDeepWorkHours}h</div>
+                <div className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">{deepPct}% of focus intake</div>
               </div>
 
-              <div className="p-3 rounded-2xl bg-pink-50/70 border border-pink-100">
-                <div className="flex items-center gap-1.5 font-bold text-pink-900 mb-0.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-pink-400" />
+              <div className="p-4 rounded-3xl clay-card-pink">
+                <div className="flex items-center gap-1.5 font-bold text-pink-900 dark:text-pink-100 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-pink-500 shadow-xs" />
                   Gizmo Recall
                 </div>
-                <div className="text-lg font-bold font-mono text-stone-900">{totalRecallHours}h</div>
-                <div className="text-[11px] text-pink-700">{recallPct}% active testing</div>
+                <div className="text-2xl font-extrabold font-mono text-pink-950 dark:text-pink-100">{totalRecallHours}h</div>
+                <div className="text-[11px] text-pink-700 dark:text-pink-300 font-medium">{recallPct}% active testing</div>
               </div>
 
-              <div className="p-3 rounded-2xl bg-sky-50/70 border border-sky-100">
-                <div className="flex items-center gap-1.5 font-bold text-sky-900 mb-0.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
+              <div className="p-4 rounded-3xl clay-card-sky">
+                <div className="flex items-center gap-1.5 font-bold text-sky-900 dark:text-sky-100 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-xs" />
                   Review / Notes
                 </div>
-                <div className="text-lg font-bold font-mono text-stone-900">{totalReviewHours}h</div>
-                <div className="text-[11px] text-sky-700">{reviewPct}% passive input</div>
+                <div className="text-2xl font-extrabold font-mono text-sky-950 dark:text-sky-100">{totalReviewHours}h</div>
+                <div className="text-[11px] text-sky-700 dark:text-sky-300 font-medium">{reviewPct}% concept consolidation</div>
               </div>
             </div>
           </div>
@@ -176,21 +176,27 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </div>
         </div>
 
-        {/* Module 2: Desk Pet Progression Card (1 Col) */}
-        <div className="squircle-card p-6 bg-white border border-stone-200 flex flex-col justify-between space-y-4">
+        {/* Module 2: Desk Pet Progression Card (IMG_4392 Pet Dashboard Layout) */}
+        <div className="clay-card-yellow p-6 flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-                Level {pet.level} Desk Pet
-              </span>
-              <div className="flex items-center gap-1 text-[11px] text-stone-500 font-medium">
-                <Heart className="w-3.5 h-3.5 fill-rose-400 text-rose-500" />
-                Mood: {pet.mood}
+            {/* Top 3-Stat Squircle Tiles (inspired by IMG_4392) */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="bg-white/80 dark:bg-stone-900/80 rounded-2xl p-2 text-center border border-amber-200/60 dark:border-amber-800/40 shadow-xs">
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 block font-semibold">Species</span>
+                <span className="text-xs font-bold text-stone-900 dark:text-stone-100 capitalize">{pet.species}</span>
+              </div>
+              <div className="bg-white/80 dark:bg-stone-900/80 rounded-2xl p-2 text-center border border-amber-200/60 dark:border-amber-800/40 shadow-xs">
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 block font-semibold">Mood</span>
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-300 capitalize">{pet.mood}</span>
+              </div>
+              <div className="bg-white/80 dark:bg-stone-900/80 rounded-2xl p-2 text-center border border-amber-200/60 dark:border-amber-800/40 shadow-xs">
+                <span className="text-[10px] text-stone-500 dark:text-stone-400 block font-semibold">Stage</span>
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Lv.{pet.level}</span>
               </div>
             </div>
 
             {/* Pet Graphic & Avatar Presentation */}
-            <div className="w-24 h-24 mx-auto my-2 rounded-3xl bg-amber-100/70 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-800 flex items-center justify-center shadow-inner relative">
+            <div className="w-24 h-24 mx-auto my-2 rounded-3xl bg-white dark:bg-stone-900 border-2 border-amber-300 dark:border-amber-600 flex items-center justify-center shadow-md relative">
               {pet.species === 'shiba' && (
                 <div className="flex flex-col items-center text-amber-700 dark:text-amber-300">
                   <Dog className="w-10 h-10 stroke-[1.75]" />
@@ -210,26 +216,26 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 </div>
               )}
 
-              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 bg-stone-900 text-white rounded-full text-[9px] font-bold">
+              <span className="absolute -bottom-1 -right-1 px-2 py-0.5 bg-stone-900 dark:bg-amber-400 text-white dark:text-stone-950 rounded-full text-[9px] font-bold shadow-xs">
                 Lv.{pet.level}
               </span>
             </div>
 
-            <div className="text-center">
-              <h3 className="text-sm font-bold text-stone-900">{pet.name} the {pet.species.toUpperCase()}</h3>
-              <p className="text-[11px] text-stone-500">Unlocks desk accessories through focus XP</p>
+            <div className="text-center mt-2">
+              <h3 className="text-base font-extrabold text-stone-900 dark:text-stone-100">{pet.name}</h3>
+              <p className="text-[11px] text-stone-600 dark:text-stone-400">Earns desk accessories & evolutions through focus sprints</p>
             </div>
 
             {/* XP Progress Bar */}
             <div className="space-y-1 mt-3">
-              <div className="flex justify-between text-[11px] text-stone-500 font-mono">
-                <span>XP Progress</span>
-                <span>{pet.currentXp} / {pet.nextLevelXp} XP</span>
+              <div className="flex justify-between text-[11px] text-stone-600 dark:text-stone-400 font-mono">
+                <span className="font-semibold">Evolution XP</span>
+                <span className="font-bold">{pet.currentXp} / {pet.nextLevelXp} XP</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+              <div className="w-full h-2.5 rounded-full bg-white/70 dark:bg-stone-900 overflow-hidden shadow-inner border border-amber-200/50 dark:border-amber-900/50">
                 <div
                   style={{ width: `${xpPercent}%` }}
-                  className="h-full bg-amber-400 rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-700"
                 />
               </div>
             </div>

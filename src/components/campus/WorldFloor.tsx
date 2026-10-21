@@ -396,14 +396,23 @@ export const WorldFloor: React.FC<WorldFloorProps> = ({
       </div>
 
       {/* Directory Spaces Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredSpaces.map((space) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {filteredSpaces.map((space, idx) => {
           const isHost = space.hostId === currentUser.id;
+          const colorStyles = [
+            { card: 'clay-card-purple', tag: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800', btn: 'bg-indigo-600 hover:bg-indigo-700 text-white' },
+            { card: 'clay-card-yellow', tag: 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800', btn: 'bg-stone-900 hover:bg-stone-800 text-white dark:bg-amber-400 dark:text-stone-950 dark:hover:bg-amber-300' },
+            { card: 'clay-card-mint', tag: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800', btn: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
+            { card: 'clay-card-pink', tag: 'bg-pink-100 dark:bg-pink-950 text-pink-900 dark:text-pink-200 border-pink-200 dark:border-pink-800', btn: 'bg-pink-600 hover:bg-pink-700 text-white' },
+            { card: 'clay-card-sky', tag: 'bg-sky-100 dark:bg-sky-950 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-800', btn: 'bg-sky-600 hover:bg-sky-700 text-white' },
+            { card: 'clay-card-coral', tag: 'bg-orange-100 dark:bg-orange-950 text-orange-900 dark:text-orange-200 border-orange-200 dark:border-orange-800', btn: 'bg-orange-600 hover:bg-orange-700 text-white' },
+          ];
+          const style = colorStyles[idx % colorStyles.length];
 
           return (
             <div
               key={space.id}
-              className="squircle-card p-5 bg-white border border-stone-200 hover:border-stone-300 hover:shadow-md transition-all flex flex-col justify-between"
+              className={`${style.card} p-5 hover:scale-[1.01] transition-all duration-200 flex flex-col justify-between`}
             >
               <div>
                 {/* Space Top Badges */}

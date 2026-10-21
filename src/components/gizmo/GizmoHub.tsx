@@ -254,23 +254,32 @@ export const GizmoHub: React.FC<GizmoHubProps> = ({
         </div>
       </div>
 
-      {/* Decks Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDecks.map((deck) => {
+      {/* Decks Grid with Pastel Ticket-Style Cards (inspired by IMG_4391) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {filteredDecks.map((deck, idx) => {
           const isAdded = addedIds.includes(deck.id);
+          const deckStyles = [
+            { card: 'clay-card-purple', tag: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800' },
+            { card: 'clay-card-pink', tag: 'bg-pink-100 dark:bg-pink-950 text-pink-900 dark:text-pink-200 border-pink-200 dark:border-pink-800' },
+            { card: 'clay-card-mint', tag: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800' },
+            { card: 'clay-card-coral', tag: 'bg-orange-100 dark:bg-orange-950 text-orange-900 dark:text-orange-200 border-orange-200 dark:border-orange-800' },
+            { card: 'clay-card-yellow', tag: 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-800' },
+            { card: 'clay-card-sky', tag: 'bg-sky-100 dark:bg-sky-950 text-sky-900 dark:text-sky-200 border-sky-200 dark:border-sky-800' },
+          ];
+          const style = deckStyles[idx % deckStyles.length];
 
           return (
             <div
               key={deck.id}
-              className="squircle-card p-5 bg-white border border-stone-200 hover:border-stone-300 hover:shadow-md transition-all flex flex-col justify-between"
+              className={`${style.card} p-5 hover:scale-[1.01] transition-all duration-200 flex flex-col justify-between`}
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="text-[11px] font-bold text-pink-700 bg-pink-50 px-2 py-0.5 rounded-md border border-pink-100">
+                  <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-lg border ${style.tag}`}>
                     {deck.subjectTag.replace(/^#/, '')}
                   </span>
-                  <div className="flex items-center gap-1 text-[11px] text-amber-600 font-semibold">
-                    <Star className="w-3 h-3 fill-amber-400" />
+                  <div className="flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-300 font-semibold bg-white/60 dark:bg-stone-900/60 px-2 py-0.5 rounded-md">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
                     {deck.rating.toFixed(2)}
                   </div>
                 </div>
