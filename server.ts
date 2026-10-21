@@ -3,6 +3,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
+import {
+  upsertUser,
+  insertFocusLog,
+  getFocusLogsByUser,
+  upsertStudySpace,
+  getAllStudySpaces,
+  upsertStudyDeck,
+  getAllStudyDecks,
+} from './src/db/queries';
+import { optionalAuth, AuthRequest } from './src/middleware/auth';
 
 dotenv.config();
 
@@ -186,6 +196,139 @@ Provide a friendly, encouraging Socratic response:
         ]
       }
     });
+  }
+});
+
+// Relational Database Sync Routes (PostgreSQL / Supabase-compatible)
+app.post('/api/db/sync-user', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const { uid, email, name, avatar, university, studyField, xp, totalHoursStudied, currentStreak } = req.body;
+    const effectiveUid = req.user?.uid || uid;
+    if (!effectiveUid) {
+      return res.status(400).json({ error: 'User UID is required' });
+    }
+    const user = await upsertUser({
+      uid: effectiveUid,
+      email: email || `${effectiveUid}@luminastudy.local`,
+      name: name || 'Studier',
+      avatar,
+      university,
+      studyField,
+      xp,
+      totalHoursStudied,
+      currentStreak,
+    });
+    res.json({ success: true, user });
+  } catch (error: any) {
+    console.error('Failed to sync user to database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.post('/api/db/focus-logs', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const { userUid, durationMinutes, category, subject, xpEarned, date } = req.body;
+    const effectiveUid = req.user?.uid || userUid;
+    if (!effectiveUid || !durationMinutes || !category || !subject) {
+      return res.status(400).json({ error: 'Missing required focus log fields' });
+    }
+    const log = await insertFocusLog({
+      userUid: effectiveUid,
+      durationMinutes: Number(durationMinutes),
+      category: String(category),
+      subject: String(subject),
+      xpEarned: Number(xpEarned || 0),
+      date: date || new Date().toISOString().split('T')[0],
+    });
+    res.json({ success: true, log });
+  } catch (error: any) {
+    console.error('Failed to insert focus log in database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.get('/api/db/focus-logs', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const userUid = (req.query.userUid as string) || req.user?.uid;
+    if (!userUid) {
+      return res.status(400).json({ error: 'userUid parameter is required' });
+    }
+    const logs = await getFocusLogsByUser(userUid);
+    res.json({ success: true, logs });
+  } catch (error: any) {
+    console.error('Failed to fetch focus logs from database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.post('/api/db/study-spaces', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const { spaceId, name, tagline, subjectTag, hostUid, hostName, hostAvatar, mode, isPrivate, workMin, breakMin } = req.body;
+    if (!spaceId || !name || !subjectTag) {
+      return res.status(400).json({ error: 'spaceId, name, and subjectTag are required' });
+    }
+    const space = await upsertStudySpace({
+      spaceId,
+      name,
+      tagline,
+      subjectTag,
+      hostUid: req.user?.uid || hostUid || 'host_guest',
+      hostName: hostName || 'Campus Host',
+      hostAvatar,
+      mode,
+      isPrivate: Boolean(isPrivate),
+      workMin,
+      breakMin,
+    });
+    res.json({ success: true, space });
+  } catch (error: any) {
+    console.error('Failed to save study space in database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.get('/api/db/study-spaces', async (_req, res) => {
+  try {
+    const spaces = await getAllStudySpaces();
+    res.json({ success: true, spaces });
+  } catch (error: any) {
+    console.error('Failed to fetch study spaces from database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.post('/api/db/study-decks', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const { deckId, title, description, subjectTag, curriculum, cardsCount, authorUid, authorName, cardsJson, rating } = req.body;
+    if (!deckId || !title || !subjectTag) {
+      return res.status(400).json({ error: 'deckId, title, and subjectTag are required' });
+    }
+    const deck = await upsertStudyDeck({
+      deckId,
+      title,
+      description,
+      subjectTag,
+      curriculum,
+      cardsCount: Number(cardsCount || 0),
+      authorUid: req.user?.uid || authorUid || 'author_guest',
+      authorName: authorName || 'Gizmo Creator',
+      cardsJson: typeof cardsJson === 'string' ? cardsJson : JSON.stringify(cardsJson || []),
+      rating,
+    });
+    res.json({ success: true, deck });
+  } catch (error: any) {
+    console.error('Failed to save study deck in database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.get('/api/db/study-decks', async (_req, res) => {
+  try {
+    const decks = await getAllStudyDecks();
+    res.json({ success: true, decks });
+  } catch (error: any) {
+    console.error('Failed to fetch study decks from database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
   }
 });
 

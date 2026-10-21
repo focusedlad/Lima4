@@ -79,6 +79,8 @@ import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal';
 import { FirebaseService } from './services/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
+import { FluidLiquidBackground } from './components/common/FluidLiquidBackground';
+import { ApiDatabase } from './services/apiDatabase';
 
 
 export default function App() {
@@ -116,6 +118,11 @@ export default function App() {
     }
     localStorage.setItem('lumina_theme', theme);
   }, [theme]);
+
+  // Synchronize profile with Cloud SQL / PostgreSQL relational database
+  useEffect(() => {
+    ApiDatabase.syncUser(currentUser);
+  }, [currentUser.id, currentUser.name, currentUser.xp, currentUser.totalHoursStudied]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -534,6 +541,7 @@ export default function App() {
     };
     setFocusLogs([newLog, ...focusLogs]);
     FirebaseService.saveFocusLog(currentUser.id, newLog).catch(() => {});
+    ApiDatabase.logFocusSession(newLog, currentUser.id).catch(() => {});
 
     // If Ghost Mode is OFF, broadcast to Global Activity Feed & Firestore backend
     if (!currentUser.isGhostMode) {
@@ -636,6 +644,7 @@ export default function App() {
     setSpaces([newSpace, ...spaces]);
     setActiveSpace(newSpace);
     FirebaseService.saveSpace(newSpace).catch(() => {});
+    ApiDatabase.saveStudySpace(newSpace).catch(() => {});
   };
 
   const handleToggleCreatorSub = (creatorId: string) => {
@@ -694,7 +703,9 @@ export default function App() {
   }
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#FAF8F5] dark:bg-[#121214] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-200 dark:selection:bg-amber-900 transition-colors duration-200">
+    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#FAF8F5] dark:bg-[#121214] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-200 dark:selection:bg-amber-900 transition-colors duration-200 relative">
+      {/* Fluid Liquid Motion Interactive Background */}
+      <FluidLiquidBackground />
       {/* Top Global Header Bar */}
       <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 dark:bg-[#121214]/90 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
@@ -1186,12 +1197,16 @@ export default function App() {
         hasAccepted={Boolean(currentUser.termsAccepted)}
       />
 
-      {/* Floating Picture-in-Picture YouTube Video Player (Top Right) */}
+      {/* Floating Picture-in-Picture YouTube & Any Video Player (Top Right) */}
       <FloatingStreamerWidget
         stream={activeWatchingStream || syncedCreator}
         isVisible={Boolean((activeWatchingStream || syncedCreator) && isStreamWidgetVisible)}
         onClose={() => setIsStreamWidgetVisible(false)}
         onSyncTimer={(stream) => handleSyncWithCreator(stream)}
+        onChangeVideo={(newVideo) => {
+          setActiveWatchingStream(newVideo);
+          setIsStreamWidgetVisible(true);
+        }}
         onOpenRadar={() => {
           setCurrentTab('focus');
           setTimeout(() => {

@@ -166,6 +166,8 @@ export interface LiveBattlePlayer {
   statusText: string;
 }
 
+export type VideoSourceType = 'youtube' | 'vimeo' | 'direct' | 'embed';
+
 export interface YouTubeCreator {
   id: string;
   name: string;
@@ -174,12 +176,18 @@ export interface YouTubeCreator {
   subscribers: string;
   isLive: boolean;
   streamTitle?: string;
-  videoId: string; // e.g. youtube video ID
+  videoId: string; // e.g. youtube video ID, vimeo ID, or unique identifier
   currentSessionMode: string;
   pomodoroWorkMin: number;
   pomodoroBreakMin: number;
   liveViewers?: number;
   isSubscribed: boolean;
+  // Generic / Any Video Link Support:
+  sourceType?: VideoSourceType;
+  videoUrl?: string; // Original URL entered by user
+  directVideoUrl?: string; // HTML5 video source (.mp4, .webm, etc.)
+  embedUrl?: string; // Direct embed URL (for Vimeo, iframe, etc.)
+  isCustomUrl?: boolean;
 }
 
 export interface FocusSessionLog {

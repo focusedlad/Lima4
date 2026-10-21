@@ -215,14 +215,14 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   const strokeDashoffset = circumference - progressRatio * circumference;
 
   return (
-    <div className="squircle-card-dark p-6 sm:p-8 text-white relative overflow-hidden transition-all">
-      {/* Background ambient neon glow */}
+    <div className="squircle-card-dark p-6 sm:p-8 text-white relative overflow-hidden transition-all shadow-2xl">
+      {/* Background ambient liquid neon glow */}
       <div
-        className={`absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none transition-colors duration-1000 ${
+        className={`absolute -top-24 -right-24 w-80 h-80 rounded-full blur-3xl opacity-30 pointer-events-none transition-colors duration-1000 animate-liquid-1 ${
           isBreak ? 'bg-amber-400' : isPhoneAway ? 'bg-rose-500' : 'bg-emerald-400'
         }`}
       />
-      <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full blur-3xl opacity-15 pointer-events-none bg-sky-500" />
+      <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full blur-3xl opacity-25 pointer-events-none bg-sky-500 animate-liquid-2" />
 
       {/* Top Bar: Mode Selectors & Creator Sync Badge */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 mb-6">

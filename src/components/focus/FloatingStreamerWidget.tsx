@@ -6,15 +6,26 @@ import {
   Tv,
   ExternalLink,
   RefreshCw,
-  Radio,
-  Check,
   Volume2,
   VolumeX,
   GripHorizontal,
-  Expand,
-  Shrink,
+  Link2,
+  Play,
+  Clock,
+  Sparkles,
+  History,
+  Trash2,
+  Check,
 } from 'lucide-react';
 import { YouTubeCreator } from '../../types';
+import {
+  parseAnyVideoUrl,
+  createCreatorFromVideo,
+  getSavedVideoLinks,
+  saveVideoLink,
+  removeSavedVideoLink,
+  SavedVideoLink,
+} from '../../services/videoParser';
 
 export type StreamerWidgetSize = 'pip' | 'compact' | 'standard' | 'large';
 
@@ -25,6 +36,7 @@ interface FloatingStreamerWidgetProps {
   onSyncTimer: (stream: YouTubeCreator) => void;
   onOpenRadar?: () => void;
   isSynced?: boolean;
+  onChangeVideo?: (stream: YouTubeCreator) => void;
 }
 
 export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
@@ -34,23 +46,34 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
   onSyncTimer,
   onOpenRadar,
   isSynced,
+  onChangeVideo,
 }) => {
   const [size, setSize] = useState<StreamerWidgetSize>('compact');
   const [isMuted, setIsMuted] = useState<boolean>(true);
   const [reloadKey, setReloadKey] = useState<number>(0);
+
+  // Link Drawer State
+  const [isLinkDrawerOpen, setIsLinkDrawerOpen] = useState<boolean>(false);
+  const [pastedUrl, setPastedUrl] = useState<string>('');
+  const [customTitle, setCustomTitle] = useState<string>('');
+  const [workMin, setWorkMin] = useState<number>(50);
+  const [breakMin, setBreakMin] = useState<number>(10);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [recentLinks, setRecentLinks] = useState<SavedVideoLink[]>(() => getSavedVideoLinks());
 
   // Position state (null = calculate initial default)
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
+  const videoElementRef = useRef<HTMLVideoElement>(null);
 
   // Width in pixels based on size mode
   const getWidgetWidth = useCallback((s: StreamerWidgetSize) => {
     if (s === 'pip') return 240;
-    if (s === 'compact') return 220;
-    if (s === 'standard') return 310;
-    return 400; // large
+    if (s === 'compact') return 240;
+    if (s === 'standard') return 330;
+    return 440; // large
   }, []);
 
   // Initialize position on first visible render
@@ -81,12 +104,18 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [size, getWidgetWidth]);
 
+  // Update HTML5 video element mute state if playing direct media
+  useEffect(() => {
+    if (videoElementRef.current) {
+      videoElementRef.current.muted = isMuted;
+    }
+  }, [isMuted, stream]);
+
   // Pointer drag events
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Only drag with left click or primary touch, and don't trigger if clicked on a button
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('a')) return;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) return;
 
     e.preventDefault();
     const currentX = position?.x ?? (window.innerWidth - getWidgetWidth(size) - 20);
@@ -145,9 +174,89 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
     });
   };
 
+  // Load custom video link
+  const handlePlayPastedLink = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setUrlError(null);
+
+    const parsed = parseAnyVideoUrl(pastedUrl, customTitle);
+    if (!parsed) {
+      setUrlError('Please enter a valid video link (YouTube, Vimeo, MP4 file, etc.)');
+      return;
+    }
+
+    const newCreator = createCreatorFromVideo(parsed, {
+      customTitle,
+      workMin,
+      breakMin,
+    });
+
+    // Save to recent list
+    const updated = saveVideoLink({
+      url: parsed.originalUrl,
+      title: newCreator.name,
+      sourceType: parsed.sourceType,
+      workMin,
+      breakMin,
+    });
+    setRecentLinks(updated);
+
+    // Update parent
+    if (onChangeVideo) {
+      onChangeVideo(newCreator);
+    } else {
+      onSyncTimer(newCreator);
+    }
+
+    setPastedUrl('');
+    setCustomTitle('');
+    setIsLinkDrawerOpen(false);
+    setReloadKey((k) => k + 1);
+  };
+
+  const handlePlayRecent = (item: SavedVideoLink) => {
+    const parsed = parseAnyVideoUrl(item.url, item.title);
+    if (!parsed) return;
+
+    const newCreator = createCreatorFromVideo(parsed, {
+      customTitle: item.title,
+      workMin: item.workMin,
+      breakMin: item.breakMin,
+    });
+
+    if (onChangeVideo) {
+      onChangeVideo(newCreator);
+    } else {
+      onSyncTimer(newCreator);
+    }
+    setIsLinkDrawerOpen(false);
+    setReloadKey((k) => k + 1);
+  };
+
+  const handleDeleteRecent = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = removeSavedVideoLink(id);
+    setRecentLinks(updated);
+  };
+
   if (!isVisible || !stream) return null;
 
   const currentWidth = getWidgetWidth(size);
+
+  // Determine embed source or render method
+  const isDirectVideo = stream.sourceType === 'direct' || Boolean(stream.directVideoUrl);
+  const isVimeo = stream.sourceType === 'vimeo';
+  const isGenericEmbed = stream.sourceType === 'embed';
+  const isYouTube = !isDirectVideo && !isVimeo && !isGenericEmbed;
+
+  // Compute external link target
+  const externalLinkUrl =
+    stream.videoUrl ||
+    (isYouTube
+      ? `https://www.youtube.com/watch?v=${stream.videoId}`
+      : isVimeo
+      ? `https://vimeo.com/${stream.videoId}`
+      : stream.directVideoUrl || '#');
 
   return (
     <div
@@ -173,26 +282,41 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
           className="px-3 py-2 bg-stone-950/90 border-b border-stone-800/80 flex items-center justify-between gap-1.5 cursor-grab active:cursor-grabbing hover:bg-stone-900 transition-colors"
           title="Click and drag anywhere on this bar to move video around screen"
         >
-          {/* Left: Drag grip indicator + Creator name */}
+          {/* Left: Drag grip indicator + Video title */}
           <div className="flex items-center gap-1.5 min-w-0">
             <GripHorizontal className="w-3.5 h-3.5 text-stone-500 shrink-0" />
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
             </span>
-            <span className="text-xs font-bold text-white truncate max-w-[100px] sm:max-w-[130px]">
-              {stream.name}
+            <span className="text-xs font-bold text-white truncate max-w-[95px] sm:max-w-[125px]">
+              {stream.name || 'Video'}
             </span>
           </div>
 
           {/* Right: Quick Action Controls */}
           <div className="flex items-center gap-0.5 shrink-0">
+            {/* Inline Link / Change Video Button */}
+            <button
+              onClick={() => setIsLinkDrawerOpen((prev) => !prev)}
+              className={`p-1 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-semibold ${
+                isLinkDrawerOpen
+                  ? 'bg-amber-400 text-stone-950'
+                  : 'text-amber-400 hover:text-amber-300 hover:bg-stone-800'
+              }`}
+              title="Paste any video link (YouTube, Vimeo, MP4...)"
+              aria-label="Paste video link"
+            >
+              <Link2 className="w-3 h-3" />
+              <span className="hidden sm:inline">Link</span>
+            </button>
+
             {/* Audio Toggle */}
             <button
               onClick={() => setIsMuted((m) => !m)}
               className="p-1 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 transition-colors"
-              title={isMuted ? 'Unmute stream' : 'Mute stream'}
-              aria-label={isMuted ? 'Unmute stream' : 'Mute stream'}
+              title={isMuted ? 'Unmute video' : 'Mute video'}
+              aria-label={isMuted ? 'Unmute video' : 'Mute video'}
             >
               {isMuted ? (
                 <VolumeX className="w-3 h-3 text-stone-400" />
@@ -201,12 +325,12 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
               )}
             </button>
 
-            {/* Reload stream if stalled */}
+            {/* Reload stream/video if stalled */}
             <button
               onClick={() => setReloadKey((k) => k + 1)}
               className="p-1 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 transition-colors"
-              title="Reload stream"
-              aria-label="Reload stream"
+              title="Reload video"
+              aria-label="Reload video"
             >
               <RefreshCw className="w-3 h-3" />
             </button>
@@ -242,17 +366,158 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
           </div>
         </div>
 
+        {/* Inline Paste Video Drawer */}
+        {isLinkDrawerOpen && (
+          <div className="p-3 bg-stone-900 border-b border-stone-800 text-xs animate-fade-in space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-[11px] text-amber-300 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Play Any Video Link
+              </span>
+              <button
+                onClick={() => setIsLinkDrawerOpen(false)}
+                className="text-stone-400 hover:text-white p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePlayPastedLink} className="space-y-2">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Paste YouTube, Vimeo, or MP4 URL..."
+                  value={pastedUrl}
+                  onChange={(e) => {
+                    setPastedUrl(e.target.value);
+                    if (urlError) setUrlError(null);
+                  }}
+                  className="w-full px-2.5 py-1.5 rounded-xl bg-stone-950 border border-stone-700 text-xs text-white placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5">
+                <input
+                  type="text"
+                  placeholder="Title (opt)"
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  className="col-span-1 px-2 py-1 rounded-lg bg-stone-950 border border-stone-700 text-[10px] text-white placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                />
+                <div className="col-span-2 flex items-center gap-1 text-[10px] text-stone-400">
+                  <Clock className="w-3 h-3 shrink-0" />
+                  <input
+                    type="number"
+                    min="1"
+                    max="180"
+                    value={workMin}
+                    onChange={(e) => setWorkMin(Number(e.target.value) || 25)}
+                    className="w-10 px-1 py-0.5 rounded bg-stone-950 border border-stone-700 text-center text-white"
+                    title="Work minutes"
+                  />
+                  <span>/</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={breakMin}
+                    onChange={(e) => setBreakMin(Number(e.target.value) || 5)}
+                    className="w-10 px-1 py-0.5 rounded bg-stone-950 border border-stone-700 text-center text-white"
+                    title="Break minutes"
+                  />
+                  <span>min</span>
+                </div>
+              </div>
+
+              {urlError && <p className="text-[10px] text-rose-400">{urlError}</p>}
+
+              <button
+                type="submit"
+                className="w-full py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+              >
+                <Play className="w-3 h-3 fill-stone-950" />
+                <span>Play in Floating Pop-Up</span>
+              </button>
+            </form>
+
+            {/* Quick Recent Links */}
+            {recentLinks.length > 0 && (
+              <div className="pt-2 border-t border-stone-800 space-y-1">
+                <div className="flex items-center gap-1 text-[10px] text-stone-400 font-semibold">
+                  <History className="w-2.5 h-2.5" />
+                  <span>Recent Links:</span>
+                </div>
+                <div className="max-h-24 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                  {recentLinks.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => handlePlayRecent(item)}
+                      className="group flex items-center justify-between px-2 py-1 rounded-lg bg-stone-950/60 hover:bg-stone-800 cursor-pointer transition-colors text-[10px]"
+                    >
+                      <span className="truncate text-stone-300 group-hover:text-amber-300 max-w-[170px]">
+                        {item.title}
+                      </span>
+                      <button
+                        onClick={(e) => handleDeleteRecent(item.id, e)}
+                        className="text-stone-500 hover:text-rose-400 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove link"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Video Player Embed Area (hidden in PiP Audio Pill mode) */}
         {size !== 'pip' && (
           <div className="relative aspect-video w-full bg-black overflow-hidden">
-            <iframe
-              key={`${stream.videoId}_${reloadKey}_${isMuted}`}
-              src={`https://www.youtube-nocookie.com/embed/${stream.videoId}?autoplay=1&mute=${isMuted ? '1' : '0'}&controls=1&modestbranding=1&rel=0&enablejsapi=1`}
-              title="Focus Stream Mini-Player"
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            {isDirectVideo ? (
+              <video
+                ref={videoElementRef}
+                key={`${stream.directVideoUrl || stream.videoUrl}_${reloadKey}`}
+                src={stream.directVideoUrl || stream.videoUrl}
+                autoPlay
+                loop
+                playsInline
+                controls
+                muted={isMuted}
+                className="w-full h-full object-cover"
+              />
+            ) : isVimeo ? (
+              <iframe
+                key={`${stream.videoId}_${reloadKey}_${isMuted}`}
+                src={`https://player.vimeo.com/video/${stream.videoId}?autoplay=1&muted=${isMuted ? '1' : '0'}`}
+                title={stream.name}
+                className="w-full h-full border-0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+              />
+            ) : isGenericEmbed ? (
+              <iframe
+                key={`${stream.embedUrl || stream.videoUrl}_${reloadKey}`}
+                src={stream.embedUrl || stream.videoUrl}
+                title={stream.name}
+                className="w-full h-full border-0"
+                allow="autoplay; fullscreen; encrypted-media"
+                allowFullScreen
+              />
+            ) : (
+              /* YouTube standard/shorts/live */
+              <iframe
+                key={`${stream.videoId}_${reloadKey}_${isMuted}`}
+                src={`https://www.youtube-nocookie.com/embed/${stream.videoId}?autoplay=1&mute=${
+                  isMuted ? '1' : '0'
+                }&controls=1&modestbranding=1&rel=0&enablejsapi=1`}
+                title="Focus Video Mini-Player"
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )}
           </div>
         )}
 
@@ -265,7 +530,7 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                 : 'bg-stone-800 hover:bg-stone-700 text-stone-200'
             }`}
-            title="Sync focus timer intervals with this stream"
+            title="Sync focus timer intervals with this video"
           >
             {isSynced ? <Check className="w-3 h-3 text-emerald-400" /> : <Tv className="w-3 h-3 text-amber-400" />}
             <span>{isSynced ? 'Synced' : `${stream.pomodoroWorkMin}/${stream.pomodoroBreakMin}m`}</span>
@@ -282,11 +547,11 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
               </button>
             )}
             <a
-              href={`https://www.youtube.com/watch?v=${stream.videoId}`}
+              href={externalLinkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1 text-stone-400 hover:text-rose-400 transition-colors"
-              title="Pop out to YouTube tab"
+              className="p-1 text-stone-400 hover:text-amber-400 transition-colors"
+              title="Open video in new tab"
             >
               <ExternalLink className="w-3 h-3" />
             </a>
