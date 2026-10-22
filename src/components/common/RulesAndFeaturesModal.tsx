@@ -295,7 +295,7 @@ export const RulesAndFeaturesModal: React.FC<RulesAndFeaturesModalProps> = ({
               className="px-5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-extrabold text-xs shadow-md transition-all active:scale-95 flex items-center gap-1.5"
             >
               <Check className="w-4 h-4 text-emerald-400" />
-              <span>{hasAccepted ? 'Terms Accepted ✓' : 'I Accept Rules & Terms'}</span>
+              <span>{hasAccepted ? 'Terms Accepted' : 'I Accept Rules & Terms'}</span>
             </button>
           </div>
         </div>

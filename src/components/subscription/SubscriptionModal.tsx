@@ -47,7 +47,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     setTimeout(() => {
       onSelectPlan(plan.id, billingCycle);
       setProcessingPlanId(null);
-      setSuccessMessage(`🎉 Successfully upgraded to ${plan.name}! Your high-yield study perks are now active.`);
+      setSuccessMessage(`Successfully upgraded to ${plan.name}! Your high-yield study perks are now active.`);
       setTimeout(() => {
         setSuccessMessage(null);
         onClose();

@@ -53,21 +53,14 @@ import {
   INITIAL_DECKS,
 } from './services/storage';
 import { audioSynth } from './services/audioSynth';
-import { Navbar } from './components/common/Navbar';
+import { Navbar, MainNavTab } from './components/common/Navbar';
 import { QuickActionModal } from './components/common/QuickActionModal';
 import { SoundSynthesizerModal } from './components/audio/SoundSynthesizerModal';
 import { FocusTimerHero } from './components/focus/FocusTimerHero';
 import { YouTubeLiveRadar } from './components/focus/YouTubeLiveRadar';
 import { FloatingStreamerWidget } from './components/focus/FloatingStreamerWidget';
-import { WorldFloor } from './components/campus/WorldFloor';
-import { RoomView } from './components/campus/RoomView';
-import { KnockModal } from './components/campus/KnockModal';
-import { AdmissionQueueModal } from './components/campus/AdmissionQueueModal';
-import { CreateSpaceModal } from './components/campus/CreateSpaceModal';
-import { GizmoHub } from './components/gizmo/GizmoHub';
-import { MagicImportModal } from './components/gizmo/MagicImportModal';
-import { DeckPlayerModal } from './components/gizmo/DeckPlayerModal';
-import { GizmoLiveBattle } from './components/gizmo/GizmoLiveBattle';
+import { StudyChallengesView } from './components/social/StudyChallengesView';
+import { LeaderboardView } from './components/social/LeaderboardView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { ProfileModal } from './components/common/ProfileModal';
 import { AuthModal } from './components/common/AuthModal';
@@ -78,7 +71,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal';
 import { FirebaseService } from './services/firebase';
-import { User as FirebaseUser } from 'firebase/auth';
+import { supabase } from './services/supabase';
 import { FluidLiquidBackground } from './components/common/FluidLiquidBackground';
 import { ApiDatabase } from './services/apiDatabase';
 
@@ -94,9 +87,8 @@ export default function App() {
   const [heatmapDays, setHeatmapDays] = useState(() => generate31DayHeatmap());
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>(() => StorageService.getActivityFeed());
 
-  // Navigation & Active Screen
-  const [currentTab, setCurrentTab] = useState<'campus' | 'social' | 'gizmo' | 'focus' | 'analytics'>('campus');
-  const [activeSpace, setActiveSpace] = useState<StudySpace | null>(null);
+  // Navigation & Active Screen (Study Timer, Challenges, Leaderboard, Analytics)
+  const [currentTab, setCurrentTab] = useState<MainNavTab>('focus');
 
   // Sync state & Floating Streamer Pop-up State
   const [syncedCreator, setSyncedCreator] = useState<YouTubeCreator | null>(null);
@@ -128,20 +120,11 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Firebase Auth & Cloud Sync
-  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  // Modals & Auth
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
-  // Modals
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
-  const [isCreateSpaceOpen, setIsCreateSpaceOpen] = useState(false);
-  const [isAdmissionsOpen, setIsAdmissionsOpen] = useState(false);
-  const [isMagicImportOpen, setIsMagicImportOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [knockTargetSpace, setKnockTargetSpace] = useState<StudySpace | null>(null);
-  const [activeDeckToPlay, setActiveDeckToPlay] = useState<StudyDeck | null>(null);
-  const [activeDeckToBattle, setActiveDeckToBattle] = useState<StudyDeck | null>(null);
 
   // Admin & Subscription States
   const [allUsers, setAllUsers] = useState<UserProfile[]>(() => StorageService.getAllUsers());
@@ -213,73 +196,53 @@ export default function App() {
   const activeAnnouncement =
     announcements.find((a) => a.isActive && a.id !== dismissedAnnouncementId) || null;
 
-  // Listen to Firebase Auth state
+  // Listen to Supabase Auth state
   useEffect(() => {
-    const unsubscribe = FirebaseService.onAuthChanged(async (fbUser) => {
-      setFirebaseUser(fbUser);
-      if (fbUser) {
-        const remoteProfile = await FirebaseService.getUserProfile(fbUser.uid);
-        if (remoteProfile) {
-          setCurrentUser(remoteProfile);
-        } else {
-          const initialProfile: UserProfile = {
-            ...currentUser,
-            id: fbUser.uid,
-            name: fbUser.displayName || currentUser.name,
-            avatar: fbUser.photoURL || currentUser.avatar,
-          };
-          setCurrentUser(initialProfile);
-          await FirebaseService.saveUserProfile(initialProfile);
-        }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const email = session.user.email || '';
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+        setCurrentUser((prev) => ({
+          ...prev,
+          email,
+          name: prev.name && prev.name !== 'Studier' ? prev.name : name,
+          id: session.user.id,
+        }));
       }
     });
-    return () => unsubscribe();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const email = session.user.email || '';
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
+        setCurrentUser((prev) => ({
+          ...prev,
+          email,
+          name: prev.name && prev.name !== 'Studier' ? prev.name : name,
+          id: session.user.id,
+        }));
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Real-time Firebase Firestore Subscriptions for all Live Data
+  // Real-time Activity Feed Sync
   useEffect(() => {
-    const unsubSpaces = FirebaseService.subscribeSpaces((remoteSpaces) => {
-      if (remoteSpaces && remoteSpaces.length > 0) {
-        setSpaces(remoteSpaces);
-        if (activeSpace) {
-          const currentRemoteSpace = remoteSpaces.find((s) => s.id === activeSpace.id);
-          if (currentRemoteSpace) setActiveSpace(currentRemoteSpace);
-        }
-      }
-    }, INITIAL_SPACES);
-
     const unsubFeed = FirebaseService.subscribeActivityFeed((remoteFeed) => {
       if (remoteFeed && remoteFeed.length > 0) {
         setActivityFeed(remoteFeed);
       }
     }, INITIAL_ACTIVITY_FEED);
 
-    const unsubDecks = FirebaseService.subscribeDecks((remoteDecks) => {
-      if (remoteDecks && remoteDecks.length > 0) {
-        setDecks(remoteDecks);
-      }
-    }, INITIAL_DECKS);
-
-    const unsubAdmissions = FirebaseService.subscribeAdmissions((remoteAdmissions) => {
-      if (remoteAdmissions) {
-        setAdmissions(remoteAdmissions);
-      }
-    });
-
     return () => {
-      unsubSpaces();
       unsubFeed();
-      unsubDecks();
-      unsubAdmissions();
     };
-  }, [activeSpace?.id]);
-
-  // Sync profile to Firestore if authenticated
-  useEffect(() => {
-    if (firebaseUser) {
-      FirebaseService.saveUserProfile(currentUser);
-    }
-  }, [currentUser, firebaseUser]);
+  }, []);
 
   // Save changes to storage
   useEffect(() => {
@@ -412,7 +375,7 @@ export default function App() {
       userId: currentUser.id,
       userName: currentUser.name,
       userAvatar: currentUser.avatar,
-      countryFlag: currentUser.countryFlag || '🌐',
+      countryFlag: currentUser.countryFlag || '',
       countryName: currentUser.countryName || 'Global',
       university: currentUser.university || currentUser.universityOrLocation,
       type: 'streak_milestone',
@@ -437,68 +400,6 @@ export default function App() {
         isGhostMode: updatedGhost,
       };
     });
-  };
-
-  // Real-Time Study Space Enter & Leave Handlers (Connects to Firebase Firestore)
-  const handleEnterSpace = async (space: StudySpace) => {
-    setActiveSpace(space);
-    const peer: PeerUser = {
-      id: currentUser.id,
-      name: currentUser.name,
-      avatar: currentUser.avatar,
-      location: currentUser.university || currentUser.universityOrLocation,
-      countryFlag: currentUser.countryFlag,
-      university: currentUser.university,
-      subjectTag: currentUser.currentSubject,
-      currentGoal: currentUser.currentGoal,
-      status: currentUser.status,
-      streakDays: currentUser.currentStreak,
-      focusMinutesToday: Math.round(currentUser.totalHoursStudied * 60),
-    };
-
-    // Optimistically update locally
-    setSpaces((prev) =>
-      prev.map((s) =>
-        s.id === space.id
-          ? {
-              ...s,
-              currentMembers: [
-                ...(s.currentMembers || []).filter((m) => m.id !== peer.id),
-                peer,
-              ],
-            }
-          : s
-      )
-    );
-
-    // Sync to Firestore backend
-    try {
-      await FirebaseService.joinSpace(space.id, peer);
-    } catch (e) {
-      console.warn('Could not join room on Firebase:', e);
-    }
-  };
-
-  const handleLeaveSpace = async () => {
-    if (activeSpace) {
-      const spaceId = activeSpace.id;
-      setSpaces((prev) =>
-        prev.map((s) =>
-          s.id === spaceId
-            ? {
-                ...s,
-                currentMembers: (s.currentMembers || []).filter((m) => m.id !== currentUser.id),
-              }
-            : s
-        )
-      );
-      try {
-        await FirebaseService.leaveSpace(spaceId, currentUser.id);
-      } catch (e) {
-        console.warn('Could not leave room on Firebase:', e);
-      }
-    }
-    setActiveSpace(null);
   };
 
   // Handle Focus Session Completion
@@ -550,7 +451,7 @@ export default function App() {
         userId: currentUser.id,
         userName: currentUser.name,
         userAvatar: currentUser.avatar,
-        countryFlag: currentUser.countryFlag || '🌐',
+        countryFlag: currentUser.countryFlag || '',
         countryName: currentUser.countryName || 'Global',
         university: currentUser.university || currentUser.universityOrLocation,
         type: 'session_completed',
@@ -568,84 +469,7 @@ export default function App() {
     }
   };
 
-  // Admission knock handlers with Firebase backend sync
-  const handleKnockSpace = (space: StudySpace) => {
-    setKnockTargetSpace(space);
-  };
 
-  const handleSubmitKnock = (spaceId: string, studyGoal: string) => {
-    const target = spaces.find((s) => s.id === spaceId);
-    if (!target) return;
-
-    const newAdmission: AdmissionRequest = {
-      id: `adm_${Date.now()}`,
-      spaceId,
-      spaceName: target.name,
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userAvatar: currentUser.avatar,
-      studyGoal,
-      subjectTag: target.subjectTag,
-      streakDays: currentUser.currentStreak,
-      requestedAt: 'Just now',
-      status: 'pending',
-    };
-
-    setAdmissions([newAdmission, ...admissions]);
-    FirebaseService.submitAdmission(newAdmission).catch(() => {});
-  };
-
-  const handleAcceptAdmission = (admissionId: string) => {
-    const adm = admissions.find((a) => a.id === admissionId);
-    if (!adm) return;
-
-    setAdmissions((prev) =>
-      prev.map((a) => (a.id === admissionId ? { ...a, status: 'approved' } : a))
-    );
-    FirebaseService.updateAdmissionStatus(admissionId, 'approved').catch(() => {});
-
-    // Add admitted member to space
-    setSpaces((prev) =>
-      prev.map((space) => {
-        if (space.id === adm.spaceId) {
-          const already = space.currentMembers.some((m) => m.id === adm.userId);
-          if (already) return space;
-          return {
-            ...space,
-            currentMembers: [
-              ...space.currentMembers,
-              {
-                id: adm.userId,
-                name: adm.userName,
-                avatar: adm.userAvatar,
-                location: 'Global Campus',
-                subjectTag: adm.subjectTag,
-                currentGoal: adm.studyGoal,
-                status: 'in_focus',
-                streakDays: adm.streakDays,
-                focusMinutesToday: 0,
-              },
-            ],
-          };
-        }
-        return space;
-      })
-    );
-  };
-
-  const handleRejectAdmission = (admissionId: string) => {
-    setAdmissions((prev) =>
-      prev.map((a) => (a.id === admissionId ? { ...a, status: 'rejected' } : a))
-    );
-    FirebaseService.updateAdmissionStatus(admissionId, 'rejected').catch(() => {});
-  };
-
-  const handleCreateSpace = (newSpace: StudySpace) => {
-    setSpaces([newSpace, ...spaces]);
-    setActiveSpace(newSpace);
-    FirebaseService.saveSpace(newSpace).catch(() => {});
-    ApiDatabase.saveStudySpace(newSpace).catch(() => {});
-  };
 
   const handleToggleCreatorSub = (creatorId: string) => {
     setCreators((prev) =>
@@ -712,7 +536,7 @@ export default function App() {
           {/* Logo & Slogan */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-200 text-stone-950 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-white dark:ring-stone-800 shrink-0">
-              ✦
+              <Sparkles className="w-5 h-5 text-stone-950" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
@@ -737,7 +561,7 @@ export default function App() {
                 </span>
               </div>
               <p className="text-[11px] text-stone-500 dark:text-stone-400 hidden md:block truncate">
-                Social Focus • Global Campus • Gizmo AI
+                Social Focus • Study Challenges • Live Leaderboards
               </p>
             </div>
           </div>
@@ -807,12 +631,12 @@ export default function App() {
               )}
             </button>
 
-            {/* Cloud Login / Sync Button */}
-            {firebaseUser ? (
+            {/* Supabase Cloud Login / Sync Button */}
+            {currentUser.email ? (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-semibold shadow-xs hover:bg-emerald-100 transition-colors min-h-[40px]"
-                title="Cloud Sync Active (Click to manage)"
+                title="Supabase Cloud Sync Active"
               >
                 <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span className="hidden sm:inline">Synced</span>
@@ -821,7 +645,7 @@ export default function App() {
               <button
                 onClick={() => setIsAuthModalOpen(true)}
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-stone-900 dark:bg-amber-400 text-white dark:text-stone-950 text-xs font-bold shadow-xs hover:bg-stone-800 dark:hover:bg-amber-300 transition-all active:scale-95 min-h-[40px]"
-                title="Sign In with Google or Email"
+                title="Sign In with Apple, Google, or Email"
               >
                 <Cloud className="w-3.5 h-3.5 text-amber-300 dark:text-stone-950" />
                 <span>Sign In</span>
@@ -874,7 +698,7 @@ export default function App() {
           ) {
             setIsSubscriptionModalOpen(true);
           } else {
-            setCurrentTab('campus');
+            setCurrentTab('challenges');
           }
         }}
       />
@@ -899,98 +723,64 @@ export default function App() {
 
       {/* Main Page Body */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-8 overflow-x-hidden">
-        {/* If user is inside a specific space, render RoomView */}
-        {activeSpace ? (
-          <RoomView
-            space={activeSpace}
-            currentUser={currentUser}
-            onLeaveSpace={handleLeaveSpace}
-            onOpenAdmissions={() => setIsAdmissionsOpen(true)}
-            pendingKnocksCount={pendingKnocks.length}
-          />
-        ) : (
-          <>
-            {/* Tab 1: Campus & Study Directory */}
-            {currentTab === 'campus' && (
-              <WorldFloor
-                spaces={spaces}
-                currentUser={currentUser}
-                onSelectSpace={handleEnterSpace}
-                onKnockSpace={handleKnockSpace}
-                onCreateSpaceOpen={() => setIsCreateSpaceOpen(true)}
-                onOpenAdmissions={() => setIsAdmissionsOpen(true)}
-                pendingKnocksCount={pendingKnocks.length}
-              />
-            )}
-
-            {/* Tab 2: Social Hub & Global Activity Feed */}
-            {currentTab === 'social' && (
-              <GlobalActivityFeed
-                feed={activityFeed}
-                currentUser={currentUser}
-                onCheerActivity={handleCheerActivity}
-                onPostMilestone={handlePostMilestone}
-                onToggleGhostMode={handleToggleGhostMode}
-              />
-            )}
-
-            {/* Tab 3: Gizmo AI Study Suite */}
-            {currentTab === 'gizmo' && (
-              <GizmoHub
-                decks={decks}
-                currentUser={currentUser}
-                onOpenDeck={(deck) => setActiveDeckToPlay(deck)}
-                onOpenMagicImport={() => setIsMagicImportOpen(true)}
-                onStartLiveBattle={(deck) => setActiveDeckToBattle(deck)}
-                onAddMarketplaceDeck={handleAddMarketplaceDeck}
-              />
-            )}
-
-            {/* Tab 3: Focus Timer & YouTube Live Radar */}
-            {currentTab === 'focus' && (
-              <div className="space-y-8 pb-20">
-                <FocusTimerHero
-                  onOpenAudioModal={() => setIsAudioModalOpen(true)}
-                  onSessionComplete={handleSessionComplete}
-                  syncedCreator={syncedCreator}
-                  onDisconnectSync={() => setSyncedCreator(null)}
-                  activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
-                  onToggleFloatingStream={() => {
-                    if (!activeWatchingStream && !syncedCreator && creators.length > 0) {
-                      setActiveWatchingStream(creators[0]);
-                    }
-                    setIsStreamWidgetVisible((prev) => !prev);
-                  }}
-                  isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
-                />
-
-                <div id="youtube-radar-section">
-                  <YouTubeLiveRadar
-                    creators={creators}
-                    onToggleSubscribe={handleToggleCreatorSub}
-                    onSyncWithCreator={handleSyncWithCreator}
-                    onWatchStream={handleWatchStream}
-                    syncedCreatorId={syncedCreator?.id}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Tab 4: Analytics, Macronutrients & Desk Pet */}
-            {currentTab === 'analytics' && (
-              <AnalyticsView
-                currentUser={currentUser}
-                heatmapDays={heatmapDays}
-                logs={focusLogs}
-                onUpdateDeskPet={(pet) =>
-                  setCurrentUser((prev) => ({
-                    ...prev,
-                    deskPet: pet,
-                  }))
+        {/* Tab 1: Focus Timer & Any Video Player */}
+        {currentTab === 'focus' && (
+          <div className="space-y-8 pb-20">
+            <FocusTimerHero
+              onOpenAudioModal={() => setIsAudioModalOpen(true)}
+              onSessionComplete={handleSessionComplete}
+              syncedCreator={syncedCreator}
+              onDisconnectSync={() => setSyncedCreator(null)}
+              activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
+              onToggleFloatingStream={() => {
+                if (!activeWatchingStream && !syncedCreator && creators.length > 0) {
+                  setActiveWatchingStream(creators[0]);
                 }
+                setIsStreamWidgetVisible((prev) => !prev);
+              }}
+              isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
+            />
+
+            <div id="youtube-radar-section">
+              <YouTubeLiveRadar
+                creators={creators}
+                onToggleSubscribe={handleToggleCreatorSub}
+                onSyncWithCreator={handleSyncWithCreator}
+                onWatchStream={handleWatchStream}
+                syncedCreatorId={syncedCreator?.id}
               />
-            )}
-          </>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Study Challenges */}
+        {currentTab === 'challenges' && (
+          <StudyChallengesView
+            currentUser={currentUser}
+            onSelectChallengeLeaderboard={() => {
+              setCurrentTab('leaderboard');
+            }}
+          />
+        )}
+
+        {/* Tab 3: Competitive Leaderboards */}
+        {currentTab === 'leaderboard' && (
+          <LeaderboardView currentUser={currentUser} />
+        )}
+
+        {/* Tab 4: Analytics, Macronutrients & Desk Pet */}
+        {currentTab === 'analytics' && (
+          <AnalyticsView
+            currentUser={currentUser}
+            heatmapDays={heatmapDays}
+            logs={focusLogs}
+            onUpdateDeskPet={(pet) =>
+              setCurrentUser((prev) => ({
+                ...prev,
+                deskPet: pet,
+              }))
+            }
+          />
         )}
       </main>
 
@@ -1033,12 +823,9 @@ export default function App() {
       <Navbar
         currentTab={currentTab}
         onSelectTab={(tab) => {
-          setActiveSpace(null);
           setCurrentTab(tab);
         }}
         onOpenQuickAction={() => setIsQuickActionOpen(true)}
-        pendingKnocksCount={pendingKnocks.length}
-        onOpenAdmissions={() => setIsAdmissionsOpen(true)}
       />
 
       {/* Quick Action Hub Modal */}
@@ -1048,14 +835,16 @@ export default function App() {
         onAction={(action) => {
           setIsQuickActionOpen(false);
           if (action === 'start_focus') {
-            setActiveSpace(null);
             setCurrentTab('focus');
-          } else if (action === 'magic_import') {
-            setIsMagicImportOpen(true);
-          } else if (action === 'create_space') {
-            setIsCreateSpaceOpen(true);
-          } else if (action === 'live_battle') {
-            if (decks.length > 0) setActiveDeckToBattle(decks[0]);
+          } else if (action === 'create_challenge') {
+            setCurrentTab('challenges');
+          } else if (action === 'view_rankings') {
+            setCurrentTab('leaderboard');
+          } else if (action === 'paste_video') {
+            if (!activeWatchingStream && creators.length > 0) {
+              setActiveWatchingStream(creators[0]);
+            }
+            setIsStreamWidgetVisible(true);
           } else if (action === 'sound_synth') {
             setIsAudioModalOpen(true);
           }
@@ -1068,63 +857,6 @@ export default function App() {
         onClose={() => setIsAudioModalOpen(false)}
       />
 
-      {/* Knock to Enter Modal */}
-      <KnockModal
-        space={knockTargetSpace}
-        currentUser={currentUser}
-        isOpen={!!knockTargetSpace}
-        onClose={() => setKnockTargetSpace(null)}
-        onSubmitKnock={handleSubmitKnock}
-      />
-
-      {/* Host Admission Queue Modal */}
-      <AdmissionQueueModal
-        isOpen={isAdmissionsOpen}
-        onClose={() => setIsAdmissionsOpen(false)}
-        admissions={admissions}
-        onAccept={handleAcceptAdmission}
-        onReject={handleRejectAdmission}
-      />
-
-      {/* Create Study Space Modal */}
-      <CreateSpaceModal
-        isOpen={isCreateSpaceOpen}
-        onClose={() => setIsCreateSpaceOpen(false)}
-        currentUser={currentUser}
-        onCreateSpace={handleCreateSpace}
-      />
-
-      {/* Magic Import Engine Modal */}
-      <MagicImportModal
-        isOpen={isMagicImportOpen}
-        onClose={() => setIsMagicImportOpen(false)}
-        onDeckCreated={(newDeck) => {
-          setDecks([newDeck, ...decks]);
-          setActiveDeckToPlay(newDeck);
-        }}
-      />
-
-      {/* Active Recall Deck Player Modal */}
-      {activeDeckToPlay && (
-        <DeckPlayerModal
-          deck={activeDeckToPlay}
-          isOpen={!!activeDeckToPlay}
-          onClose={() => setActiveDeckToPlay(null)}
-          onFinishReview={handleFinishDeckReview}
-        />
-      )}
-
-      {/* Gizmo Live Multiplayer Battle Modal */}
-      {activeDeckToBattle && (
-        <GizmoLiveBattle
-          deck={activeDeckToBattle}
-          currentUser={currentUser}
-          isOpen={!!activeDeckToBattle}
-          onClose={() => setActiveDeckToBattle(null)}
-          onBattleComplete={handleFinishLiveBattle}
-        />
-      )}
-
       {/* Studier Profile & Account Switcher Modal */}
       <ProfileModal
         isOpen={isProfileModalOpen}
@@ -1135,20 +867,24 @@ export default function App() {
         onOpenTerms={() => setIsTermsModalOpen(true)}
       />
 
-      {/* Firebase Cloud Authentication Modal */}
+      {/* Supabase Cloud Authentication Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        firebaseUser={firebaseUser}
         currentUser={currentUser}
-        onAuthSuccess={(fbUser) => {
-          setFirebaseUser(fbUser);
+        onAuthSuccess={(profile) => {
+          setCurrentUser(profile);
+          StorageService.saveUser(profile);
         }}
         onUpdateProfile={(updates) => {
-          setCurrentUser((prev) => ({ ...prev, ...updates }));
+          setCurrentUser((prev) => {
+            const next = { ...prev, ...updates };
+            StorageService.saveUser(next);
+            return next;
+          });
         }}
         onLogout={() => {
-          setFirebaseUser(null);
+          // Keep current guest or default user
         }}
       />
 

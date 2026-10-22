@@ -7,10 +7,18 @@ import {
   upsertUser,
   insertFocusLog,
   getFocusLogsByUser,
-  upsertStudySpace,
-  getAllStudySpaces,
-  upsertStudyDeck,
-  getAllStudyDecks,
+  insertStudyChallenge,
+  getAllStudyChallenges,
+  joinStudyChallenge,
+  getChallengeLeaderboard,
+  getLeaderboardByTimeframe,
+  addFriend,
+  removeFriend,
+  getFriendsByUser,
+  searchUsersByQuery,
+  insertMilestone,
+  getMilestonesFeed,
+  cheerMilestoneInDb,
 } from './src/db/queries';
 import { optionalAuth, AuthRequest } from './src/middleware/auth';
 
@@ -261,73 +269,206 @@ app.get('/api/db/focus-logs', optionalAuth, async (req: AuthRequest, res) => {
   }
 });
 
-app.post('/api/db/study-spaces', optionalAuth, async (req: AuthRequest, res) => {
+
+// Study Challenges Endpoints
+app.post('/api/db/challenges', optionalAuth, async (req: AuthRequest, res) => {
   try {
-    const { spaceId, name, tagline, subjectTag, hostUid, hostName, hostAvatar, mode, isPrivate, workMin, breakMin } = req.body;
-    if (!spaceId || !name || !subjectTag) {
-      return res.status(400).json({ error: 'spaceId, name, and subjectTag are required' });
+    const { challengeId, title, description, creatorUid, creatorName, creatorAvatar, targetHours, period, startDate, endDate, category } = req.body;
+    if (!challengeId || !title || !targetHours) {
+      return res.status(400).json({ error: 'challengeId, title, and targetHours are required' });
     }
-    const space = await upsertStudySpace({
-      spaceId,
-      name,
-      tagline,
-      subjectTag,
-      hostUid: req.user?.uid || hostUid || 'host_guest',
-      hostName: hostName || 'Campus Host',
-      hostAvatar,
-      mode,
-      isPrivate: Boolean(isPrivate),
-      workMin,
-      breakMin,
+    const challenge = await insertStudyChallenge({
+      challengeId,
+      title,
+      description,
+      creatorUid: req.user?.uid || creatorUid || 'creator_user',
+      creatorName: creatorName || 'Study Leader',
+      creatorAvatar,
+      targetHours: Number(targetHours),
+      period: period || '7_days',
+      startDate: startDate || new Date().toISOString().split('T')[0],
+      endDate: endDate || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+      category,
     });
-    res.json({ success: true, space });
+    res.json({ success: true, challenge });
   } catch (error: any) {
-    console.error('Failed to save study space in database:', error);
+    console.error('Failed to create study challenge in database:', error);
     res.status(500).json({ error: 'Database operation failed' });
   }
 });
 
-app.get('/api/db/study-spaces', async (_req, res) => {
+app.get('/api/db/challenges', async (_req, res) => {
   try {
-    const spaces = await getAllStudySpaces();
-    res.json({ success: true, spaces });
+    const challenges = await getAllStudyChallenges();
+    res.json({ success: true, challenges });
   } catch (error: any) {
-    console.error('Failed to fetch study spaces from database:', error);
+    console.error('Failed to fetch study challenges from database:', error);
     res.status(500).json({ error: 'Database operation failed' });
   }
 });
 
-app.post('/api/db/study-decks', optionalAuth, async (req: AuthRequest, res) => {
+app.post('/api/db/challenges/join', optionalAuth, async (req: AuthRequest, res) => {
   try {
-    const { deckId, title, description, subjectTag, curriculum, cardsCount, authorUid, authorName, cardsJson, rating } = req.body;
-    if (!deckId || !title || !subjectTag) {
-      return res.status(400).json({ error: 'deckId, title, and subjectTag are required' });
+    const { challengeId, userUid, userName, userAvatar } = req.body;
+    if (!challengeId) {
+      return res.status(400).json({ error: 'challengeId is required' });
     }
-    const deck = await upsertStudyDeck({
-      deckId,
+    const result = await joinStudyChallenge({
+      challengeId,
+      userUid: req.user?.uid || userUid || 'user_guest',
+      userName: userName || 'Studier',
+      userAvatar,
+    });
+    res.json(result);
+  } catch (error: any) {
+    console.error('Failed to join study challenge in database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.get('/api/db/challenges/:id/leaderboard', async (req, res) => {
+  try {
+    const leaderboard = await getChallengeLeaderboard(req.params.id);
+    res.json({ success: true, leaderboard });
+  } catch (error: any) {
+    console.error('Failed to fetch challenge leaderboard from database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+// Competitive Leaderboard Endpoint (Today, This Week, This Month, All-Time)
+app.get('/api/db/leaderboard', async (req, res) => {
+  try {
+    const timeframe = (req.query.timeframe as 'today' | 'week' | 'month' | 'all') || 'week';
+    const leaderboard = await getLeaderboardByTimeframe(timeframe);
+    res.json({ success: true, leaderboard });
+  } catch (error: any) {
+    console.error('Failed to fetch leaderboard from database:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+// Friendships Endpoints
+app.get('/api/db/friends', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const userUid = (req.query.userUid as string) || req.user?.uid;
+    if (!userUid) return res.status(400).json({ error: 'userUid is required' });
+    const friends = await getFriendsByUser(userUid);
+    res.json({ success: true, friends });
+  } catch (error: any) {
+    console.error('Failed to get friends:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.post('/api/db/friends', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const { userUid, friendUid, friendName, friendHandle, friendAvatar, friendUniversity } = req.body;
+    const currentUid = req.user?.uid || userUid;
+    if (!currentUid || !friendUid) {
+      return res.status(400).json({ error: 'userUid and friendUid are required' });
+    }
+    const friendship = await addFriend({
+      userUid: currentUid,
+      friendUid,
+      friendName: friendName || 'Peer Studier',
+      friendHandle,
+      friendAvatar,
+      friendUniversity,
+    });
+    res.json({ success: true, friendship });
+  } catch (error: any) {
+    console.error('Failed to add friend:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.delete('/api/db/friends/:friendUid', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const userUid = (req.query.userUid as string) || req.user?.uid;
+    const { friendUid } = req.params;
+    if (!userUid || !friendUid) {
+      return res.status(400).json({ error: 'userUid and friendUid are required' });
+    }
+    await removeFriend(userUid, friendUid);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Failed to remove friend:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+// Search users by unique handle, name, or university
+app.get('/api/db/users/search', async (req, res) => {
+  try {
+    const query = (req.query.q as string) || '';
+    const usersList = await searchUsersByQuery(query);
+    res.json({ success: true, users: usersList });
+  } catch (error: any) {
+    console.error('Failed to search users:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+// Milestones & Activity Feed Endpoints (supports friendsOnly=true and global)
+app.get('/api/db/milestones', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const userUid = (req.query.userUid as string) || req.user?.uid;
+    const friendsOnly = req.query.friendsOnly === 'true';
+    const milestonesList = await getMilestonesFeed(userUid, friendsOnly);
+    res.json({ success: true, milestones: milestonesList });
+  } catch (error: any) {
+    console.error('Failed to get milestones feed:', error);
+    res.status(500).json({ error: 'Database operation failed' });
+  }
+});
+
+app.post('/api/db/milestones', optionalAuth, async (req: AuthRequest, res) => {
+  try {
+    const {
+      milestoneId,
+      userUid,
+      userName,
+      userHandle,
+      userAvatar,
+      university,
+      type,
       title,
       description,
       subjectTag,
-      curriculum,
-      cardsCount: Number(cardsCount || 0),
-      authorUid: req.user?.uid || authorUid || 'author_guest',
-      authorName: authorName || 'Gizmo Creator',
-      cardsJson: typeof cardsJson === 'string' ? cardsJson : JSON.stringify(cardsJson || []),
-      rating,
+      streakDays,
+      xpEarned,
+    } = req.body;
+    if (!title || !description) {
+      return res.status(400).json({ error: 'title and description are required' });
+    }
+    const created = await insertMilestone({
+      milestoneId: milestoneId || `mile_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userUid: req.user?.uid || userUid || 'studier_guest',
+      userName: userName || 'Studier',
+      userHandle,
+      userAvatar,
+      university,
+      type,
+      title,
+      description,
+      subjectTag,
+      streakDays: Number(streakDays || 1),
+      xpEarned: Number(xpEarned || 50),
     });
-    res.json({ success: true, deck });
+    res.json({ success: true, milestone: created });
   } catch (error: any) {
-    console.error('Failed to save study deck in database:', error);
+    console.error('Failed to insert milestone:', error);
     res.status(500).json({ error: 'Database operation failed' });
   }
 });
 
-app.get('/api/db/study-decks', async (_req, res) => {
+app.post('/api/db/milestones/:id/cheer', async (req, res) => {
   try {
-    const decks = await getAllStudyDecks();
-    res.json({ success: true, decks });
+    await cheerMilestoneInDb(req.params.id);
+    res.json({ success: true });
   } catch (error: any) {
-    console.error('Failed to fetch study decks from database:', error);
+    console.error('Failed to cheer milestone:', error);
     res.status(500).json({ error: 'Database operation failed' });
   }
 });

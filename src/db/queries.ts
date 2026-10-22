@@ -1,11 +1,12 @@
 import { db } from './index';
-import { users, focusLogs, studySpaces, studyDecks } from './schema';
-import { eq, desc } from 'drizzle-orm';
+import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones } from './schema';
+import { eq, desc, sql, or, ilike, inArray } from 'drizzle-orm';
 
 export interface UserSyncInput {
   uid: string;
   email: string;
   name: string;
+  handle?: string;
   avatar?: string;
   university?: string;
   studyField?: string;
@@ -16,12 +17,14 @@ export interface UserSyncInput {
 
 export async function upsertUser(input: UserSyncInput) {
   try {
+    const userHandle = input.handle || input.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const result = await db
       .insert(users)
       .values({
         uid: input.uid,
         email: input.email,
         name: input.name,
+        handle: userHandle,
         avatar: input.avatar || '',
         university: input.university || '',
         studyField: input.studyField || '',
@@ -34,6 +37,7 @@ export async function upsertUser(input: UserSyncInput) {
         set: {
           email: input.email,
           name: input.name,
+          handle: userHandle,
           avatar: input.avatar || '',
           university: input.university || '',
           studyField: input.studyField || '',
@@ -72,6 +76,23 @@ export async function insertFocusLog(input: {
       })
       .returning();
 
+    // Also update user's total hours and streak
+    await db
+      .update(users)
+      .set({
+        totalHoursStudied: sql`${users.totalHoursStudied} + ${Math.round(input.durationMinutes / 60)}`,
+        xp: sql`${users.xp} + ${input.xpEarned}`,
+      })
+      .where(eq(users.uid, input.userUid));
+
+    // Also increment any active challenge participants
+    await db
+      .update(challengeParticipants)
+      .set({
+        studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}`,
+      })
+      .where(eq(challengeParticipants.userUid, input.userUid));
+
     return result[0];
   } catch (error) {
     console.error('Database insertFocusLog failed:', error);
@@ -93,113 +114,321 @@ export async function getFocusLogsByUser(userUid: string) {
   }
 }
 
-export async function upsertStudySpace(input: {
-  spaceId: string;
-  name: string;
-  tagline?: string;
-  subjectTag: string;
-  hostUid: string;
-  hostName: string;
-  hostAvatar?: string;
-  mode?: string;
-  isPrivate?: boolean;
-  workMin?: number;
-  breakMin?: number;
-}) {
-  try {
-    const result = await db
-      .insert(studySpaces)
-      .values({
-        spaceId: input.spaceId,
-        name: input.name,
-        tagline: input.tagline || '',
-        subjectTag: input.subjectTag,
-        hostUid: input.hostUid,
-        hostName: input.hostName,
-        hostAvatar: input.hostAvatar || '',
-        mode: input.mode || 'pomodoro',
-        isPrivate: input.isPrivate ?? false,
-        workMin: input.workMin ?? 50,
-        breakMin: input.breakMin ?? 10,
-      })
-      .onConflictDoUpdate({
-        target: studySpaces.spaceId,
-        set: {
-          name: input.name,
-          tagline: input.tagline || '',
-          subjectTag: input.subjectTag,
-          workMin: input.workMin ?? 50,
-          breakMin: input.breakMin ?? 10,
-        },
-      })
-      .returning();
-
-    return result[0];
-  } catch (error) {
-    console.error('Database upsertStudySpace failed:', error);
-    throw new Error('Database operation failed', { cause: error });
-  }
-}
-
-export async function getAllStudySpaces() {
-  try {
-    return await db.select().from(studySpaces).orderBy(desc(studySpaces.createdAt)).limit(50);
-  } catch (error) {
-    console.error('Database getAllStudySpaces failed:', error);
-    throw new Error('Database operation failed', { cause: error });
-  }
-}
-
-export async function upsertStudyDeck(input: {
-  deckId: string;
+export async function insertStudyChallenge(input: {
+  challengeId: string;
   title: string;
   description?: string;
-  subjectTag: string;
-  curriculum?: string;
-  cardsCount: number;
-  authorUid: string;
-  authorName: string;
-  cardsJson?: string;
-  rating?: number;
+  creatorUid: string;
+  creatorName: string;
+  creatorAvatar?: string;
+  targetHours: number;
+  period: string;
+  startDate: string;
+  endDate: string;
+  category?: string;
 }) {
   try {
     const result = await db
-      .insert(studyDecks)
+      .insert(studyChallenges)
       .values({
-        deckId: input.deckId,
+        challengeId: input.challengeId,
         title: input.title,
         description: input.description || '',
-        subjectTag: input.subjectTag,
-        curriculum: input.curriculum || 'General',
-        cardsCount: input.cardsCount,
-        authorUid: input.authorUid,
-        authorName: input.authorName,
-        cardsJson: input.cardsJson || '[]',
-        rating: input.rating ?? 5,
-      })
-      .onConflictDoUpdate({
-        target: studyDecks.deckId,
-        set: {
-          title: input.title,
-          description: input.description || '',
-          cardsCount: input.cardsCount,
-          cardsJson: input.cardsJson || '[]',
-        },
+        creatorUid: input.creatorUid,
+        creatorName: input.creatorName,
+        creatorAvatar: input.creatorAvatar || '',
+        targetHours: input.targetHours,
+        period: input.period,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        category: input.category || 'General',
+        participantsCount: 1,
       })
       .returning();
 
+    // Auto add creator as participant
+    await db.insert(challengeParticipants).values({
+      challengeId: input.challengeId,
+      userUid: input.creatorUid,
+      userName: input.creatorName,
+      userAvatar: input.creatorAvatar || '',
+      studiedMinutes: 0,
+    });
+
     return result[0];
   } catch (error) {
-    console.error('Database upsertStudyDeck failed:', error);
+    console.error('Database insertStudyChallenge failed:', error);
     throw new Error('Database operation failed', { cause: error });
   }
 }
 
-export async function getAllStudyDecks() {
+export async function getAllStudyChallenges() {
   try {
-    return await db.select().from(studyDecks).orderBy(desc(studyDecks.createdAt)).limit(50);
+    return await db.select().from(studyChallenges).orderBy(desc(studyChallenges.createdAt)).limit(50);
   } catch (error) {
-    console.error('Database getAllStudyDecks failed:', error);
+    console.error('Database getAllStudyChallenges failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function joinStudyChallenge(input: {
+  challengeId: string;
+  userUid: string;
+  userName: string;
+  userAvatar?: string;
+}) {
+  try {
+    // Check if already joined
+    const existing = await db
+      .select()
+      .from(challengeParticipants)
+      .where(
+        sql`${challengeParticipants.challengeId} = ${input.challengeId} AND ${challengeParticipants.userUid} = ${input.userUid}`
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      await db.insert(challengeParticipants).values({
+        challengeId: input.challengeId,
+        userUid: input.userUid,
+        userName: input.userName,
+        userAvatar: input.userAvatar || '',
+        studiedMinutes: 0,
+      });
+
+      await db
+        .update(studyChallenges)
+        .set({
+          participantsCount: sql`${studyChallenges.participantsCount} + 1`,
+        })
+        .where(eq(studyChallenges.challengeId, input.challengeId));
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Database joinStudyChallenge failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getChallengeLeaderboard(challengeId: string) {
+  try {
+    return await db
+      .select()
+      .from(challengeParticipants)
+      .where(eq(challengeParticipants.challengeId, challengeId))
+      .orderBy(desc(challengeParticipants.studiedMinutes))
+      .limit(50);
+  } catch (error) {
+    console.error('Database getChallengeLeaderboard failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all') {
+  try {
+    // For 'all', pull users ordered by totalHoursStudied and xp
+    return await db
+      .select({
+        id: users.id,
+        uid: users.uid,
+        name: users.name,
+        handle: users.handle,
+        avatar: users.avatar,
+        university: users.university,
+        studyField: users.studyField,
+        totalHoursStudied: users.totalHoursStudied,
+        xp: users.xp,
+        currentStreak: users.currentStreak,
+      })
+      .from(users)
+      .orderBy(desc(users.totalHoursStudied), desc(users.xp))
+      .limit(50);
+  } catch (error) {
+    console.error('Database getLeaderboardByTimeframe failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+// Friendship Queries
+export async function addFriend(input: {
+  userUid: string;
+  friendUid: string;
+  friendName: string;
+  friendHandle?: string;
+  friendAvatar?: string;
+  friendUniversity?: string;
+}) {
+  try {
+    const existing = await db
+      .select()
+      .from(friendships)
+      .where(
+        sql`${friendships.userUid} = ${input.userUid} AND ${friendships.friendUid} = ${input.friendUid}`
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      const res = await db
+        .insert(friendships)
+        .values({
+          userUid: input.userUid,
+          friendUid: input.friendUid,
+          friendName: input.friendName,
+          friendHandle: input.friendHandle || '',
+          friendAvatar: input.friendAvatar || '',
+          friendUniversity: input.friendUniversity || '',
+        })
+        .returning();
+      return res[0];
+    }
+    return existing[0];
+  } catch (error) {
+    console.error('Database addFriend failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function removeFriend(userUid: string, friendUid: string) {
+  try {
+    await db
+      .delete(friendships)
+      .where(
+        sql`${friendships.userUid} = ${userUid} AND ${friendships.friendUid} = ${friendUid}`
+      );
+    return { success: true };
+  } catch (error) {
+    console.error('Database removeFriend failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getFriendsByUser(userUid: string) {
+  try {
+    return await db
+      .select()
+      .from(friendships)
+      .where(eq(friendships.userUid, userUid))
+      .orderBy(desc(friendships.createdAt));
+  } catch (error) {
+    console.error('Database getFriendsByUser failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function searchUsersByQuery(query: string) {
+  try {
+    const clean = query.trim().replace(/^@/, '');
+    if (!clean) return [];
+    return await db
+      .select({
+        id: users.id,
+        uid: users.uid,
+        name: users.name,
+        handle: users.handle,
+        avatar: users.avatar,
+        university: users.university,
+        studyField: users.studyField,
+        totalHoursStudied: users.totalHoursStudied,
+        currentStreak: users.currentStreak,
+        xp: users.xp,
+      })
+      .from(users)
+      .where(
+        or(
+          ilike(users.handle, `%${clean}%`),
+          ilike(users.name, `%${clean}%`),
+          ilike(users.university, `%${clean}%`)
+        )
+      )
+      .limit(20);
+  } catch (error) {
+    console.error('Database searchUsersByQuery failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+// Milestone & Activity Feed Queries
+export async function insertMilestone(input: {
+  milestoneId: string;
+  userUid: string;
+  userName: string;
+  userHandle?: string;
+  userAvatar?: string;
+  university?: string;
+  type?: string;
+  title: string;
+  description: string;
+  subjectTag?: string;
+  streakDays?: number;
+  xpEarned?: number;
+}) {
+  try {
+    const result = await db
+      .insert(milestones)
+      .values({
+        milestoneId: input.milestoneId,
+        userUid: input.userUid,
+        userName: input.userName,
+        userHandle: input.userHandle || '',
+        userAvatar: input.userAvatar || '',
+        university: input.university || '',
+        type: input.type || 'session_completed',
+        title: input.title,
+        description: input.description,
+        subjectTag: input.subjectTag || '',
+        streakDays: input.streakDays || 1,
+        xpEarned: input.xpEarned || 50,
+      })
+      .returning();
+    return result[0];
+  } catch (error) {
+    console.error('Database insertMilestone failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean) {
+  try {
+    if (friendsOnly && userUid) {
+      const friendRows = await db
+        .select({ friendUid: friendships.friendUid })
+        .from(friendships)
+        .where(eq(friendships.userUid, userUid));
+
+      const friendUids = friendRows.map((f) => f.friendUid);
+      friendUids.push(userUid); // Include own milestones in friends feed too
+
+      return await db
+        .select()
+        .from(milestones)
+        .where(inArray(milestones.userUid, friendUids))
+        .orderBy(desc(milestones.createdAt))
+        .limit(50);
+    }
+
+    return await db
+      .select()
+      .from(milestones)
+      .orderBy(desc(milestones.createdAt))
+      .limit(50);
+  } catch (error) {
+    console.error('Database getMilestonesFeed failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function cheerMilestoneInDb(milestoneId: string) {
+  try {
+    await db
+      .update(milestones)
+      .set({
+        cheersCount: sql`${milestones.cheersCount} + 1`,
+      })
+      .where(eq(milestones.milestoneId, milestoneId));
+    return { success: true };
+  } catch (error) {
+    console.error('Database cheerMilestone failed:', error);
     throw new Error('Database operation failed', { cause: error });
   }
 }

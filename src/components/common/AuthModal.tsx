@@ -6,22 +6,19 @@ import {
   User,
   LogOut,
   Sparkles,
-  Cloud,
   CheckCircle2,
   AlertCircle,
   Loader2,
   ShieldCheck,
   Globe,
-  School,
   BookOpen,
   EyeOff,
-  MapPin,
   Scale,
   FileText,
   Check,
+  Award,
 } from 'lucide-react';
-import { User as FirebaseUser } from 'firebase/auth';
-import { FirebaseService } from '../../services/firebase';
+import { SupabaseService } from '../../services/supabase';
 import { UserProfile } from '../../types';
 import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
 import { RulesAndFeaturesModal } from './RulesAndFeaturesModal';
@@ -29,9 +26,8 @@ import { RulesAndFeaturesModal } from './RulesAndFeaturesModal';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  firebaseUser: FirebaseUser | null;
   currentUser: UserProfile;
-  onAuthSuccess: (fbUser: FirebaseUser) => void;
+  onAuthSuccess: (userProfile: UserProfile) => void;
   onUpdateProfile?: (updates: Partial<UserProfile>) => void;
   onLogout: () => void;
 }
@@ -39,7 +35,6 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
-  firebaseUser,
   currentUser,
   onAuthSuccess,
   onUpdateProfile,
@@ -78,14 +73,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return isCustomUni ? (customUniversity.trim() || 'Global Campus') : selectedUniversity;
   };
 
-  const syncProfileUpdates = async (fbUser: FirebaseUser) => {
+  const syncProfileUpdates = async (profile: UserProfile) => {
     const uni = getResolvedUniversity();
     const updates: Partial<UserProfile> = {
       countryCode: currentCountry.code,
       countryName: currentCountry.name,
-      countryFlag: currentCountry.flag,
+      countryFlag: 'Global',
       university: uni,
-      universityOrLocation: `${uni} (${currentCountry.flag} ${currentCountry.name})`,
+      universityOrLocation: `${uni} (${currentCountry.name})`,
       studyField: selectedStudyField,
       isGhostMode,
       termsAccepted: true,
@@ -93,44 +88,78 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       termsVersion: '2026.1',
     };
 
+    const updatedFull = { ...profile, ...updates };
     if (onUpdateProfile) {
       onUpdateProfile(updates);
     }
+    await SupabaseService.syncUser(updatedFull);
+    return updatedFull;
+  };
+
+  const handleAppleSignIn = async () => {
+    if (!hasAcceptedTerms) {
+      setTermsError(true);
+      setErrorMsg('Please accept the platform agreement before signing in.');
+      return;
+    }
+    setLoading(true);
+    setErrorMsg(null);
+    setTermsError(false);
 
     try {
-      await FirebaseService.saveUserProfile({
+      const res = await SupabaseService.signInWithApple();
+      if (!res.success) {
+        setErrorMsg(res.error || 'Apple Sign-in failed.');
+        return;
+      }
+      setSuccessMsg('Successfully connected with Apple ID!');
+      const updatedUser: UserProfile = {
         ...currentUser,
-        id: fbUser.uid,
-        name: displayName.trim() || fbUser.displayName || currentUser.name,
-        avatar: fbUser.photoURL || currentUser.avatar,
-        ...updates,
-      });
-    } catch (e) {
-      console.warn('Could not sync profile to Firebase:', e);
+        name: currentUser.name || 'Apple Studier',
+        email: 'student@privaterelay.appleid.com',
+      };
+      const finalUser = await syncProfileUpdates(updatedUser);
+      onAuthSuccess(finalUser);
+      setTimeout(() => {
+        setSuccessMsg(null);
+        onClose();
+      }, 1000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Could not complete Apple sign-in.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
     if (!hasAcceptedTerms) {
       setTermsError(true);
-      setErrorMsg('Mandatory: Please review and accept the Rules, Regulations, and Feature Terms before signing in.');
+      setErrorMsg('Please accept the platform agreement before signing in.');
       return;
     }
     setLoading(true);
     setErrorMsg(null);
     setTermsError(false);
+
     try {
-      const user = await FirebaseService.loginGoogle();
-      await syncProfileUpdates(user);
-      setSuccessMsg('Successfully signed in with Google!');
-      onAuthSuccess(user);
+      const res = await SupabaseService.signInWithGoogle();
+      if (!res.success) {
+        setErrorMsg(res.error || 'Google Sign-in failed.');
+        return;
+      }
+      setSuccessMsg('Signed in with Google!');
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        name: currentUser.name || 'Google Studier',
+      };
+      const finalUser = await syncProfileUpdates(updatedUser);
+      onAuthSuccess(finalUser);
       setTimeout(() => {
         setSuccessMsg(null);
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || 'Google sign-in was cancelled or failed.');
+      setErrorMsg(err.message || 'Google sign-in failed.');
     } finally {
       setLoading(false);
     }
@@ -140,41 +169,56 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault();
     if (!hasAcceptedTerms) {
       setTermsError(true);
-      setErrorMsg('Mandatory: Please review and check the agreement box for Rules, Regulations & Features.');
+      setErrorMsg('Please accept the platform rules agreement before continuing.');
       return;
     }
-    if (!email || !password) return;
+
+    if (!email || !password) {
+      setErrorMsg('Please fill in both email and password.');
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
     setTermsError(false);
 
     try {
-      let user: FirebaseUser;
       if (mode === 'login') {
-        user = await FirebaseService.loginEmail(email.trim(), password);
-        await syncProfileUpdates(user);
-        setSuccessMsg('Welcome back! Signed in successfully.');
+        const res = await SupabaseService.signInWithEmail(email, password);
+        if (!res.success) {
+          setErrorMsg(res.error || 'Invalid email or password.');
+          return;
+        }
+        setSuccessMsg('Welcome back!');
+        const updatedUser: UserProfile = {
+          ...currentUser,
+          email,
+          name: displayName || email.split('@')[0],
+        };
+        const finalUser = await syncProfileUpdates(updatedUser);
+        onAuthSuccess(finalUser);
       } else {
-        user = await FirebaseService.registerEmail(email.trim(), password, displayName.trim());
-        await syncProfileUpdates(user);
-        setSuccessMsg('Account created! Signed in successfully.');
+        const res = await SupabaseService.signUpWithEmail(email, password, displayName || 'New Studier');
+        if (!res.success) {
+          setErrorMsg(res.error || 'Signup failed.');
+          return;
+        }
+        setSuccessMsg('Account created successfully!');
+        const updatedUser: UserProfile = {
+          ...currentUser,
+          email,
+          name: displayName || email.split('@')[0],
+        };
+        const finalUser = await syncProfileUpdates(updatedUser);
+        onAuthSuccess(finalUser);
       }
-      onAuthSuccess(user);
+
       setTimeout(() => {
         setSuccessMsg(null);
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
-      console.error(err);
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found') {
-        setErrorMsg('Invalid email or password. Please try again.');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setErrorMsg('An account with this email already exists. Try logging in.');
-      } else if (err.code === 'auth/weak-password') {
-        setErrorMsg('Password should be at least 6 characters.');
-      } else {
-        setErrorMsg(err.message || 'Authentication error.');
-      }
+      setErrorMsg(err.message || 'Authentication error.');
     } finally {
       setLoading(false);
     }
@@ -183,40 +227,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleGuestSignIn = async () => {
     if (!hasAcceptedTerms) {
       setTermsError(true);
-      setErrorMsg('Mandatory: Please review and check the agreement box before continuing as Guest.');
+      setErrorMsg('Please accept the agreement to continue as Guest.');
       return;
     }
     setLoading(true);
     setErrorMsg(null);
-    setTermsError(false);
     try {
-      const user = await FirebaseService.loginGuest();
-      await syncProfileUpdates(user);
-      setSuccessMsg('Signed in as Guest with cloud session!');
-      onAuthSuccess(user);
+      setSuccessMsg('Guest mode active.');
+      const guestUser: UserProfile = {
+        ...currentUser,
+        id: `guest_${Date.now()}`,
+        name: displayName || 'Guest Studier',
+      };
+      const finalUser = await syncProfileUpdates(guestUser);
+      onAuthSuccess(finalUser);
       setTimeout(() => {
         setSuccessMsg(null);
         onClose();
-      }, 1000);
+      }, 800);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Could not sign in anonymously.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveActiveSettings = async () => {
-    if (!firebaseUser) return;
-    setLoading(true);
-    try {
-      await syncProfileUpdates(firebaseUser);
-      setSuccessMsg('Settings updated successfully!');
-      setTimeout(() => {
-        setSuccessMsg(null);
-        onClose();
-      }, 1000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Could not save settings.');
+      setErrorMsg(err.message || 'Could not start guest session.');
     } finally {
       setLoading(false);
     }
@@ -225,7 +255,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleSignOut = async () => {
     setLoading(true);
     try {
-      await FirebaseService.logout();
+      await SupabaseService.signOut();
       onLogout();
       onClose();
     } catch (err) {
@@ -236,22 +266,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm animate-fade-in">
-      <div className="squircle-card max-w-lg w-full p-6 sm:p-7 bg-white border border-stone-200 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-fade-in">
+      <div className="squircle-card max-w-lg w-full p-6 sm:p-7 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl relative max-h-[92vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-5">
+        <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-stone-900 flex items-center justify-center font-bold">
-              <Cloud className="w-5 h-5 text-amber-700" />
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950 text-stone-900 dark:text-amber-200 flex items-center justify-center font-bold">
+              <ShieldCheck className="w-5 h-5 text-amber-700 dark:text-amber-400" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-stone-900">Student Account & Location</h2>
-              <p className="text-xs text-stone-500">Global Campus, Universities & Privacy Controls</p>
+              <h2 className="text-base font-bold text-stone-900 dark:text-white">
+                Student Account & Cloud Sync
+              </h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400">
+                Supabase & PostgreSQL Social Study Sync
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+            className="p-2 rounded-xl text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -259,7 +293,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Success Banner */}
         {successMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+          <div className="mb-4 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-semibold flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -267,263 +301,98 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Error Banner */}
         {errorMsg && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <div className="mb-4 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        {/* If Already Logged In: Show Account info and Location/Ghost Controls */}
-        {firebaseUser ? (
-          <div className="space-y-4 text-xs">
-            <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-emerald-950 flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-sm block">Logged in with Firebase Cloud</span>
-                <span className="text-stone-600 block mt-0.5">
-                  {firebaseUser.email || (firebaseUser.isAnonymous ? 'Guest Studier Session' : firebaseUser.displayName || 'Studier')}
-                </span>
-                <span className="text-[11px] font-mono text-emerald-700 block mt-0.5">
-                  UID: {firebaseUser.uid.slice(0, 16)}...
-                </span>
+        <div className="space-y-4 text-xs">
+          {/* Rules and Legal Agreement Container (Clean, zero emojis) */}
+          <div
+            className={`p-3.5 rounded-2xl border transition-all ${
+              termsError
+                ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-300'
+                : hasAcceptedTerms
+                ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200'
+                : 'bg-amber-50/60 border-amber-200 text-stone-900 dark:bg-stone-800 dark:border-stone-700 dark:text-white'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-center gap-1.5 font-extrabold text-xs text-stone-900 dark:text-white">
+                <Scale className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                <span>Platform Study Rules & Terms</span>
               </div>
-            </div>
-
-            {/* Location & Ghost Mode Settings for Active User */}
-            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
-              <h3 className="font-bold text-stone-800 flex items-center gap-1.5">
-                <School className="w-4 h-4 text-amber-600" />
-                <span>Your University & Country Presence</span>
-              </h3>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Country</label>
-                  <select
-                    value={selectedCountryCode}
-                    onChange={(e) => {
-                      setSelectedCountryCode(e.target.value);
-                      const found = COUNTRIES_CATALOG.find((c) => c.code === e.target.value);
-                      if (found && found.universities.length > 0) {
-                        setSelectedUniversity(found.universities[0]);
-                        setIsCustomUni(false);
-                      }
-                    }}
-                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
-                  >
-                    {COUNTRIES_CATALOG.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.flag} {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">University / Campus</label>
-                  {!isCustomUni ? (
-                    <select
-                      value={selectedUniversity}
-                      onChange={(e) => {
-                        if (e.target.value === '__OTHER__') {
-                          setIsCustomUni(true);
-                        } else {
-                          setSelectedUniversity(e.target.value);
-                        }
-                      }}
-                      className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
-                    >
-                      {currentCountry.universities.map((u) => (
-                        <option key={u} value={u}>
-                          {u}
-                        </option>
-                      ))}
-                      <option value="__OTHER__">+ Enter Custom University...</option>
-                    </select>
-                  ) : (
-                    <div className="flex gap-1.5">
-                      <input
-                        type="text"
-                        value={customUniversity}
-                        onChange={(e) => setCustomUniversity(e.target.value)}
-                        placeholder="Type campus name..."
-                        className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setIsCustomUni(false)}
-                        className="px-2 py-1 bg-stone-200 rounded-lg text-[10px] font-bold"
-                      >
-                        List
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">Study Field / Exam Track</label>
-                <select
-                  value={selectedStudyField}
-                  onChange={(e) => setSelectedStudyField(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
-                >
-                  {STUDY_FIELDS.map((field) => (
-                    <option key={field} value={field}>
-                      {field}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Ghost Mode Privacy Toggle */}
-              <label className="flex items-start gap-3 p-3 rounded-xl bg-purple-50/70 border border-purple-200 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isGhostMode}
-                  onChange={(e) => setIsGhostMode(e.target.checked)}
-                  className="w-4 h-4 rounded text-purple-600 focus:ring-purple-400 mt-0.5"
-                />
-                <div className="text-purple-950">
-                  <span className="font-bold flex items-center gap-1.5">
-                    <EyeOff className="w-3.5 h-3.5 text-purple-700" />
-                    Ghost Mode (Incognito Study)
-                  </span>
-                  <span className="text-[11px] text-purple-800 leading-relaxed block mt-0.5">
-                    Hide my active study session and university from other studiers online. My rooms will be private and unlisted.
-                  </span>
-                </div>
-              </label>
-
               <button
                 type="button"
-                onClick={handleSaveActiveSettings}
-                disabled={loading}
-                className="w-full py-2.5 rounded-xl bg-stone-900 text-white font-bold hover:bg-stone-800 transition-all shadow-xs"
+                onClick={() => setIsRulesModalOpen(true)}
+                className="text-[11px] font-bold text-amber-800 dark:text-amber-400 hover:underline flex items-center gap-1"
               >
-                Save Location & Ghost Mode Settings
+                <FileText className="w-3 h-3" />
+                <span>Read Full Terms</span>
               </button>
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-medium"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 font-bold transition-all"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                Sign Out
-              </button>
+            {/* Feature Pills (No Emojis) */}
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-[10px] font-medium text-stone-700 dark:text-stone-300">
+                <ShieldCheck className="w-3 h-3 text-emerald-500" /> Respectful Community
+              </span>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-[10px] font-medium text-stone-700 dark:text-stone-300">
+                <BookOpen className="w-3 h-3 text-indigo-500" /> Academic Integrity
+              </span>
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-[10px] font-medium text-stone-700 dark:text-stone-300">
+                <EyeOff className="w-3 h-3 text-amber-500" /> Ghost Mode Privacy
+              </span>
             </div>
+
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hasAcceptedTerms}
+                onChange={(e) => {
+                  setHasAcceptedTerms(e.target.checked);
+                  if (e.target.checked) {
+                    setTermsError(false);
+                    setErrorMsg(null);
+                  }
+                }}
+                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 mt-0.5 shrink-0"
+              />
+              <span className="text-[11px] leading-tight font-medium text-stone-800 dark:text-stone-300">
+                I have read and agree to the platform community guidelines and terms.
+              </span>
+            </label>
+
+            {hasAcceptedTerms && (
+              <div className="mt-2 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1 bg-emerald-100/70 dark:bg-emerald-950/80 px-2 py-1 rounded-lg">
+                <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
+                <span>Agreement accepted for this device.</span>
+              </div>
+            )}
           </div>
-        ) : (
-          /* Sign In / Sign Up Form */
-          <div className="space-y-4 text-xs">
-            {/* Mandatory Rules, Regulations & Features Legal Agreement Container */}
-            <div
-              className={`p-3.5 rounded-2xl border transition-all ${
-                termsError
-                  ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-300 animate-pulse'
-                  : hasAcceptedTerms
-                  ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
-                  : 'bg-amber-50/60 border-amber-200 text-stone-900'
-              }`}
+
+          {/* Social Sign In Options: Apple & Google */}
+          <div className="space-y-2 pt-1">
+            {/* Apple Login Button (Official Apple Design) */}
+            <button
+              type="button"
+              onClick={handleAppleSignIn}
+              disabled={loading}
+              className="w-full py-3 px-4 rounded-2xl bg-black hover:bg-stone-900 text-white font-bold flex items-center justify-center gap-2.5 transition-all shadow-xs active:scale-95 disabled:opacity-50"
             >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-1.5 font-extrabold text-xs text-stone-900">
-                  <Scale className="w-4 h-4 text-amber-700" />
-                  <span>Platform Rules & Feature Agreement</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsRulesModalOpen(true)}
-                  className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-1"
-                >
-                  <FileText className="w-3 h-3" />
-                  <span>Read Full Legal Terms</span>
-                </button>
-              </div>
+              <svg className="w-4 h-4 fill-white" viewBox="0 0 170 170">
+                <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.08-7.77-8.15-12.23-15.22-5.75-9.12-10.23-19.46-13.43-30.98-3.21-11.53-4.81-22.75-4.81-33.68 0-14.15 3.37-26.04 10.12-35.68 6.74-9.64 15.42-14.54 26.03-14.71 4.7 0 10.11 1.25 16.24 3.75 6.13 2.5 9.94 3.76 11.43 3.76 1.83 0 5.86-1.3 12.08-3.9 6.22-2.6 11.45-3.79 15.7-3.58 11.66.57 21.14 4.88 28.43 12.93-10.37 6.29-15.4 15.15-15.08 26.58.33 8.97 3.86 16.48 10.6 22.52 6.73 6.04 14.58 9.5 23.54 10.39-2.29 7.08-5.21 14.62-8.77 22.61zM119.22 31.84c0-7.39 2.68-14.39 8.04-21.01 5.36-6.62 11.89-10.53 19.59-11.73.1 1.13.15 2.14.15 3.03 0 7.23-2.8 14.34-8.4 21.32-5.6 6.98-12.08 10.82-19.44 11.53-.1-1.04-.15-2.08-.15-3.14z" />
+              </svg>
+              <span>Sign in with Apple</span>
+            </button>
 
-              {/* Feature Highlights Pills */}
-              <div className="flex flex-wrap gap-1.5 mb-2.5">
-                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
-                  🛡️ Zero Harassment
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
-                  🎓 Academic Integrity
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
-                  ⚡ AI Tools As-Is
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
-                  🔒 Ghost Mode Privacy
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-white/90 border border-stone-200 text-[10px] font-medium text-stone-700">
-                  ⚖️ Liability Waiver
-                </span>
-              </div>
-
-              {/* Mandatory Acceptance Checkbox */}
-              <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={hasAcceptedTerms}
-                  onChange={(e) => {
-                    setHasAcceptedTerms(e.target.checked);
-                    if (e.target.checked) {
-                      setTermsError(false);
-                      setErrorMsg(null);
-                    }
-                  }}
-                  className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 mt-0.5 shrink-0"
-                />
-                <span className="text-[11px] leading-tight font-medium text-stone-800">
-                  I have read, understand, and agree to the{' '}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsRulesModalOpen(true);
-                    }}
-                    className="font-bold underline text-amber-900 hover:text-stone-950"
-                  >
-                    Lumina Study Rules, Regulations, App Features Terms, and Legal Liability Waiver
-                  </button>
-                  .
-                </span>
-              </label>
-
-              {termsError && (
-                <p className="mt-2 text-[11px] font-bold text-rose-700 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>Required: You must check this box to proceed with login or registration.</span>
-                </p>
-              )}
-
-              {hasAcceptedTerms && (
-                <div className="mt-2 text-[10px] font-bold text-emerald-800 flex items-center gap-1 bg-emerald-100/70 px-2 py-1 rounded-lg">
-                  <Check className="w-3 h-3 text-emerald-700" />
-                  <span>Agreement verified & legally accepted for this session.</span>
-                </div>
-              )}
-            </div>
-
-            {/* Google One-Click Sign In */}
+            {/* Google Login Button */}
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className={`w-full py-3 px-4 rounded-2xl bg-white border text-stone-800 font-bold flex items-center justify-center gap-2.5 transition-all shadow-xs active:scale-95 disabled:opacity-50 ${
-                !hasAcceptedTerms ? 'border-stone-200 opacity-70 hover:border-amber-400' : 'border-stone-300 hover:border-stone-400 hover:bg-stone-50'
-              }`}
+              className="w-full py-3 px-4 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-white font-bold flex items-center justify-center gap-2.5 transition-all shadow-xs active:scale-95 disabled:opacity-50 hover:bg-stone-50 dark:hover:bg-stone-750"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -545,216 +414,137 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </svg>
               <span>Continue with Google</span>
             </button>
-
-            {/* Divider */}
-            <div className="flex items-center gap-2 my-2">
-              <div className="flex-1 h-px bg-stone-200" />
-              <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">or email</span>
-              <div className="flex-1 h-px bg-stone-200" />
-            </div>
-
-            {/* Mode Tabs */}
-            <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setMode('login')}
-                className={`flex-1 py-1.5 rounded-xl font-bold transition-all ${
-                  mode === 'login' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('register')}
-                className={`flex-1 py-1.5 rounded-xl font-bold transition-all ${
-                  mode === 'register' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500'
-                }`}
-              >
-                Create Account
-              </button>
-            </div>
-
-            {/* Email / Password Form */}
-            <form onSubmit={handleEmailAuth} className="space-y-3">
-              {mode === 'register' && (
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Your Full Name</label>
-                  <div className="relative">
-                    <User className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
-                    <input
-                      type="text"
-                      required
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="e.g. Kai Chen"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">Email Address</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="student@university.edu"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
-                  />
-                </div>
-              </div>
-
-              {/* Campus, Country & Field Configuration for Account */}
-              <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-amber-950 flex items-center gap-1.5">
-                    <School className="w-3.5 h-3.5 text-amber-700" />
-                    Your Country & University Presence
-                  </span>
-                  <span className="text-[10px] text-amber-700">Shown in World Floor</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1">Country</label>
-                    <select
-                      value={selectedCountryCode}
-                      onChange={(e) => {
-                        setSelectedCountryCode(e.target.value);
-                        const found = COUNTRIES_CATALOG.find((c) => c.code === e.target.value);
-                        if (found && found.universities.length > 0) {
-                          setSelectedUniversity(found.universities[0]);
-                          setIsCustomUni(false);
-                        }
-                      }}
-                      className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200"
-                    >
-                      {COUNTRIES_CATALOG.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.flag} {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1">University / Campus</label>
-                    {!isCustomUni ? (
-                      <select
-                        value={selectedUniversity}
-                        onChange={(e) => {
-                          if (e.target.value === '__OTHER__') {
-                            setIsCustomUni(true);
-                          } else {
-                            setSelectedUniversity(e.target.value);
-                          }
-                        }}
-                        className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200"
-                      >
-                        {currentCountry.universities.map((u) => (
-                          <option key={u} value={u}>
-                            {u}
-                          </option>
-                        ))}
-                        <option value="__OTHER__">+ Enter Custom...</option>
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={customUniversity}
-                        onChange={(e) => setCustomUniversity(e.target.value)}
-                        placeholder="Campus name"
-                        className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Study Track / Field</label>
-                  <select
-                    value={selectedStudyField}
-                    onChange={(e) => setSelectedStudyField(e.target.value)}
-                    className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200"
-                  >
-                    {STUDY_FIELDS.map((field) => (
-                      <option key={field} value={field}>
-                        {field}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Ghost Mode Option */}
-                <label className="flex items-center gap-2 pt-1 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isGhostMode}
-                    onChange={(e) => setIsGhostMode(e.target.checked)}
-                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-400"
-                  />
-                  <span className="text-[11px] text-stone-700">
-                    <strong className="text-purple-900">Enable Ghost Mode 👻</strong> (Keep my study sessions hidden from online directory)
-                  </span>
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 rounded-2xl bg-stone-900 text-white font-bold hover:bg-stone-800 transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading && <Loader2 className="w-4 h-4 animate-spin text-amber-300" />}
-                <span>{mode === 'login' ? 'Sign In to Lumina' : 'Create Lumina Account'}</span>
-              </button>
-            </form>
-
-            {/* Guest Mode option */}
-            <div className="pt-2 border-t border-stone-100 text-center">
-              <button
-                type="button"
-                onClick={handleGuestSignIn}
-                disabled={loading}
-                className="text-xs font-semibold text-stone-500 hover:text-stone-800 transition-colors"
-              >
-                Or continue as Instant Guest with above country settings
-              </button>
-            </div>
           </div>
-        )}
-      </div>
 
-      {/* Full Screen Interactive Rules, Regulations & Features Terms Modal */}
-      <RulesAndFeaturesModal
-        isOpen={isRulesModalOpen}
-        onClose={() => setIsRulesModalOpen(false)}
-        onAccept={() => {
-          setHasAcceptedTerms(true);
-          setTermsError(false);
-          setErrorMsg(null);
-        }}
-        hasAccepted={hasAcceptedTerms}
-      />
+          {/* Divider */}
+          <div className="flex items-center gap-2 my-2">
+            <div className="flex-1 h-px bg-stone-200 dark:bg-stone-800" />
+            <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
+              or email
+            </span>
+            <div className="flex-1 h-px bg-stone-200 dark:bg-stone-800" />
+          </div>
+
+          {/* Mode Switcher */}
+          <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 p-1 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setMode('login')}
+              className={`flex-1 py-1.5 rounded-xl font-bold transition-all ${
+                mode === 'login'
+                  ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
+                  : 'text-stone-500'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('register')}
+              className={`flex-1 py-1.5 rounded-xl font-bold transition-all ${
+                mode === 'register'
+                  ? 'bg-white dark:bg-stone-900 text-stone-900 dark:text-white shadow-xs'
+                  : 'text-stone-500'
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
+
+          {/* Email / Password Form */}
+          <form onSubmit={handleEmailAuth} className="space-y-3">
+            {mode === 'register' && (
+              <div>
+                <label className="block font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                  <input
+                    type="text"
+                    required
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="e.g. Liam Parker"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="student@university.edu"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-stone-700 dark:text-stone-300 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+              ) : mode === 'login' ? (
+                'Sign In to Lumina Study'
+              ) : (
+                'Create Student Account'
+              )}
+            </button>
+          </form>
+
+          {/* Guest Mode Option */}
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={handleGuestSignIn}
+              className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 text-xs font-semibold underline"
+            >
+              Continue as Guest (Local Session)
+            </button>
+          </div>
+        </div>
+
+        {/* Legal Terms Modal */}
+        <RulesAndFeaturesModal
+          isOpen={isRulesModalOpen}
+          onClose={() => setIsRulesModalOpen(false)}
+          onAccept={() => {
+            setHasAcceptedTerms(true);
+            setTermsError(false);
+            setIsRulesModalOpen(false);
+          }}
+          hasAccepted={hasAcceptedTerms}
+        />
+      </div>
     </div>
   );
 };

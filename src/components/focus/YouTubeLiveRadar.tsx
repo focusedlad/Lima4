@@ -213,7 +213,7 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
     const newStatus = !creator.isSubscribed;
     setAlertNotice(
       newStatus
-        ? `🔔 WebSub Radar: You will get live alerts when ${creator.name} starts streaming!`
+        ? `Radar: You will get live alerts when ${creator.name} starts streaming!`
         : `Turned off live alerts for ${creator.name}.`
     );
     setTimeout(() => setAlertNotice(null), 3500);
@@ -663,7 +663,7 @@ export const YouTubeLiveRadar: React.FC<YouTubeLiveRadarProps> = ({
                           : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200'
                       }`}
                     >
-                      {isSynced ? '✓ Synced' : 'Sync'}
+                      {isSynced ? 'Synced' : 'Sync'}
                     </button>
                   </div>
                 </div>

@@ -4,13 +4,13 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'GLOBAL',
     name: 'Global / Independent',
-    flag: '🌐',
+    flag: '',
     universities: ['Independent Scholar', 'Online / Self-Taught', 'Global Research Pod'],
   },
   {
     code: 'JP',
     name: 'Japan',
-    flag: '🇯🇵',
+    flag: '',
     universities: [
       'Tokyo Institute of Technology',
       'University of Tokyo',
@@ -23,7 +23,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'GB',
     name: 'United Kingdom',
-    flag: '🇬🇧',
+    flag: '',
     universities: [
       'University of Oxford',
       'University of Cambridge',
@@ -36,7 +36,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'US',
     name: 'United States',
-    flag: '🇺🇸',
+    flag: '',
     universities: [
       'Harvard University',
       'Massachusetts Institute of Technology (MIT)',
@@ -49,7 +49,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'KR',
     name: 'South Korea',
-    flag: '🇰🇷',
+    flag: '',
     universities: [
       'Seoul National University (SNU)',
       'KAIST',
@@ -61,7 +61,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'UG',
     name: 'Uganda',
-    flag: '🇺🇬',
+    flag: '',
     universities: [
       'Makerere University',
       'Kyambogo University',
@@ -73,7 +73,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'KE',
     name: 'Kenya',
-    flag: '🇰🇪',
+    flag: '',
     universities: [
       'University of Nairobi',
       'Kenyatta University',
@@ -85,7 +85,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'CA',
     name: 'Canada',
-    flag: '🇨🇦',
+    flag: '',
     universities: [
       'University of Toronto',
       'McGill University',
@@ -97,7 +97,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'DE',
     name: 'Germany',
-    flag: '🇩🇪',
+    flag: '',
     universities: [
       'Technical University of Munich (TUM)',
       'LMU Munich',
@@ -109,7 +109,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'AU',
     name: 'Australia',
-    flag: '🇦🇺',
+    flag: '',
     universities: [
       'University of Melbourne',
       'University of Sydney',
@@ -121,7 +121,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'FR',
     name: 'France',
-    flag: '🇫🇷',
+    flag: '',
     universities: [
       'Sorbonne University',
       'École Polytechnique',
@@ -132,7 +132,7 @@ export const COUNTRIES_CATALOG: CountryInfo[] = [
   {
     code: 'SG',
     name: 'Singapore',
-    flag: '🇸🇬',
+    flag: '',
     universities: [
       'National University of Singapore (NUS)',
       'Nanyang Technological University (NTU)',

@@ -212,7 +212,7 @@ export const SoundSynthesizerModal: React.FC<SoundSynthesizerModalProps> = ({ is
             }}
             className="text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200 transition-colors"
           >
-            Test Zen Chime 🔔
+            Test Zen Chime
           </button>
         </div>
       </div>

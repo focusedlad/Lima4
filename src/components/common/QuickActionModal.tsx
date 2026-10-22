@@ -1,23 +1,23 @@
 import React from 'react';
-import { X, Timer, Sparkles, Plus, Zap, Volume2 } from 'lucide-react';
+import { X, Timer, Target, Trophy, Link2, Volume2 } from 'lucide-react';
 
 interface QuickActionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAction: (action: 'start_focus' | 'magic_import' | 'create_space' | 'live_battle' | 'sound_synth') => void;
+  onAction: (action: 'start_focus' | 'create_challenge' | 'view_rankings' | 'paste_video' | 'sound_synth') => void;
 }
 
 export const QuickActionModal: React.FC<QuickActionModalProps> = ({ isOpen, onClose, onAction }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="squircle-card max-w-sm w-full p-6 bg-white border border-stone-200 shadow-2xl relative">
-        <div className="flex items-center justify-between pb-3 border-b border-stone-100 mb-4">
-          <h2 className="text-base font-bold text-stone-900">Quick Actions</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-fade-in">
+      <div className="squircle-card max-w-sm w-full p-6 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl relative">
+        <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800 mb-4">
+          <h2 className="text-base font-bold text-stone-900 dark:text-white">Quick Actions</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+            className="p-1.5 rounded-xl text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -26,66 +26,66 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({ isOpen, onCl
         <div className="space-y-2 text-xs">
           <button
             onClick={() => onAction('start_focus')}
-            className="w-full p-3.5 rounded-2xl bg-sky-50 hover:bg-sky-100 text-sky-950 font-semibold border border-sky-100 flex items-center gap-3 transition-all"
+            className="w-full p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/70 text-amber-950 dark:text-amber-200 font-semibold border border-amber-200 dark:border-amber-900 flex items-center gap-3 transition-all"
           >
-            <div className="w-9 h-9 rounded-xl bg-sky-200 text-sky-800 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-amber-200 dark:bg-amber-900 text-stone-950 dark:text-amber-200 flex items-center justify-center shrink-0">
               <Timer className="w-5 h-5" />
             </div>
             <div className="text-left">
-              <div className="font-bold text-stone-900">Start Deep Focus Sprint</div>
-              <div className="text-[11px] text-stone-500 font-normal">Launch dark hero timer & radar</div>
+              <div className="font-bold text-stone-900 dark:text-white">Start Study Sprint</div>
+              <div className="text-[11px] text-stone-500 font-normal">Choose Pomodoro, Animedoro, or Flowtime</div>
             </div>
           </button>
 
           <button
-            onClick={() => onAction('magic_import')}
-            className="w-full p-3.5 rounded-2xl bg-pink-50 hover:bg-pink-100 text-pink-950 font-semibold border border-pink-100 flex items-center gap-3 transition-all"
+            onClick={() => onAction('create_challenge')}
+            className="w-full p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 text-emerald-950 dark:text-emerald-200 font-semibold border border-emerald-200 dark:border-emerald-900 flex items-center gap-3 transition-all"
           >
-            <div className="w-9 h-9 rounded-xl bg-pink-200 text-pink-800 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-200 dark:bg-emerald-900 text-stone-950 dark:text-emerald-200 flex items-center justify-center shrink-0">
+              <Target className="w-5 h-5" />
             </div>
             <div className="text-left">
-              <div className="font-bold text-stone-900">Gizmo Magic Import</div>
-              <div className="text-[11px] text-stone-500 font-normal">YouTube, notes, or OCR to cards</div>
+              <div className="font-bold text-stone-900 dark:text-white">Create Study Challenge</div>
+              <div className="text-[11px] text-stone-500 font-normal">Compete with friends or community</div>
             </div>
           </button>
 
           <button
-            onClick={() => onAction('create_space')}
-            className="w-full p-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-950 font-semibold border border-amber-100 flex items-center gap-3 transition-all"
+            onClick={() => onAction('view_rankings')}
+            className="w-full p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-950/70 text-indigo-950 dark:text-indigo-200 font-semibold border border-indigo-200 dark:border-indigo-900 flex items-center gap-3 transition-all"
           >
-            <div className="w-9 h-9 rounded-xl bg-amber-200 text-amber-800 flex items-center justify-center shrink-0">
-              <Plus className="w-5 h-5 stroke-[2.5]" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-200 dark:bg-indigo-900 text-stone-950 dark:text-indigo-200 flex items-center justify-center shrink-0">
+              <Trophy className="w-5 h-5" />
             </div>
             <div className="text-left">
-              <div className="font-bold text-stone-900">Host Study Space</div>
-              <div className="text-[11px] text-stone-500 font-normal">Public or private knock-to-enter</div>
+              <div className="font-bold text-stone-900 dark:text-white">Competitive Leaderboard</div>
+              <div className="text-[11px] text-stone-500 font-normal">See who studied the most today or this week</div>
             </div>
           </button>
 
           <button
-            onClick={() => onAction('live_battle')}
-            className="w-full p-3.5 rounded-2xl bg-purple-50 hover:bg-purple-100 text-purple-950 font-semibold border border-purple-100 flex items-center gap-3 transition-all"
+            onClick={() => onAction('paste_video')}
+            className="w-full p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/70 text-rose-950 dark:text-rose-200 font-semibold border border-rose-200 dark:border-rose-900 flex items-center gap-3 transition-all"
           >
-            <div className="w-9 h-9 rounded-xl bg-purple-200 text-purple-800 flex items-center justify-center shrink-0">
-              <Zap className="w-5 h-5 fill-purple-600" />
+            <div className="w-9 h-9 rounded-xl bg-rose-200 dark:bg-rose-900 text-stone-950 dark:text-rose-200 flex items-center justify-center shrink-0">
+              <Link2 className="w-5 h-5" />
             </div>
             <div className="text-left">
-              <div className="font-bold text-stone-900">Multiplayer Quiz Battle</div>
-              <div className="text-[11px] text-stone-500 font-normal">Real-time synchronized battle</div>
+              <div className="font-bold text-stone-900 dark:text-white">Floating Pop-Up Video</div>
+              <div className="text-[11px] text-stone-500 font-normal">Play any YouTube, Vimeo, or MP4 link</div>
             </div>
           </button>
 
           <button
             onClick={() => onAction('sound_synth')}
-            className="w-full p-3.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-900 font-semibold border border-stone-200 flex items-center gap-3 transition-all"
+            className="w-full p-3.5 rounded-2xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-900 dark:text-white font-semibold border border-stone-200 dark:border-stone-700 flex items-center gap-3 transition-all"
           >
-            <div className="w-9 h-9 rounded-xl bg-stone-200 text-stone-700 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 flex items-center justify-center shrink-0">
               <Volume2 className="w-5 h-5" />
             </div>
             <div className="text-left">
-              <div className="font-bold text-stone-900">Ambient Sound Synthesizer</div>
-              <div className="text-[11px] text-stone-500 font-normal">Rain, Tokyo cafe, library whispers</div>
+              <div className="font-bold text-stone-900 dark:text-white">Ambient Sound Synthesizer</div>
+              <div className="text-[11px] text-stone-500 font-normal">Binaural beats, soft rain, brown noise</div>
             </div>
           </button>
         </div>
