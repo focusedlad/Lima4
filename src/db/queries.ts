@@ -200,6 +200,18 @@ export async function insertStudyChallenge(input: {
   }
 }
 
+export async function getJoinedChallengeProgress(userUid: string) {
+  try {
+    return await db
+      .select({ challengeId: challengeParticipants.challengeId, studiedMinutes: challengeParticipants.studiedMinutes })
+      .from(challengeParticipants)
+      .where(eq(challengeParticipants.userUid, userUid));
+  } catch (error) {
+    console.error('Database getJoinedChallengeProgress failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
 export async function getAllStudyChallenges() {
   try {
     return await db.select().from(studyChallenges).orderBy(desc(studyChallenges.createdAt)).limit(50);
