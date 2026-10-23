@@ -1,6 +1,6 @@
 import { db } from './index';
 import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones, milestoneCheers } from './schema';
-import { eq, desc, sql, or, and, ilike, inArray, notInArray } from 'drizzle-orm';
+import { eq, desc, sql, or, and, gt, ilike, inArray, notInArray } from 'drizzle-orm';
 
 export interface UserSyncInput {
   uid: string;
@@ -298,7 +298,7 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
         currentStreak: users.currentStreak,
       })
       .from(users)
-      .where(eq(users.isGhostMode, false))
+      .where(and(eq(users.isGhostMode, false), or(gt(users.totalHoursStudied, 0), gt(users.xp, 0))))
       .orderBy(desc(users.totalHoursStudied), desc(users.xp))
       .limit(50);
   } catch (error) {
