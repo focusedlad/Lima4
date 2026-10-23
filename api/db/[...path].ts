@@ -2,6 +2,7 @@ import {
   addFriend,
   cheerMilestoneInDb,
   getAllStudyChallenges,
+  getCheeredMilestoneIds,
   getChallengeLeaderboard,
   getFriendsByUser,
   getJoinedChallengeProgress,
@@ -116,7 +117,15 @@ export default async function handler(req: any, res: any) {
 
     if (parts.length === 1 && parts[0] === 'milestones' && method === 'GET') {
       const friendsOnly = String(req.query?.friendsOnly || 'false') === 'true';
-      const milestones = await getMilestonesFeed(authUser.id, friendsOnly);
+      const rows = await getMilestonesFeed(authUser.id, friendsOnly);
+      const cheeredRows = await getCheeredMilestoneIds(authUser.id, rows.map((row: any) => row.milestoneId));
+      const cheeredIds = new Set(cheeredRows.map((row: any) => row.milestoneId));
+      const milestones = rows.map((row: any) => ({
+        ...row,
+        id: row.milestoneId,
+        createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : '',
+        userHasCheered: cheeredIds.has(row.milestoneId),
+      }));
       return res.status(200).json({ success: true, milestones });
     }
 
@@ -135,11 +144,11 @@ export default async function handler(req: any, res: any) {
         title, description, subjectTag: typeof body.subjectTag === 'string' ? body.subjectTag.slice(0, 80) : '',
         streakDays: Number(profile?.currentStreak || 0), xpEarned: 0,
       });
-      return res.status(201).json({ success: true, milestone: row });
+      return res.status(201).json({ success: true, milestone: { ...row, id: row.milestoneId, createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : '' } });
     }
 
     if (parts.length === 3 && parts[0] === 'milestones' && parts[2] === 'cheer' && method === 'POST') {
-      const result = await cheerMilestoneInDb(parts[1]);
+      const result = await cheerMilestoneInDb(parts[1], authUser.id);
       return res.status(200).json(result);
     }
 
