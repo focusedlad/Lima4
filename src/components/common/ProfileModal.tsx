@@ -9,7 +9,6 @@ import {
   LogOut,
   Save,
   Check,
-  UserPlus,
   Cloud,
   ShieldCheck,
   Sparkles,
@@ -23,18 +22,14 @@ interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdateProfile: (updated: UserProfile) => void;
-  onSwitchUser: (newUser: UserProfile) => void;
   onOpenTerms?: () => void;
 }
-
-const PRESET_ACCOUNTS: UserProfile[] = [];
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   currentUser,
   isOpen,
   onClose,
   onUpdateProfile,
-  onSwitchUser,
   onOpenTerms,
 }) => {
   const [name, setName] = useState(currentUser.name);
@@ -51,7 +46,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [goal, setGoal] = useState(currentUser.currentGoal);
   const [avatar, setAvatar] = useState(currentUser.avatar);
   const [isSaved, setIsSaved] = useState(false);
-  const activeTab: 'edit' | 'switch' = 'edit';
 
   if (!isOpen) return null;
 
@@ -86,50 +80,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     }, 1200);
   };
 
-  const handleCreateNewAccount = () => {
-    const newName = `Studier_${Math.floor(1000 + Math.random() * 9000)}`;
-    const newProfile: UserProfile = {
-      id: `usr_${Date.now()}`,
-      name: newName,
-      avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
-      universityOrLocation: 'Global Campus',
-      countryCode: 'GLOBAL',
-      countryName: 'Global',
-      countryFlag: '',
-      university: 'Independent Scholar',
-      studyField: STUDY_FIELDS[0],
-      isGhostMode: false,
-      currentSubject: '#DeepFocus',
-      currentGoal: 'Daily focus sprint',
-      status: 'in_focus',
-      currentStreak: 1,
-      totalHoursStudied: 0,
-      xp: 100,
-      deskPet: {
-        name: 'Pip',
-        species: 'shiba',
-        level: 1,
-        currentXp: 50,
-        nextLevelXp: 200,
-        mood: 'happy',
-        decorations: ['Steaming Matcha'],
-      },
-    };
-    onSwitchUser(newProfile);
-    setName(newProfile.name);
-    setSelectedCountryCode('GLOBAL');
-    setSelectedUniversity('Independent Scholar');
-    setSelectedStudyField(STUDY_FIELDS[0]);
-    setIsGhostMode(false);
-    setSubjectTag(newProfile.currentSubject);
-    setGoal(newProfile.currentGoal);
-    setAvatar(newProfile.avatar);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm animate-fade-in">
-      <div className="squircle-card max-w-md w-full p-6 bg-white border border-stone-200 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in overflow-x-hidden">
+      <div className="profile-modal-card squircle-card w-[calc(100vw-1rem)] max-w-md min-w-0 p-4 sm:p-6 bg-white dark:bg-[#0B1020] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 shadow-2xl relative max-h-[calc(100dvh-1rem)] overflow-y-auto overflow-x-hidden overscroll-contain">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
           <div className="flex items-center gap-3">
@@ -137,8 +90,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <User className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-stone-900">Studier Profile & Account</h2>
-              <p className="text-xs text-stone-500">Identity, exam tags, and account switching</p>
+              <h2 className="text-base font-bold text-stone-900">Your profile</h2>
+              <p className="text-xs text-stone-500">Personal details and study preferences</p>
             </div>
           </div>
           <button
@@ -149,22 +102,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-2xl mb-4 text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => setActiveTab('edit')}
-            className={`flex-1 py-2 rounded-xl transition-all ${
-              activeTab === 'edit' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            Edit Profile
-          </button>
-
-        </div>
-
-        {activeTab === 'edit' ? (
-          <form onSubmit={handleSave} className="space-y-4 text-xs">
+                <form onSubmit={handleSave} className="space-y-4 text-xs">
             {/* Avatar Preview */}
             <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-100">
               <img
@@ -357,7 +295,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   onClose();
                   onOpenTerms?.();
                 }}
-                className="text-xs font-semibold text-amber-900 hover:text-stone-900 underline flex items-center gap-1.5 self-start sm:self-center"
+                className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-white underline flex items-center gap-1.5 self-start sm:self-center"
               >
                 <Scale className="w-3.5 h-3.5 text-amber-700" />
                 <span>View Platform Rules & Terms of Service</span>
@@ -367,83 +305,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 transition-colors"
+                  className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-stone-900 text-white font-bold hover:bg-stone-800 transition-all shadow-xs active:scale-95"
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-xs active:scale-95"
                 >
                   {isSaved ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
                   {isSaved ? 'Saved!' : 'Save Changes'}
                 </button>
               </div>
             </div>
-          </form>
-        ) : (
-          <div className="space-y-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 block mb-1">
-              Switch to Another Studier
-            </span>
-
-            {PRESET_ACCOUNTS.map((acc) => {
-              const isCurrent = acc.id === currentUser.id || acc.name === currentUser.name;
-              return (
-                <div
-                  key={acc.id}
-                  onClick={() => {
-                    onSwitchUser(acc);
-                    setName(acc.name);
-                    setSelectedCountryCode(acc.countryCode || 'GLOBAL');
-                    setSelectedUniversity(acc.university || acc.universityOrLocation);
-                    setSelectedStudyField(acc.studyField || STUDY_FIELDS[0]);
-                    setIsGhostMode(acc.isGhostMode || false);
-                    setSubjectTag(acc.currentSubject);
-                    setGoal(acc.currentGoal);
-                    setAvatar(acc.avatar);
-                    onClose();
-                  }}
-                  className={`cursor-pointer p-3 rounded-2xl border transition-all flex items-center justify-between ${
-                    isCurrent
-                      ? 'bg-amber-50 border-amber-300 shadow-xs'
-                      : 'bg-stone-50 border-stone-200 hover:bg-stone-100/70 hover:border-stone-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <img src={acc.avatar} alt={acc.name} className="w-10 h-10 rounded-full object-cover" />
-                    <div className="text-xs">
-                      <div className="font-bold text-stone-900 flex items-center gap-1.5">
-                        {acc.name}
-                        {isCurrent && (
-                          <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-md font-semibold">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-stone-500 text-[11px]">{acc.universityOrLocation}</div>
-                    </div>
-                  </div>
-
-                  <div className="text-right text-[11px] text-stone-500">
-                    <div className="font-mono font-bold text-stone-800">{acc.totalHoursStudied}h</div>
-                    <div className="text-amber-600 font-semibold">{acc.currentStreak}d streak</div>
-                  </div>
-                </div>
-              );
-            })}
-
-            <div className="pt-2 border-t border-stone-100">
-              <button
-                onClick={handleCreateNewAccount}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-stone-300 text-stone-700 hover:bg-stone-50 text-xs font-semibold transition-colors"
-              >
-                <UserPlus className="w-4 h-4 text-stone-500" />
-                Create New Studier Profile
-              </button>
-            </div>
-          </div>
-        )}
+</form>
+      </div>        )}
       </div>
     </div>
   );
