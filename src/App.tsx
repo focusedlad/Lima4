@@ -81,6 +81,7 @@ import { SettingsView } from './components/settings/SettingsView';
 export default function App() {
   // Application Data States
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => INITIAL_USER);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [spaces, setSpaces] = useState<StudySpace[]>(() => StorageService.getSpaces());
   const [decks, setDecks] = useState<StudyDeck[]>(() => StorageService.getDecks());
   const [creators, setCreators] = useState<YouTubeCreator[]>(() => StorageService.getCreators());
@@ -135,10 +136,11 @@ export default function App() {
     localStorage.setItem('cheri_theme_preference', themePreference);
   }, [isDarkMode, themePreference]);
 
-  // Only sync real, authenticated accounts to the shared backend.
+  // Persist profile edits only after the signed-in user's backend profile has been loaded.
   useEffect(() => {
     let cancelled = false;
     const syncAuthenticatedProfile = async () => {
+      if (!profileLoaded) return;
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user || session.user.id !== currentUser.id) return;
       const result = await ApiDatabase.syncUser(currentUser, session.access_token);
@@ -147,13 +149,13 @@ export default function App() {
       const pendingWelcomeEmail = localStorage.getItem('cheri_pending_first_user_welcome');
       const pendingWelcome = pendingWelcomeEmail === (session.user.email || '').toLowerCase();
       if (!cancelled && result?.isFirstUser && (accountIsNew || pendingWelcome)) setFirstUserNotice(true);
-      if (pendingWelcome) localStorage.removeItem('cheri_pending_first_user_welcome');
+      if (result && pendingWelcome) localStorage.removeItem('cheri_pending_first_user_welcome');
     };
     void syncAuthenticatedProfile();
     return () => { cancelled = true; };
-  }, [currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, currentUser.university, currentUser.universityOrLocation, currentUser.studyField, currentUser.xp, currentUser.totalHoursStudied, currentUser.currentStreak]);
+  }, [profileLoaded, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, currentUser.university, currentUser.universityOrLocation, currentUser.studyField, currentUser.countryCode, currentUser.countryName, currentUser.currentSubject, currentUser.currentGoal, currentUser.isGhostMode, currentUser.subscriptionTier, currentUser.subscriptionStatus, currentUser.termsAccepted, currentUser.termsAcceptedAt, currentUser.termsVersion, currentUser.xp, currentUser.totalHoursStudied, currentUser.currentStreak]);
 
-  const toggleTheme = () => {
+  const toggleTheme = () => {  const toggleTheme = () => {
     setThemePreference((prev) => {
       const currentDark = prev === 'system' ? systemPrefersDark : prev === 'dark';
       return currentDark ? 'light' : 'dark';
@@ -236,26 +238,60 @@ export default function App() {
   const activeAnnouncement =
     announcements.find((a) => a.isActive && a.id !== dismissedAnnouncementId) || null;
 
-  // Supabase Auth is the source of truth; local demo identities are never accounts.
+  // Hydrate the current account from the server after Supabase verifies the session.
   useEffect(() => {
-    const applySession = (session: any) => {
-      if (session?.user) {
-        const authUser = session.user;
-        const email = authUser.email || '';
-        const metadataName = authUser.user_metadata?.full_name || authUser.user_metadata?.name;
-        setCurrentUser((previous) => {
-          const base = previous.id === authUser.id ? previous : INITIAL_USER;
-          return { ...base, id: authUser.id, email, name: metadataName || (previous.id === authUser.id ? previous.name : email.split('@')[0] || 'New Studier') };
-        });
-        setIsAuthModalOpen(false);
-      } else {
+    let cancelled = false;
+    const applySession = async (session: any) => {
+      if (!session?.user) {
+        setProfileLoaded(false);
         setCurrentUser(INITIAL_USER);
         setIsAuthModalOpen(true);
+        return;
       }
+      setProfileLoaded(false);
+      const authUser = session.user;
+      const email = authUser.email || '';
+      const metadataName = authUser.user_metadata?.full_name || authUser.user_metadata?.name;
+      let saved: any = null;
+      try {
+        const response = await fetch('/api/db/sync-user', { headers: { Authorization: 'Bearer ' + session.access_token } });
+        if (response.ok) {
+          const payload = await response.json();
+          saved = payload?.user || null;
+        }
+      } catch (error) {
+        console.warn('Could not load saved account profile:', error);
+      }
+      if (cancelled) return;
+      const base = saved ? {
+        ...INITIAL_USER,
+        id: authUser.id, email,
+        name: saved.name || metadataName || email.split('@')[0] || 'New Studier',
+        avatar: saved.avatar || INITIAL_USER.avatar,
+        university: saved.university || INITIAL_USER.university,
+        universityOrLocation: saved.university || INITIAL_USER.universityOrLocation,
+        studyField: saved.studyField || INITIAL_USER.studyField,
+        countryCode: saved.countryCode || INITIAL_USER.countryCode,
+        countryName: saved.countryName || INITIAL_USER.countryName,
+        currentSubject: saved.currentSubject || INITIAL_USER.currentSubject,
+        currentGoal: saved.currentGoal || INITIAL_USER.currentGoal,
+        isGhostMode: Boolean(saved.isGhostMode),
+        subscriptionTier: saved.subscriptionTier || 'free',
+        subscriptionStatus: saved.subscriptionStatus || 'active',
+        termsAccepted: Boolean(saved.termsAccepted),
+        termsAcceptedAt: saved.termsAcceptedAt || undefined,
+        termsVersion: saved.termsVersion || undefined,
+        xp: Number(saved.xp || 0),
+        totalHoursStudied: Number(saved.totalHoursStudied || 0),
+        currentStreak: Number(saved.currentStreak || 0),
+      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier' };
+      setCurrentUser(base);
+      setProfileLoaded(true);
+      setIsAuthModalOpen(false);
     };
     supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
-    return () => subscription.unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { void applySession(session); });
+    return () => { cancelled = true; subscription.unsubscribe(); };
   }, []);
   // Activity feed is intentionally empty until real-user feed APIs are available.
 
