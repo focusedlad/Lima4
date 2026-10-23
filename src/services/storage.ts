@@ -531,6 +531,25 @@ export const INITIAL_SYSTEM_SETTINGS: SystemSettings = {
 
 export const INITIAL_ALL_USERS: UserProfile[] = [];
 
+export const generate31DayHeatmap = (): DayActivity[] => {
+  const days: DayActivity[] = [];
+  const today = new Date();
+  for (let offset = 30; offset >= 0; offset -= 1) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - offset);
+    days.push({
+      date: date.toISOString().slice(0, 10),
+      dayNumber: date.getDate(),
+      hours: 0,
+      deepWorkHours: 0,
+      recallHours: 0,
+      reviewHours: 0,
+      sessionsCount: 0,
+    });
+  }
+  return days;
+};
+
 export class StorageService {
   public static getUser(): UserProfile {
     try {
