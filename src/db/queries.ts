@@ -1,6 +1,6 @@
 import { db } from './index';
 import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones } from './schema';
-import { eq, desc, sql, or, ilike, inArray } from 'drizzle-orm';
+import { eq, desc, sql, or, and, ilike, inArray } from 'drizzle-orm';
 
 export interface UserSyncInput {
   uid: string;
