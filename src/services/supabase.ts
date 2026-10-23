@@ -248,6 +248,21 @@ export const SupabaseService = {
       return { success: false, error: err.message || 'Signup failed.' };
     }
   },
+  async resendVerificationEmail(email: string): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase is not configured.' };
+    try {
+      const { error } = await getActiveSupabaseClient().auth.resend({
+        type: 'signup',
+        email: email.trim().toLowerCase(),
+        options: { emailRedirectTo: getAuthRedirectUrl() },
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Could not resend verification email.' };
+    }
+  },
+
   /**
    * Sign Out
    */
