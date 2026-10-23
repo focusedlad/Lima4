@@ -117,27 +117,35 @@ export async function insertFocusLog(input: {
   date: string;
 }) {
   try {
-    const result = await db
-      .insert(focusLogs)
-      .values({
-        userUid: input.userUid,
-        durationMinutes: input.durationMinutes,
-        category: input.category,
-        subject: input.subject,
-        xpEarned: input.xpEarned,
-        date: input.date,
-      })
-      .returning();
+    // Save the session and update only challenges active on the session's date in one transaction.
+    return await db.transaction(async (tx) => {
+      const [result] = await tx
+        .insert(focusLogs)
+        .values({
+          userUid: input.userUid,
+          durationMinutes: input.durationMinutes,
+          category: input.category,
+          subject: input.subject,
+          xpEarned: input.xpEarned,
+          date: input.date,
+        })
+        .returning();
 
-    // Progress belongs to each challenge the authenticated user has joined.
-    await db
-      .update(challengeParticipants)
-      .set({ studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}` })
-      .where(eq(challengeParticipants.userUid, input.userUid));
+      await tx
+        .update(challengeParticipants)
+        .set({ studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}` })
+        .where(and(
+          eq(challengeParticipants.userUid, input.userUid),
+          sql`EXISTS (
+            SELECT 1 FROM study_challenges c
+            WHERE c.challenge_id = ${challengeParticipants.challengeId}
+              AND c.start_date <= ${input.date}
+              AND c.end_date >= ${input.date}
+          )`
+        ));
 
-    // User totals are synchronized from the authenticated profile endpoint; do not increment twice.
-
-    return result[0];
+      return result;
+    });
   } catch (error) {
     console.error('Database insertFocusLog failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -170,6 +178,7 @@ export async function insertStudyChallenge(input: {
   startDate: string;
   endDate: string;
   category?: string;
+  visibility?: 'public' | 'friends' | 'private';
 }) {
   try {
     const result = await db
@@ -186,6 +195,7 @@ export async function insertStudyChallenge(input: {
         startDate: input.startDate,
         endDate: input.endDate,
         category: input.category || 'General',
+        visibility: input.visibility || 'public',
         participantsCount: 1,
       })
       .returning();
@@ -218,9 +228,21 @@ export async function getJoinedChallengeProgress(userUid: string) {
   }
 }
 
-export async function getAllStudyChallenges() {
+export async function getAllStudyChallenges(userUid: string) {
   try {
-    return await db.select().from(studyChallenges).orderBy(desc(studyChallenges.createdAt)).limit(50);
+    return await db.select().from(studyChallenges).where(sql`(
+      visibility = 'public'
+      OR creator_uid = ${userUid}
+      OR (visibility = 'friends' AND EXISTS (
+        SELECT 1 FROM friendships f
+        WHERE (f.user_uid = ${userUid} AND f.friend_uid = study_challenges.creator_uid)
+           OR (f.friend_uid = ${userUid} AND f.user_uid = study_challenges.creator_uid)
+      ))
+      OR EXISTS (
+        SELECT 1 FROM challenge_participants cp
+        WHERE cp.challenge_id = study_challenges.challenge_id AND cp.user_uid = ${userUid}
+      )
+    )`).orderBy(desc(studyChallenges.createdAt)).limit(50);
   } catch (error) {
     console.error('Database getAllStudyChallenges failed:', error);
     throw new Error('Database operation failed', { cause: error });
