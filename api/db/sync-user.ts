@@ -20,6 +20,7 @@ export default async function handler(req: any, res: any) {
   const body = req.body || {};
   if (body.uid && body.uid !== authUser.id) return res.status(403).json({ error: 'Cannot update another account.' });
   try {
+    const existing = await getUserByUid(authUser.id);
     const user = await upsertUser({
       uid: authUser.id,
       email: authUser.email || '',
@@ -33,14 +34,15 @@ export default async function handler(req: any, res: any) {
       currentSubject: typeof body.currentSubject === 'string' ? body.currentSubject.slice(0, 200) : 'General Study',
       currentGoal: typeof body.currentGoal === 'string' ? body.currentGoal.slice(0, 500) : '',
       isGhostMode: body.isGhostMode === true,
-      subscriptionTier: typeof body.subscriptionTier === 'string' ? body.subscriptionTier.slice(0, 40) : 'free',
-      subscriptionStatus: typeof body.subscriptionStatus === 'string' ? body.subscriptionStatus.slice(0, 40) : 'active',
+      // Billing entitlements and study totals are server-owned; never accept them from the client.
+      subscriptionTier: existing?.subscriptionTier || 'free',
+      subscriptionStatus: existing?.subscriptionStatus || 'active',
       termsAccepted: body.termsAccepted === true,
-      termsAcceptedAt: typeof body.termsAcceptedAt === 'string' ? body.termsAcceptedAt : undefined,
+      termsAcceptedAt: existing?.termsAcceptedAt?.toISOString?.() || (body.termsAccepted === true ? new Date().toISOString() : undefined),
       termsVersion: typeof body.termsVersion === 'string' ? body.termsVersion.slice(0, 40) : undefined,
-      xp: Math.max(0, Math.min(100000000, Number(body.xp) || 0)),
-      totalHoursStudied: Math.max(0, Math.min(100000000, Number(body.totalHoursStudied) || 0)),
-      currentStreak: Math.max(0, Math.min(1000000, Number(body.currentStreak) || 0)),
+      xp: existing?.xp ?? 0,
+      totalHoursStudied: existing?.totalHoursStudied ?? 0,
+      currentStreak: existing?.currentStreak ?? 1,
     });
     const registeredUserCount = await getRegisteredUserCount();
     return res.status(200).json({ success: true, user, isFirstUser: registeredUserCount === 1 });
