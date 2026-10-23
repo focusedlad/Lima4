@@ -540,7 +540,7 @@ export default function App() {
       {/* Fluid Liquid Motion Interactive Background */}
       <FluidLiquidBackground />
       {/* Top Global Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#F8FAFC]/90 dark:bg-[#05070B]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden">
+      <header className="sticky top-0 z-40 bg-[#F8FAFC]/90 dark:bg-[#05070B]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden md:pl-[100px]">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Logo & Slogan */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
