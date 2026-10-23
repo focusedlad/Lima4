@@ -11,7 +11,7 @@ export const ApiDatabase = {
         headers,
         body: JSON.stringify({
           uid: user.id,
-          email: user.email || `${user.id}@luminastudy.local`,
+          email: user.email || '',
           name: user.name,
           avatar: user.avatar,
           university: user.university || user.universityOrLocation,
