@@ -85,6 +85,16 @@ export async function upsertUser(input: UserSyncInput) {
   }
 }
 
+export async function getUserByUid(uid: string) {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.uid, uid)).limit(1);
+    return user || null;
+  } catch (error) {
+    console.error('Database getUserByUid failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
 export async function getRegisteredUserCount(): Promise<number> {
   try {
     const [result] = await db
