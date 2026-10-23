@@ -66,6 +66,10 @@ export default async function handler(req: any, res: any) {
     if (parts.length === 2 && parts[0] === 'challenges' && parts[1] === 'join' && method === 'POST') {
       const challengeId = typeof body.challengeId === 'string' ? body.challengeId : '';
       if (!challengeId) return res.status(400).json({ error: 'Challenge ID is required.' });
+      const visibleChallenges = await getAllStudyChallenges(authUser.id);
+      if (!visibleChallenges.some((challenge: any) => challenge.challengeId === challengeId)) {
+        return res.status(404).json({ error: 'Challenge not found.' });
+      }
       const profile = await getUserByUid(authUser.id);
       await joinStudyChallenge({
         challengeId, userUid: authUser.id,
