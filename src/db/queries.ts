@@ -1,5 +1,5 @@
 import { db } from './index';
-import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones } from './schema';
+import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones, milestoneCheers } from './schema';
 import { eq, desc, sql, or, and, ilike, inArray } from 'drizzle-orm';
 
 export interface UserSyncInput {
@@ -478,15 +478,32 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
   }
 }
 
-export async function cheerMilestoneInDb(milestoneId: string) {
+export async function getCheeredMilestoneIds(userUid: string, milestoneIds: string[]) {
+  if (!milestoneIds.length) return [];
   try {
+    return await db
+      .select({ milestoneId: milestoneCheers.milestoneId })
+      .from(milestoneCheers)
+      .where(and(eq(milestoneCheers.userUid, userUid), inArray(milestoneCheers.milestoneId, milestoneIds)));
+  } catch (error) {
+    console.error('Database getCheeredMilestoneIds failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function cheerMilestoneInDb(milestoneId: string, userUid: string) {
+  try {
+    const inserted = await db
+      .insert(milestoneCheers)
+      .values({ milestoneId, userUid })
+      .onConflictDoNothing()
+      .returning({ id: milestoneCheers.id });
+    if (!inserted.length) return { success: true, alreadyCheered: true };
     await db
       .update(milestones)
-      .set({
-        cheersCount: sql`${milestones.cheersCount} + 1`,
-      })
+      .set({ cheersCount: sql`${milestones.cheersCount} + 1` })
       .where(eq(milestones.milestoneId, milestoneId));
-    return { success: true };
+    return { success: true, alreadyCheered: false };
   } catch (error) {
     console.error('Database cheerMilestone failed:', error);
     throw new Error('Database operation failed', { cause: error });
