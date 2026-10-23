@@ -1,9 +1,14 @@
+import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth';
+
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const user = await getAuthenticatedSupabaseUser(req);
+  if (!user) return res.status(401).json({ error: 'Sign in with your email account to check followed YouTube channels.' });
 
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
