@@ -544,11 +544,10 @@ export const SupabaseService = {
   /**
    * Cheer a milestone
    */
-  async cheerMilestone(milestoneId: string): Promise<void> {
+  async cheerMilestone(milestoneId: string): Promise<{ alreadyCheered: boolean }> {
     const response = await authenticatedFetch(`/api/db/milestones/${encodeURIComponent(milestoneId)}/cheer`, { method: 'POST' });
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.error || 'Could not cheer this milestone.');
-    }
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not cheer this milestone.');
+    return { alreadyCheered: Boolean(payload.alreadyCheered) };
   },
 };
