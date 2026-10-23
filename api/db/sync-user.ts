@@ -37,9 +37,9 @@ export default async function handler(req: any, res: any) {
       // Billing entitlements and study totals are server-owned; never accept them from the client.
       subscriptionTier: existing?.subscriptionTier || 'free',
       subscriptionStatus: existing?.subscriptionStatus || 'active',
-      termsAccepted: body.termsAccepted === true,
+      termsAccepted: existing?.termsAccepted === true || body.termsAccepted === true,
       termsAcceptedAt: existing?.termsAcceptedAt?.toISOString?.() || (body.termsAccepted === true ? new Date().toISOString() : undefined),
-      termsVersion: typeof body.termsVersion === 'string' ? body.termsVersion.slice(0, 40) : undefined,
+      termsVersion: existing?.termsVersion || (typeof body.termsVersion === 'string' ? body.termsVersion.slice(0, 40) : undefined),
       xp: existing?.xp ?? 0,
       totalHoursStudied: existing?.totalHoursStudied ?? 0,
       currentStreak: existing?.currentStreak ?? 1,
