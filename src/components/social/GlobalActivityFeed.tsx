@@ -379,6 +379,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
           onSubmit={handlePostSubmit}
           className="squircle-card p-5 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm space-y-3 animate-fade-in"
         >
+          {actionError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-400/20 dark:bg-rose-950/40 dark:text-rose-200">{actionError}</p>}
           <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
             <div>
               <h3 className="text-xs font-bold text-stone-900 dark:text-white">Broadcast Study Milestone</h3>
