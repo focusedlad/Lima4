@@ -694,7 +694,7 @@ export default function App() {
       )}
 
       {/* Main Page Body */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-8 overflow-x-hidden">
+      <main className="flex-1 w-full max-w-6xl mx-auto p-3 pb-24 sm:p-8 md:ml-[84px] md:mr-0 md:w-[calc(100%-84px)] md:max-w-none md:pb-8 overflow-x-hidden">
         {firstUserNotice && (
           <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-400/20 dark:bg-indigo-950/40 dark:text-indigo-100" role="status">
             <p className="m-0">Welcome — you are the first registered member of cheri. You are helping start the real community; other members will appear as they join.</p>
