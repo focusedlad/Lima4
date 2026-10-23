@@ -25,7 +25,7 @@ const PLANS_KEY = 'lumina_subscription_plans';
 const ANNOUNCEMENTS_KEY = 'lumina_announcements';
 const EMPLOYEES_KEY = 'lumina_employees';
 const SETTINGS_KEY = 'lumina_system_settings';
-const DB_VERSION_KEY = 'lumina_prod_v2_clean';
+const DB_VERSION_KEY = 'lumina_beta_real_users_v3';
 
 if (typeof window !== 'undefined') {
   try {
@@ -34,6 +34,7 @@ if (typeof window !== 'undefined') {
       localStorage.removeItem(ADMISSIONS_KEY);
       localStorage.removeItem(FEED_KEY);
       localStorage.removeItem(USERS_LIST_KEY);
+      localStorage.removeItem('cheri_registered_accounts');
       localStorage.setItem(DB_VERSION_KEY, 'true');
     }
   } catch (_) {}
