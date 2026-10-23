@@ -254,16 +254,7 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
     return () => subscription.unsubscribe();
   }, []);
-  // Real-time Activity Feed Sync
-  useEffect(() => {
-    const unsubFeed = FirebaseService.subscribeActivityFeed((remoteFeed) => {
-      setActivityFeed(Array.isArray(remoteFeed) ? remoteFeed : []);
-    }, []);
-
-    return () => {
-      unsubFeed();
-    };
-  }, []);
+  // Activity feed is intentionally empty until real-user feed APIs are available.
 
   // Save changes to storage
   useEffect(() => {
@@ -452,42 +443,14 @@ export default function App() {
     };
     setCurrentUser(updatedUser);
 
-    // Append log and persist to Firebase backend
-    const newLog: FocusSessionLog = {
-      id: `log_${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-      durationMinutes,
-      category,
-      subject,
-      xpEarned: earnedXp,
-    };
-    setFocusLogs([newLog, ...focusLogs]);
-    FirebaseService.saveFocusLog(currentUser.id, newLog).catch(() => {});
-    ApiDatabase.logFocusSession(newLog, currentUser.id).catch(() => {});
-
-    // If Ghost Mode is OFF, broadcast to Global Activity Feed & Firestore backend
-    if (!currentUser.isGhostMode) {
-      const newFeedItem: ActivityFeedItem = {
-        id: `act_${Date.now()}`,
-        userId: currentUser.id,
-        userName: currentUser.name,
-        userAvatar: currentUser.avatar,
-        countryFlag: currentUser.countryFlag || '',
-        countryName: currentUser.countryName || 'Global',
-        university: currentUser.university || currentUser.universityOrLocation,
-        type: 'session_completed',
-        title: `Completed ${durationMinutes}m ${category === 'recall' ? 'Active Recall' : 'Deep Work'} Sprint`,
-        description: `Focused sprint on ${subject} at ${currentUser.university || 'Global Campus'}.`,
-        xpEarned: earnedXp,
-        streakDays: currentUser.currentStreak,
-        timestamp: 'Just now',
-        cheersCount: 0,
-        userHasCheered: false,
-        subjectTag: subject,
-      };
-      setActivityFeed((prev) => [newFeedItem, ...prev]);
-      FirebaseService.addActivityItem(newFeedItem).catch(() => {});
-    }
+    // Keep this session locally for immediate feedback and persist it to the authenticated backend.
+    setFocusLogs((previous) => [newLog, ...previous]);
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id !== currentUser.id) return;
+      const saved = await ApiDatabase.logFocusSession(newLog, currentUser.id, session.access_token);
+      if (!saved) console.warn('This focus session could not be synced to the server.');
+    })();
   };
 
 
