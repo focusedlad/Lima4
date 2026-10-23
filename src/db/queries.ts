@@ -461,6 +461,7 @@ export async function insertMilestone(input: {
   subjectTag?: string;
   streakDays?: number;
   xpEarned?: number;
+  visibility?: 'public' | 'friends' | 'private';
 }) {
   try {
     const result = await db
