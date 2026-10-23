@@ -550,10 +550,9 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
             ) : (
               /* YouTube standard/shorts/live */
               <iframe
-                key={`${stream.videoId}_${reloadKey}_${isMuted}`}
-                src={`https://www.youtube-nocookie.com/embed/${stream.videoId}?autoplay=1&mute=${
-                  isMuted ? '1' : '0'
-                }&controls=1&modestbranding=1&rel=0&enablejsapi=1`}
+                ref={youtubeIframeRef}
+                key={`${stream.videoId}_${reloadKey}`}
+                src={`https://www.youtube-nocookie.com/embed/${stream.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
                 title="Focus Video Mini-Player"
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
