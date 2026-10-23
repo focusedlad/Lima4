@@ -135,7 +135,7 @@ export const NotificationCenter: React.FC = () => {
     if (!result) setMessage('Saved this channel on this device. Live status will work once the YouTube API key is configured.');
   };
 
-  const checkAll = async (silent = false) => {
+  const checkAll = useCallback(async (silent = false) => {
     if (!channels.length) {
       if (!silent) setMessage('Add a YouTube channel first.');
       return;
@@ -143,7 +143,7 @@ export const NotificationCenter: React.FC = () => {
     for (const channel of channels) {
       await lookupChannel(channel, silent);
     }
-  };
+  }, [channels, lookupChannel]);
 
   useEffect(() => {
     if (!open || channels.length === 0) return;
