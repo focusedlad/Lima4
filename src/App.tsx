@@ -47,6 +47,7 @@ import {
   PeerUser,
 } from './types';
 import {
+  INITIAL_USER,
   StorageService,
   generate31DayHeatmap,
 } from './services/storage';
