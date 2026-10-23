@@ -34,6 +34,8 @@ if (typeof window !== 'undefined') {
       localStorage.removeItem(DECKS_KEY);
       localStorage.removeItem(CREATORS_KEY);
       localStorage.removeItem(ADMISSIONS_KEY);
+      localStorage.removeItem(ANNOUNCEMENTS_KEY);
+      localStorage.removeItem(EMPLOYEES_KEY);
       localStorage.removeItem(FEED_KEY);
       localStorage.removeItem(USERS_LIST_KEY);
       localStorage.removeItem(LOGS_KEY);
