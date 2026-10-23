@@ -296,6 +296,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4 pt-4 text-xs">
+              {actionError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-400/20 dark:bg-rose-950/40 dark:text-rose-200">{actionError}</p>}
               <div>
                 <label className="block font-bold text-stone-700 dark:text-stone-300 mb-1">
                   Challenge Title
@@ -379,9 +380,10 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold"
+                  disabled={isSaving}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Launch Challenge
+                  {isSaving ? 'Creating…' : 'Launch Challenge'}
                 </button>
               </div>
             </form>
