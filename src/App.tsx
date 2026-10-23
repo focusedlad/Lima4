@@ -900,7 +900,14 @@ export default function App() {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         currentUser={currentUser}
-        onUpdateProfile={(updated) => setCurrentUser(updated)}
+        onUpdateProfile={async (updated) => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.user || session.user.id !== updated.id) throw new Error('Your session expired. Sign in again before saving your profile.');
+          const saved = await ApiDatabase.syncUser(updated, session.access_token);
+          if (!saved?.success) throw new Error('Your profile could not be saved to the server. Please check your connection and try again.');
+          StorageService.saveUser(updated);
+          setCurrentUser(updated);
+        }}
         onOpenTerms={() => setIsTermsModalOpen(true)}
       />
 
