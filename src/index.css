@@ -332,3 +332,42 @@ html.dark [class~="dark:bg-[#0D0C0D]/90"] { background-color: #05070B !important
 html.dark [class~="dark:text-stone-100"] { color: #F8FAFC !important; }
 html.dark [class~="dark:text-stone-300"] { color: #CBD5E1 !important; }
 html.dark [class~="dark:text-stone-400"] { color: #94A3B8 !important; }
+
+
+/* Mobile beta hardening: prevent iOS form zoom and accidental horizontal page scroll. */
+html, body, #root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+html, body {
+  overflow-x: clip;
+}
+#root {
+  overflow-x: clip;
+}
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px !important;
+  }
+  button, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .focus-zen-fullscreen {
+    width: 100vw;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+}
+/* Keep the chosen indigo/slate palette consistent with older component classes. */
+[class*="text-pink-"] { color: #4F46E5 !important; }
+[class*="border-pink-"] { border-color: #C7D2FE !important; }
+[class*="bg-pink-"] { background-color: #EEF2FF !important; }
+html.dark [class*="text-pink-"] { color: #A5B4FC !important; }
+html.dark [class*="border-pink-"] { border-color: rgba(129, 140, 248, .24) !important; }
+html.dark [class*="bg-pink-"] { background-color: #111827 !important; }
