@@ -472,7 +472,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
             <button
               type="submit"
               disabled={isSubmittingMilestone}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white dark:bg-white text-white dark:text-stone-950 font-bold text-xs hover:bg-stone-800 transition-all shadow-xs"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isSubmittingMilestone ? 'Publishing…' : 'Publish milestone'}</span>
@@ -495,7 +495,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
             </h3>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
               {feedMode === 'friends'
-                ? 'Your Friends Feed shows milestones only from studiers you add. Search for peers above, or add recommended studiers below!'
+                ? 'Your Friends Feed shows milestones only from studiers you add. Search for registered members above, or invite someone you know to join Lima4.'
                 : 'No milestones match this filter. Share your first study sprint milestone!'}
             </p>
           </div>
@@ -505,6 +505,8 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
               <p className="text-xs text-slate-500 dark:text-slate-400">No other members have joined your network yet. Search for a real registered member above, or share Lima4 with someone who would benefit from focused study.</p>
             </div>
           )}
+        </div>
+      ) : (
         <div className="space-y-3">
           {filteredMilestones.map((item) => {
             const hasCheered = cheeredIds[item.milestoneId] || item.userHasCheered;
