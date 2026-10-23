@@ -96,7 +96,7 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
     const handleResize = () => {
       setPosition((prev) => {
         if (!prev) return null;
-        const w = getWidgetWidth(size);
+        const w = manualWidth ?? getWidgetWidth(size);
         const maxX = Math.max(8, window.innerWidth - w - 8);
         const maxY = Math.max(8, window.innerHeight - 80);
         return {
@@ -107,14 +107,14 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [size, getWidgetWidth]);
+  }, [size, manualWidth, getWidgetWidth]);
 
   // Change YouTube mute state without remounting the iframe (which restarts playback).
   useEffect(() => {
     if (videoElementRef.current) videoElementRef.current.muted = isMuted;
     const player = youtubeIframeRef.current?.contentWindow;
     if (player && stream && !stream.directVideoUrl && stream.sourceType !== 'direct' && stream.sourceType !== 'vimeo' && stream.sourceType !== 'embed') {
-      player.postMessage(JSON.stringify({ event: 'command', func: isMuted ? 'mute' : 'unMute', args: [] }), '*');
+      player.postMessage(JSON.stringify({ event: 'command', func: isMuted ? 'mute' : 'unMute', args: [] }), 'https://www.youtube-nocookie.com');
     }
   }, [isMuted, stream]);
 
