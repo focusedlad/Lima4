@@ -10,6 +10,16 @@ export interface UserSyncInput {
   avatar?: string;
   university?: string;
   studyField?: string;
+  countryCode?: string;
+  countryName?: string;
+  currentSubject?: string;
+  currentGoal?: string;
+  isGhostMode?: boolean;
+  subscriptionTier?: string;
+  subscriptionStatus?: string;
+  termsAccepted?: boolean;
+  termsAcceptedAt?: string;
+  termsVersion?: string;
   xp?: number;
   totalHoursStudied?: number;
   currentStreak?: number;
@@ -28,6 +38,16 @@ export async function upsertUser(input: UserSyncInput) {
         avatar: input.avatar || '',
         university: input.university || '',
         studyField: input.studyField || '',
+        countryCode: input.countryCode || 'GLOBAL',
+        countryName: input.countryName || 'Global',
+        currentSubject: input.currentSubject || 'General Study',
+        currentGoal: input.currentGoal || '',
+        isGhostMode: input.isGhostMode ?? false,
+        subscriptionTier: input.subscriptionTier || 'free',
+        subscriptionStatus: input.subscriptionStatus || 'active',
+        termsAccepted: input.termsAccepted ?? false,
+        termsAcceptedAt: input.termsAcceptedAt ? new Date(input.termsAcceptedAt) : null,
+        termsVersion: input.termsVersion || null,
         xp: input.xp || 0,
         totalHoursStudied: input.totalHoursStudied || 0,
         currentStreak: input.currentStreak || 1,
@@ -41,6 +61,16 @@ export async function upsertUser(input: UserSyncInput) {
           avatar: input.avatar || '',
           university: input.university || '',
           studyField: input.studyField || '',
+          countryCode: input.countryCode || 'GLOBAL',
+          countryName: input.countryName || 'Global',
+          currentSubject: input.currentSubject || 'General Study',
+          currentGoal: input.currentGoal || '',
+          isGhostMode: input.isGhostMode ?? false,
+          subscriptionTier: input.subscriptionTier || 'free',
+          subscriptionStatus: input.subscriptionStatus || 'active',
+          termsAccepted: input.termsAccepted ?? false,
+          termsAcceptedAt: input.termsAcceptedAt ? new Date(input.termsAcceptedAt) : undefined,
+          termsVersion: input.termsVersion || null,
           xp: input.xp || 0,
           totalHoursStudied: input.totalHoursStudied || 0,
           currentStreak: input.currentStreak || 1,
