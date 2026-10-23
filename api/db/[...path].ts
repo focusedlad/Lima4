@@ -82,7 +82,7 @@ export default async function handler(req: any, res: any) {
       const raw = String(req.query?.timeframe || 'week');
       const timeframe = (allowed.includes(raw) ? raw : 'week') as 'today' | 'week' | 'month' | 'all';
       const rows = await getLeaderboardByTimeframe(timeframe);
-      return res.status(200).json({ success: true, leaderboard: rows.filter((row: any) => row.uid !== authUser.id) });
+      return res.status(200).json({ success: true, leaderboard: rows });
     }
 
     if (parts.length === 1 && parts[0] === 'friends' && method === 'GET') {
