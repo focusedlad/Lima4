@@ -105,9 +105,13 @@ export const NotificationCenter: React.FC = () => {
       if (deleteError) throw deleteError;
       return;
     }
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    if (sessionError || !userId) throw new Error('A signed-in account is required.');
     const { error: saveError } = await client.from('user_youtube_follows').upsert({
       ...(channel.id.startsWith('channel_') ? {} : { id: channel.id }),
-      channel_key: (channel.channelId || channel.channel).toLowerCase(),
+      user_id: userId,
+      channel_key: channel.channel.toLowerCase(),
       channel_input: channel.channel,
       channel_id: channel.channelId || null,
       channel_title: channel.title || null,
