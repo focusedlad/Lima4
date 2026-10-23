@@ -155,7 +155,7 @@ export default function App() {
     return () => { cancelled = true; };
   }, [profileLoaded, currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, currentUser.university, currentUser.universityOrLocation, currentUser.studyField, currentUser.countryCode, currentUser.countryName, currentUser.currentSubject, currentUser.currentGoal, currentUser.isGhostMode, currentUser.subscriptionTier, currentUser.subscriptionStatus, currentUser.termsAccepted, currentUser.termsAcceptedAt, currentUser.termsVersion, currentUser.xp, currentUser.totalHoursStudied, currentUser.currentStreak]);
 
-  const toggleTheme = () => {  const toggleTheme = () => {
+  const toggleTheme = () => {
     setThemePreference((prev) => {
       const currentDark = prev === 'system' ? systemPrefersDark : prev === 'dark';
       return currentDark ? 'light' : 'dark';
