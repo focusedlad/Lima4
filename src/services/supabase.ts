@@ -1,6 +1,5 @@
 import { createClient, SupabaseClient, User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { UserProfile, FocusSessionLog } from '../types';
-import { StorageService } from './storage';
 
 export interface CustomSupabaseCredentials {
   url: string;
@@ -168,176 +167,71 @@ export const SupabaseService = {
    * Sign In with Apple (OAuth)
    */
   async signInWithApple(): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured) return { success: false, error: 'Apple sign-in is unavailable until Supabase is configured.' };
     try {
-      if (!isSupabaseConfigured) {
-        // Fallback demo for Apple sign in
-        const demoUser: UserProfile = {
-          id: `apple_${Date.now()}`,
-          name: 'Apple Studier',
-          email: 'student@privaterelay.appleid.com',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-          universityOrLocation: 'Oxford University',
-          university: 'Oxford University',
-          studyField: 'Medicine & Surgery',
-          isGhostMode: false,
-          currentSubject: '#Medicine',
-          currentGoal: 'Finish 50m sprint',
-          status: 'in_focus',
-          currentStreak: 12,
-          totalHoursStudied: 48,
-          xp: 1240,
-          deskPet: {
-            name: 'Kiko',
-            species: 'owl',
-            level: 4,
-            currentXp: 180,
-            nextLevelXp: 500,
-            mood: 'focused',
-            decorations: [],
-          },
-        };
-        localStorage.setItem('lumina_current_user', JSON.stringify(demoUser));
-        return { success: true };
-      }
-
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await getActiveSupabaseClient().auth.signInWithOAuth({
         provider: 'apple',
-        options: {
-          redirectTo: window.location.origin,
-        },
+        options: { redirectTo: window.location.origin },
       });
-
       if (error) return { success: false, error: error.message };
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Apple sign-in failed' };
+      return { success: false, error: err.message || 'Apple sign-in failed.' };
     }
   },
-
   /**
    * Sign In with Google (OAuth)
    */
   async signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured) return { success: false, error: 'Google sign-in is unavailable until Supabase is configured.' };
     try {
-      if (!isSupabaseConfigured) {
-        const demoUser: UserProfile = {
-          id: `google_${Date.now()}`,
-          name: 'Alex Rivera',
-          email: 'alex.rivera@campus.edu',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-          universityOrLocation: 'Stanford University',
-          university: 'Stanford University',
-          studyField: 'Computer Science',
-          isGhostMode: false,
-          currentSubject: '#Algorithms',
-          currentGoal: 'Dynamic Programming Sprint',
-          status: 'in_focus',
-          currentStreak: 8,
-          totalHoursStudied: 34,
-          xp: 920,
-          deskPet: {
-            name: 'Mochi',
-            species: 'shiba',
-            level: 3,
-            currentXp: 210,
-            nextLevelXp: 350,
-            mood: 'happy',
-            decorations: [],
-          },
-        };
-        localStorage.setItem('lumina_current_user', JSON.stringify(demoUser));
-        return { success: true };
-      }
-
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await getActiveSupabaseClient().auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
+        options: { redirectTo: window.location.origin },
       });
-
       if (error) return { success: false, error: error.message };
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Google sign-in failed' };
+      return { success: false, error: err.message || 'Google sign-in failed.' };
     }
   },
-
   /**
    * Sign In with Email & Password
    */
   async signInWithEmail(email: string, pass: string): Promise<{ success: boolean; user?: any; profile?: UserProfile; error?: string }> {
+    if (!isSupabaseConfigured) return { success: false, error: 'Account sign-in is unavailable because Supabase is not configured.' };
     try {
-      const client = getActiveSupabaseClient();
-      if (isSupabaseConfigured) {
-        const { data, error } = await client.auth.signInWithPassword({
-          email: email.trim(),
-          password: pass,
-        });
-
-        if (error) {
-          // If Supabase authentication returns an error, also check stored local registered student accounts
-          const localVerify = StorageService.verifyStudentCredentials(email, pass);
-          if (localVerify.success && localVerify.profile) {
-            return { success: true, profile: localVerify.profile, user: { id: localVerify.profile.id, email } };
-          }
-          return { success: false, error: error.message };
-        }
-
-        const localProfile = StorageService.findAccountByEmail(email);
-        return { success: true, user: data.user, profile: localProfile || undefined };
-      }
-
-      // Local / Offline Student Accounts Verification
-      const localVerify = StorageService.verifyStudentCredentials(email, pass);
-      if (!localVerify.success) {
-        return { success: false, error: localVerify.error };
-      }
-
-      return {
-        success: true,
-        user: { id: localVerify.profile?.id || `usr_${Date.now()}`, email, user_metadata: { full_name: localVerify.profile?.name || email.split('@')[0] } },
-        profile: localVerify.profile,
-      };
+      const { data, error } = await getActiveSupabaseClient().auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: pass,
+      });
+      if (error) return { success: false, error: error.message };
+      if (!data.user || !data.session) return { success: false, error: 'No active session was returned. Please verify your email and try again.' };
+      return { success: true, user: data.user };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Login failed' };
+      return { success: false, error: err.message || 'Login failed.' };
     }
   },
-
   /**
    * Sign Up with Email, Password & Name
    */
-  async signUpWithEmail(email: string, pass: string, name: string): Promise<{ success: boolean; user?: any; error?: string }> {
+  async signUpWithEmail(email: string, pass: string, name: string): Promise<{ success: boolean; user?: any; session?: Session | null; error?: string }> {
+    if (!isSupabaseConfigured) return { success: false, error: 'Account registration is unavailable because Supabase is not configured.' };
     try {
-      const client = getActiveSupabaseClient();
-      if (isSupabaseConfigured) {
-        const { data, error } = await client.auth.signUp({
-          email: email.trim(),
-          password: pass,
-          options: {
-            data: { full_name: name },
-          },
-        });
-
-        if (error) return { success: false, error: error.message };
-        return { success: true, user: data.user };
-      }
-
-      // Check if account already exists locally
-      const existing = StorageService.findAccountByEmail(email);
-      if (existing) {
-        return { success: false, error: 'An account with this email already exists. Please log in instead.' };
-      }
-
-      return {
-        success: true,
-        user: { id: `usr_${Date.now()}`, email: email.trim(), user_metadata: { full_name: name } },
-      };
+      const { data, error } = await getActiveSupabaseClient().auth.signUp({
+        email: email.trim().toLowerCase(),
+        password: pass,
+        options: {
+          data: { full_name: name.trim() },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true, user: data.user, session: data.session };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Signup failed' };
+      return { success: false, error: err.message || 'Signup failed.' };
     }
   },
-
   /**
    * Sign Out
    */
@@ -352,14 +246,16 @@ export const SupabaseService = {
   /**
    * Sync User Profile with PostgreSQL backend
    */
-  async syncUser(user: UserProfile): Promise<void> {
+  async syncUser(user: UserProfile): Promise<{ isFirstUser: boolean }> {
     try {
-      await fetch('/api/db/sync-user', {
+      const { data: { session } } = await getActiveSupabaseClient().auth.getSession();
+      if (!session?.user || session.user.id !== user.id) return { isFirstUser: false };
+      const res = await fetch('/api/db/sync-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
         body: JSON.stringify({
-          uid: user.id,
-          email: user.email || `${user.id}@luminastudy.local`,
+          uid: session.user.id,
+          email: session.user.email || user.email || '',
           name: user.name,
           avatar: user.avatar,
           university: user.university || user.universityOrLocation,
@@ -369,19 +265,27 @@ export const SupabaseService = {
           currentStreak: user.currentStreak,
         }),
       });
+      if (!res.ok) {
+        console.warn('Profile sync failed:', await res.text());
+        return { isFirstUser: false };
+      }
+      const result = await res.json();
+      return { isFirstUser: Boolean(result?.isFirstUser) };
     } catch (e) {
       console.warn('Supabase/DB syncUser skipped:', e);
+      return { isFirstUser: false };
     }
   },
-
   /**
    * Log completed focus session
    */
   async logFocusSession(log: FocusSessionLog, userUid: string): Promise<void> {
     try {
+      const { data: { session } } = await getActiveSupabaseClient().auth.getSession();
+      if (!session?.user || session.user.id !== userUid) return;
       await fetch('/api/db/focus-logs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
         body: JSON.stringify({
           userUid,
           durationMinutes: log.durationMinutes,
@@ -404,14 +308,13 @@ export const SupabaseService = {
       const res = await fetch('/api/db/challenges');
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.challenges) && json.challenges.length > 0) {
+        if (json.success && Array.isArray(json.challenges)) {
           return json.challenges;
         }
       }
     } catch (_) {}
 
-    // Fallback seed challenges for instant social engagement
-    return DEFAULT_STUDY_CHALLENGES;
+    return [];
   },
 
   /**
@@ -491,7 +394,7 @@ export const SupabaseService = {
       const res = await fetch(`/api/db/leaderboard?timeframe=${timeframe}`);
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.leaderboard) && json.leaderboard.length > 0) {
+        if (json.success && Array.isArray(json.leaderboard)) {
           return json.leaderboard.map((item: any, idx: number) => ({
             id: item.uid || `lead_${idx}`,
             uid: item.uid,
@@ -508,8 +411,7 @@ export const SupabaseService = {
       }
     } catch (_) {}
 
-    // Fallback seed leaderboard computed for timeframe
-    return SEED_LEADERBOARDS[timeframe] || SEED_LEADERBOARDS['week'];
+    return [];
   },
 
   /**
@@ -525,8 +427,7 @@ export const SupabaseService = {
         }
       }
     } catch (_) {}
-    const saved = localStorage.getItem(`lumina_friends_${userUid}`);
-    return saved ? JSON.parse(saved) : DEFAULT_FRIENDS;
+    return [];
   },
 
   /**
@@ -589,20 +490,13 @@ export const SupabaseService = {
       const res = await fetch(`/api/db/users/search?q=${encodeURIComponent(query)}`);
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.users) && json.users.length > 0) {
+        if (json.success && Array.isArray(json.users)) {
           return json.users;
         }
       }
     } catch (_) {}
 
-    const clean = query.toLowerCase().replace(/^@/, '');
-    if (!clean) return SEED_USERS_DIRECTORY;
-    return SEED_USERS_DIRECTORY.filter(
-      (u) =>
-        u.handle.toLowerCase().includes(clean) ||
-        u.name.toLowerCase().includes(clean) ||
-        (u.university && u.university.toLowerCase().includes(clean))
-    );
+    return [];
   },
 
   /**
@@ -613,21 +507,13 @@ export const SupabaseService = {
       const res = await fetch(`/api/db/milestones?friendsOnly=${friendsOnly}&userUid=${encodeURIComponent(userUid)}`);
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.milestones) && json.milestones.length > 0) {
+        if (json.success && Array.isArray(json.milestones)) {
           return json.milestones;
         }
       }
     } catch (_) {}
 
-    // Fallback seed milestones
-    const friends = await this.fetchFriends(userUid);
-    const friendUids = new Set(friends.map((f) => f.friendUid));
-    friendUids.add(userUid);
-
-    if (friendsOnly) {
-      return SEED_MILESTONES.filter((m) => friendUids.has(m.userUid));
-    }
-    return SEED_MILESTONES;
+    return [];
   },
 
   /**
