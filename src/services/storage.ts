@@ -34,6 +34,7 @@ if (typeof window !== 'undefined') {
       localStorage.removeItem(ADMISSIONS_KEY);
       localStorage.removeItem(FEED_KEY);
       localStorage.removeItem(USERS_LIST_KEY);
+      localStorage.removeItem(LOGS_KEY);
       localStorage.removeItem('cheri_registered_accounts');
       localStorage.setItem(DB_VERSION_KEY, 'true');
     }
