@@ -364,10 +364,31 @@ html, body {
     overflow: hidden;
   }
 }
-/* Keep the chosen indigo/slate palette consistent with older component classes. */
-[class*="text-pink-"] { color: #4F46E5 !important; }
-[class*="border-pink-"] { border-color: #C7D2FE !important; }
-[class*="bg-pink-"] { background-color: #EEF2FF !important; }
-html.dark [class*="text-pink-"] { color: #A5B4FC !important; }
-html.dark [class*="border-pink-"] { border-color: rgba(129, 140, 248, .24) !important; }
-html.dark [class*="bg-pink-"] { background-color: #111827 !important; }
+/* Lima4 visual system: porcelain white, calm sky blue and restrained oxblood. */
+:root {
+  --lima-sky: #5D8EAD;
+  --lima-sky-strong: #376985;
+  --lima-sky-soft: #EAF3F8;
+  --lima-maroon: #71313B;
+  --lima-maroon-hover: #57232C;
+  --lima-ink: #243746;
+  --lima-paper: #FBFCFD;
+}
+html:not(.dark) body { background-color: var(--lima-paper); }
+html:not(.dark) [class*="text-pink-"] { color: var(--lima-sky-strong) !important; }
+html:not(.dark) [class*="border-pink-"] { border-color: #D5E5EE !important; }
+html:not(.dark) [class*="bg-pink-"] { background-color: var(--lima-sky-soft) !important; }
+html:not(.dark) [class~="bg-pink-500"],
+html:not(.dark) [class~="bg-pink-600"],
+html:not(.dark) [class~="bg-pink-700"] { background-color: var(--lima-maroon) !important; color: #FFFFFF !important; }
+html:not(.dark) [class~="hover:bg-pink-600"]:hover,
+html:not(.dark) [class~="hover:bg-pink-700"]:hover { background-color: var(--lima-maroon-hover) !important; }
+html.dark [class*="text-pink-"] { color: #9BC8E1 !important; }
+html.dark [class*="border-pink-"] { border-color: rgba(115, 163, 190, .24) !important; }
+html.dark [class*="bg-pink-"] { background-color: #17232D !important; }
+html.dark [class~="bg-pink-500"],
+html.dark [class~="bg-pink-600"],
+html.dark [class~="bg-pink-700"] { background-color: var(--lima-maroon) !important; color: #FFFFFF !important; }
+html.dark [class~="hover:bg-pink-600"]:hover,
+html.dark [class~="hover:bg-pink-700"]:hover { background-color: var(--lima-maroon-hover) !important; }
+
