@@ -519,11 +519,13 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
               >
                 {/* Left: User Avatar & Post Details */}
                 <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                  <img
-                    src={item.userAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                    alt={item.userName}
-                    className="w-11 h-11 rounded-2xl object-cover shrink-0 ring-2 ring-stone-100 dark:ring-stone-800"
-                  />
+                  {item.userAvatar ? (
+                    <img src={item.userAvatar} alt={item.userName} className="w-11 h-11 rounded-2xl object-cover shrink-0 ring-2 ring-slate-100 dark:ring-white/10" />
+                  ) : (
+                    <div aria-label={item.userName} className="w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200 font-semibold ring-2 ring-slate-100 dark:ring-white/10">
+                      {(item.userName || 'S').trim().charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-sm text-stone-900 dark:text-white">
