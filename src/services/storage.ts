@@ -45,189 +45,15 @@ export const stripHashtags = (text?: string): string => {
 };
 
 export const INITIAL_USER: UserProfile = {
-  id: 'usr_me',
-  name: 'Kai Chen',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  universityOrLocation: 'Tokyo Tech / Global Campus',
-  countryCode: 'JP',
-  countryName: 'Japan',
-  countryFlag: '',
-  university: 'Tokyo Institute of Technology',
-  studyField: 'Medicine & Healthcare (USMLE, Pre-Med)',
-  isGhostMode: false,
-  currentSubject: 'USMLE / Neuro',
-  currentGoal: 'Consolidate cranial nerve pathways & finish 50m sprint',
-  status: 'in_focus',
-  currentStreak: 14,
-  totalHoursStudied: 93.5,
-  xp: 4120,
-  deskPet: {
-    name: 'Mochi',
-    species: 'shiba',
-    level: 4,
-    currentXp: 320,
-    nextLevelXp: 500,
-    mood: 'focused',
-    decorations: ['Steaming Matcha', 'Bonsai Tree', 'Vinyl Turntable'],
-  },
+  id: 'unauthenticated', name: 'New Studier', avatar: '',
+  universityOrLocation: 'Independent Scholar', countryCode: 'GLOBAL', countryName: 'Global', countryFlag: '',
+  university: 'Independent Scholar', studyField: 'General Studies', isGhostMode: false,
+  currentSubject: 'General Study', currentGoal: 'Start your first focus session', status: 'in_focus',
+  currentStreak: 0, totalHoursStudied: 0, xp: 0,
+  deskPet: { name: 'Pip', species: 'owl', level: 1, currentXp: 0, nextLevelXp: 100, mood: 'focused', decorations: [] },
 };
 
-export const INITIAL_SPACES: StudySpace[] = [
-  {
-    id: 'space_great_hall',
-    name: 'The Great Hall (Universal Silent Floor)',
-    tagline: 'Global persistent silent floor where studiers worldwide focus in peace.',
-    subjectTag: 'Global Campus',
-    location: 'Universal Cloud Campus',
-    countryCode: 'GLOBAL',
-    countryFlag: '',
-    university: 'Universal Cloud Campus',
-    isGhostMode: false,
-    mode: 'flowtime',
-    isPrivate: false,
-    hostId: 'system',
-    hostName: 'Lumina Campus Host',
-    hostAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    maxCapacity: 25000,
-    isSilentMode: true,
-    pomodoroInterval: { work: 50, breakTime: 10 },
-    breakScheduleText: 'Hourly 10m breathing chime at :50',
-    createdAt: '2026-01-01T00:00:00Z',
-    currentMembers: [],
-  },
-  {
-    id: 'space_tokyo_tech',
-    name: 'Tokyo Tech Silent Wing',
-    tagline: 'Quiet engineering and algorithmic architecture study pod.',
-    subjectTag: 'Coding',
-    location: 'Tokyo Institute of Technology',
-    countryCode: 'JP',
-    countryFlag: '',
-    university: 'Tokyo Institute of Technology',
-    isGhostMode: false,
-    mode: 'pomodoro',
-    isPrivate: false,
-    hostId: 'system',
-    hostName: 'Tokyo Tech Host',
-    hostAvatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
-    maxCapacity: 60,
-    isSilentMode: true,
-    pomodoroInterval: { work: 50, breakTime: 10 },
-    breakScheduleText: '50m Deep Work / 10m Stretches',
-    createdAt: '2026-03-01T12:00:00Z',
-    currentMembers: [],
-  },
-  {
-    id: 'space_jh_med',
-    name: 'Johns Hopkins Med Sprint Pod',
-    tagline: 'Intense USMLE Step 1 sprint. Knock required with study sprint goal.',
-    subjectTag: 'USMLE',
-    location: 'Johns Hopkins Medical Quad',
-    countryCode: 'US',
-    countryFlag: '',
-    university: 'Johns Hopkins University',
-    isGhostMode: false,
-    mode: 'pomodoro',
-    isPrivate: true,
-    hostId: 'system',
-    hostName: 'Hopkins Med Host',
-    hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    maxCapacity: 12,
-    isSilentMode: true,
-    pomodoroInterval: { work: 50, breakTime: 10 },
-    breakScheduleText: '50m Sprint / 10m Flashcard Quiz Battle',
-    createdAt: '2026-03-05T08:00:00Z',
-    currentMembers: [],
-  },
-  {
-    id: 'space_oxford_bodleian',
-    name: 'Oxford Bodleian Quiet Chamber',
-    tagline: 'Private chamber for law and humanities scholars. Strict silent policy.',
-    subjectTag: 'Bar Exam',
-    location: 'Oxford Bodleian Library',
-    countryCode: 'GB',
-    countryFlag: '',
-    university: 'University of Oxford',
-    isGhostMode: false,
-    mode: 'flowtime',
-    isPrivate: true,
-    hostId: 'system',
-    hostName: 'Oxford Scholar',
-    hostAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    maxCapacity: 15,
-    isSilentMode: true,
-    pomodoroInterval: { work: 45, breakTime: 15 },
-    breakScheduleText: 'Flowtime with quiet tea breaks',
-    createdAt: '2026-02-14T09:00:00Z',
-    currentMembers: [],
-  },
-  {
-    id: 'space_makerere',
-    name: 'Makerere Tech & Health Quad',
-    tagline: 'Intense study space for computer science and medical researchers at Makerere.',
-    subjectTag: 'Coding',
-    location: 'Makerere University, Kampala',
-    countryCode: 'UG',
-    countryFlag: '',
-    university: 'Makerere University',
-    isGhostMode: false,
-    mode: 'pomodoro',
-    isPrivate: false,
-    hostId: 'system',
-    hostName: 'Makerere Quad Host',
-    hostAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
-    maxCapacity: 45,
-    isSilentMode: true,
-    pomodoroInterval: { work: 50, breakTime: 10 },
-    breakScheduleText: '50m Deep Work / 10m Break',
-    createdAt: '2026-03-08T10:00:00Z',
-    currentMembers: [],
-  },
-  {
-    id: 'space_uon_law',
-    name: 'University of Nairobi Law Chamber',
-    tagline: 'Quiet sprint on jurisprudence, commercial law, and constitutional review.',
-    subjectTag: 'Bar Exam',
-    location: 'University of Nairobi, Parklands',
-    countryCode: 'KE',
-    countryFlag: '',
-    university: 'University of Nairobi',
-    isGhostMode: false,
-    mode: 'flowtime',
-    isPrivate: true,
-    hostId: 'system',
-    hostName: 'Nairobi Law Host',
-    hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    maxCapacity: 20,
-    isSilentMode: true,
-    pomodoroInterval: { work: 50, breakTime: 10 },
-    breakScheduleText: 'Flowtime with scheduled quiet coffee intervals',
-    createdAt: '2026-03-09T11:00:00Z',
-    currentMembers: [],
-  },
-  {
-    id: 'space_seoul_snu',
-    name: 'Seoul SNU 24/7 Lofi Lounge',
-    tagline: 'Relaxed night owls studying calculus, physics, and organic chemistry.',
-    subjectTag: 'Calculus III',
-    location: 'Seoul National University',
-    countryCode: 'KR',
-    countryFlag: '',
-    university: 'Seoul National University (SNU)',
-    isGhostMode: false,
-    mode: 'animedoro',
-    isPrivate: false,
-    hostId: 'system',
-    hostName: 'SNU Lounge Host',
-    hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    maxCapacity: 80,
-    isSilentMode: false,
-    pomodoroInterval: { work: 40, breakTime: 20 },
-    breakScheduleText: '40m Study / 20m Anime or Music break',
-    createdAt: '2026-03-10T14:00:00Z',
-    currentMembers: [],
-  },
-];
+export const INITIAL_SPACES: StudySpace[] = [];
 
 export const INITIAL_ADMISSIONS: AdmissionRequest[] = [];
 
@@ -592,85 +418,9 @@ export const INITIAL_CREATORS: YouTubeCreator[] = [
   },
 ];
 
-export const INITIAL_ACTIVITY_FEED: ActivityFeedItem[] = [
-  {
-    id: 'act_welcome',
-    userId: 'system_host',
-    userName: 'Lumina Campus Host',
-    userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100',
-    countryFlag: '',
-    countryName: 'Global Campus',
-    university: 'Universal Cloud Campus',
-    type: 'session_completed',
-    title: 'Welcome to Lumina Global Campus',
-    description: 'The real-time campus is officially open for real studiers! Join study rooms, start Pomodoro focus sessions, and share milestones with peers.',
-    xpEarned: 100,
-    timestamp: 'Just now',
-    cheersCount: 0,
-    subjectTag: 'Global Campus',
-  },
-];
+export const INITIAL_ACTIVITY_FEED: ActivityFeedItem[] = [];
 
-export const INITIAL_FOCUS_LOGS: FocusSessionLog[] = [
-  { id: 'log_1', date: '2026-10-17', durationMinutes: 50, category: 'deep_work', subject: 'USMLE', xpEarned: 100 },
-  { id: 'log_2', date: '2026-10-17', durationMinutes: 25, category: 'recall', subject: 'USMLE', xpEarned: 60 },
-  { id: 'log_3', date: '2026-10-17', durationMinutes: 40, category: 'review', subject: 'USMLE', xpEarned: 80 },
-  { id: 'log_4', date: '2026-10-16', durationMinutes: 120, category: 'deep_work', subject: 'Coding', xpEarned: 240 },
-  { id: 'log_5', date: '2026-10-16', durationMinutes: 45, category: 'recall', subject: 'Coding', xpEarned: 90 },
-  { id: 'log_6', date: '2026-10-15', durationMinutes: 180, category: 'deep_work', subject: 'USMLE', xpEarned: 360 },
-  { id: 'log_7', date: '2026-10-14', durationMinutes: 90, category: 'recall', subject: 'MCAT', xpEarned: 180 },
-  { id: 'log_8', date: '2026-10-13', durationMinutes: 150, category: 'deep_work', subject: 'Bar Exam', xpEarned: 300 },
-];
-
-export function generate31DayHeatmap(): DayActivity[] {
-  const days: DayActivity[] = [];
-  // Generate for days 1 to 31 of current month
-  for (let d = 1; d <= 31; d++) {
-    // Deterministic realistic study curve
-    let hours = 0;
-    let deepWork = 0;
-    let recall = 0;
-    let review = 0;
-
-    if (d % 7 === 0) {
-      // Light rest day
-      hours = 1.2;
-      deepWork = 0.5;
-      recall = 0.5;
-      review = 0.2;
-    } else if (d % 3 === 0) {
-      // Very high sprint day (>6h pastel pink)
-      hours = 6.8;
-      deepWork = 3.8;
-      recall = 2.0;
-      review = 1.0;
-    } else if (d % 2 === 0) {
-      // High day (4-6h mint)
-      hours = 4.7;
-      deepWork = 2.7;
-      recall = 1.3;
-      review = 0.7;
-    } else {
-      // Moderate day (2-4h cyan)
-      hours = 3.2;
-      deepWork = 1.8;
-      recall = 0.9;
-      review = 0.5;
-    }
-
-    const dayStr = d < 10 ? `0${d}` : `${d}`;
-    days.push({
-      date: `2026-10-${dayStr}`,
-      dayNumber: d,
-      hours: Math.round(hours * 10) / 10,
-      deepWorkHours: Math.round(deepWork * 10) / 10,
-      recallHours: Math.round(recall * 10) / 10,
-      reviewHours: Math.round(review * 10) / 10,
-      sessionsCount: Math.max(1, Math.round(hours / 1.2)),
-    });
-  }
-  return days;
-}
+export const INITIAL_FOCUS_LOGS: FocusSessionLog[] = [];
 
 export const INITIAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
@@ -758,66 +508,9 @@ export const INITIAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   },
 ];
 
-export const INITIAL_ANNOUNCEMENTS: GlobalAnnouncement[] = [
-  {
-    id: 'ann_welcome',
-    title: 'Welcome to Lumina Study Community',
-    message: 'Connect with students across Makerere, Oxford, Tokyo Tech, and worldwide. Stream high-yield Study With Me sessions and leverage AI Magic Import for your exam prep.',
-    type: 'info',
-    priority: 'high',
-    author: 'Platform Admin',
-    createdAt: '2026-10-18T00:00:00Z',
-    isActive: true,
-    actionLabel: 'Explore Campus',
-  },
-  {
-    id: 'ann_exam_cram',
-    title: '2x XP Boost Active for Global Exam Cram Week!',
-    message: 'Double experience points are currently awarded for all Pomodoro sessions. Level up your desk pet and climb the global university leaderboard!',
-    type: 'event',
-    priority: 'normal',
-    author: 'Academic Ops',
-    createdAt: '2026-10-17T12:00:00Z',
-    isActive: true,
-    actionLabel: 'Start Sprint',
-  },
-];
+export const INITIAL_ANNOUNCEMENTS: GlobalAnnouncement[] = [];
 
-export const INITIAL_EMPLOYEES: EmployeeAccount[] = [
-  {
-    id: 'emp_maya',
-    name: 'Maya Lin',
-    email: 'maya.lin@lumina.study',
-    roleTitle: 'Senior Campus Moderator',
-    status: 'active',
-    permissions: ['overview', 'spaces', 'users', 'announcements'],
-    accessKey: 'EMP-MOD-771',
-    hiredAt: '2026-08-15',
-    lastActive: '5 mins ago',
-  },
-  {
-    id: 'emp_david',
-    name: 'David Kigozi',
-    email: 'david.k@lumina.study',
-    roleTitle: 'Curriculum & Decks Admin',
-    status: 'active',
-    permissions: ['overview', 'spaces', 'announcements'],
-    accessKey: 'EMP-CUR-342',
-    hiredAt: '2026-09-01',
-    lastActive: '1 hour ago',
-  },
-  {
-    id: 'emp_sarah',
-    name: 'Sarah Jenkins',
-    email: 'sarah.j@lumina.study',
-    roleTitle: 'Finance & Subscriptions Specialist',
-    status: 'active',
-    permissions: ['overview', 'subscriptions'],
-    accessKey: 'EMP-FIN-908',
-    hiredAt: '2026-09-20',
-    lastActive: 'Yesterday',
-  },
-];
+export const INITIAL_EMPLOYEES: EmployeeAccount[] = [];
 
 export const INITIAL_SYSTEM_SETTINGS: SystemSettings = {
   platformName: 'Lumina Study',
@@ -834,41 +527,7 @@ export const INITIAL_SYSTEM_SETTINGS: SystemSettings = {
   superAdminEmail: 'iantumwebaze75@gmail.com',
 };
 
-export const INITIAL_ALL_USERS: UserProfile[] = [
-  {
-    id: 'usr_admin_ian',
-    name: 'Ian Tumwebaze',
-    email: 'iantumwebaze75@gmail.com',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    universityOrLocation: 'Makerere University / Uganda',
-    countryCode: 'UG',
-    countryName: 'Uganda',
-    countryFlag: '',
-    university: 'Makerere University',
-    studyField: 'Computer Science, Engineering & Math',
-    isGhostMode: false,
-    currentSubject: 'FullStack / AI Systems',
-    currentGoal: 'Overseeing global platform launch & system scaling',
-    status: 'in_focus',
-    currentStreak: 42,
-    totalHoursStudied: 215.0,
-    xp: 14800,
-    role: 'superadmin',
-    subscriptionTier: 'campus_elite',
-    subscriptionStatus: 'active',
-    isSuspended: false,
-    joinedDate: '2026-01-10',
-    deskPet: {
-      name: 'Titan',
-      species: 'owl',
-      level: 10,
-      currentXp: 850,
-      nextLevelXp: 1000,
-      mood: 'focused',
-      decorations: ['Crown of Wisdom', 'Golden Quill', 'Cosmic Aura'],
-    },
-  },
-];
+export const INITIAL_ALL_USERS: UserProfile[] = [];
 
 export class StorageService {
   public static getUser(): UserProfile {
@@ -905,7 +564,7 @@ export class StorageService {
         }));
       }
     } catch (_) {}
-    return INITIAL_SPACES;
+    return [];
   }
 
   public static saveSpaces(spaces: StudySpace[]) {
@@ -979,7 +638,7 @@ export class StorageService {
         }));
       }
     } catch (_) {}
-    return INITIAL_FOCUS_LOGS;
+    return [];
   }
 
   public static saveFocusLogs(logs: FocusSessionLog[]) {
@@ -999,7 +658,7 @@ export class StorageService {
         }));
       }
     } catch (_) {}
-    return INITIAL_ACTIVITY_FEED;
+    return [];
   }
 
   public static saveActivityFeed(feed: ActivityFeedItem[]) {
@@ -1019,7 +678,7 @@ export class StorageService {
         }));
       }
     } catch (_) {}
-    return INITIAL_ALL_USERS;
+    return [];
   }
 
   public static saveAllUsers(users: UserProfile[]) {
@@ -1061,7 +720,7 @@ export class StorageService {
       const data = localStorage.getItem(EMPLOYEES_KEY);
       if (data) return JSON.parse(data);
     } catch (_) {}
-    return INITIAL_EMPLOYEES;
+    return [];
   }
 
   public static saveEmployees(employees: EmployeeAccount[]) {
@@ -1084,55 +743,5 @@ export class StorageService {
     } catch (_) {}
   }
 
-  /**
-   * Registered Student Accounts Persistence (Supabase & Local Database)
-   */
-  public static getRegisteredAccounts(): Record<string, { email: string; passwordHash: string; profile: UserProfile }> {
-    try {
-      const data = localStorage.getItem('cheri_registered_accounts');
-      if (data) return JSON.parse(data);
-    } catch (_) {}
-    return {};
-  }
 
-  public static saveRegisteredAccount(email: string, password: string, profile: UserProfile) {
-    try {
-      const accounts = this.getRegisteredAccounts();
-      const normEmail = email.trim().toLowerCase();
-      accounts[normEmail] = {
-        email: normEmail,
-        passwordHash: password, // preserved for local authentication fallback
-        profile: { ...profile, email: normEmail },
-      };
-      localStorage.setItem('cheri_registered_accounts', JSON.stringify(accounts));
-    } catch (_) {}
-  }
-
-  public static findAccountByEmail(email: string): UserProfile | null {
-    try {
-      const accounts = this.getRegisteredAccounts();
-      const normEmail = email.trim().toLowerCase();
-      if (accounts[normEmail]) {
-        return accounts[normEmail].profile;
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  public static verifyStudentCredentials(email: string, password: string): { success: boolean; profile?: UserProfile; error?: string } {
-    try {
-      const accounts = this.getRegisteredAccounts();
-      const normEmail = email.trim().toLowerCase();
-      const account = accounts[normEmail];
-      if (!account) {
-        return { success: false, error: 'No account found with this email. Please click "Sign Up" to register.' };
-      }
-      if (account.passwordHash && account.passwordHash !== password) {
-        return { success: false, error: 'Incorrect password. Please verify your credentials and try again.' };
-      }
-      return { success: true, profile: account.profile };
-    } catch (err: any) {
-      return { success: false, error: err.message || 'Login verification failed.' };
-    }
-  }
 }
