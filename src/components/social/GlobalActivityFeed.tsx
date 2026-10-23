@@ -179,7 +179,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
             Study Feed
           </h1>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-            Follow verified focus sprints, challenge milestones, and cheer your friends.
+            Follow real members’ focus milestones and encourage your study partners.
           </p>
         </div>
 
@@ -272,7 +272,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search friends by unique handle (e.g. @ian_dev, @sophia_chen) or name..."
+            placeholder="Search real members by name or handle..."
             className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white dark:bg-[#221F21] border border-pink-100 dark:border-pink-950/80 text-stone-900 dark:text-white text-xs placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 shadow-xs transition-all"
           />
           {searchQuery && (
@@ -483,46 +483,10 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
           </div>
 
           {feedMode === 'friends' && (
-            <div className="pt-4 border-t border-stone-100 dark:border-stone-800 max-w-lg mx-auto">
-              <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block mb-3">
-                Recommended Study Partners to Add
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
-                {([
-                  { uid: 'user_elena', name: 'Elena Rostova', handle: '@elena_law', uni: 'Oxford (Bar Exam)' },
-                  { uid: 'user_kenji', name: 'Kenji Sato', handle: '@kenji_stem', uni: 'Tokyo Tech (CS)' },
-                  { uid: 'user_ian', name: 'Ian Tumwebaze', handle: '@ian_dev', uni: 'Makerere (FullStack)' },
-                  { uid: 'u2', name: 'Sophia Chen', handle: '@sophia_chen', uni: 'Stanford (Neuro)' },
-                ] as const).map((rec) => (
-                  <button
-                    key={rec.uid}
-                    onClick={() =>
-                      handleToggleFriend({
-                        id: 0,
-                        uid: rec.uid,
-                        name: rec.name,
-                        handle: rec.handle,
-                        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-                        university: rec.uni,
-                        totalHoursStudied: 100,
-                        currentStreak: 14,
-                        xp: 4000,
-                      })
-                    }
-                    className="p-2.5 rounded-xl border border-stone-200 dark:border-stone-800 hover:border-emerald-400 bg-stone-50 dark:bg-stone-800/50 flex items-center justify-between text-xs transition-colors"
-                  >
-                    <div>
-                      <div className="font-bold text-stone-900 dark:text-white">{rec.name}</div>
-                      <div className="text-[10px] text-stone-400 font-mono">{rec.handle} • {rec.uni}</div>
-                    </div>
-                    <UserPlus className="w-4 h-4 text-emerald-600 shrink-0" />
-                  </button>
-                ))}
-              </div>
+            <div className="pt-4 border-t border-slate-100 dark:border-white/10 max-w-lg mx-auto">
+              <p className="text-xs text-slate-500 dark:text-slate-400">No other members have joined your network yet. Search for a real registered member above, or share Lima4 with someone who would benefit from focused study.</p>
             </div>
           )}
-        </div>
-      ) : (
         <div className="space-y-3">
           {filteredMilestones.map((item) => {
             const hasCheered = cheeredIds[item.milestoneId] || item.userHasCheered;
