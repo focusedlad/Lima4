@@ -110,7 +110,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     finally { setLoading(false); }
   };
 
-  const handleEmailAuth = async (e: React.FormEvent) => {  const handleEmailAuth = async (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hasAcceptedTerms) {
       setTermsError(true);
