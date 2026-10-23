@@ -5,18 +5,18 @@
 
 @layer base {
   :root {
-    --cream-bg: #FAF8F5;
+    --cream-bg: #F8FAFC;
     --butter-yellow: #FEF08A;
-    --cherry-pink: #FBCFE8;
+    --cherry-pink: #C7D2FE;
     --baby-blue: #BAE6FD;
     --mint-green: #BBF7D0;
-    --matte-charcoal: #18181B;
+    --matte-charcoal: #111827;
   }
 
   html.dark {
     color-scheme: dark;
-    --cream-bg: #0D0C0D;
-    --matte-charcoal: #F4F4F5;
+    --cream-bg: #05070B;
+    --matte-charcoal: #F8FAFC;
   }
 
   html {
@@ -32,9 +32,9 @@
     position: relative;
     margin: 0;
     padding: 0;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: #FAF8F5;
-    color: #18181B;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-color: #F8FAFC;
+    color: #111827;
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -48,12 +48,12 @@
   }
 
   html.dark body {
-    background-color: #0D0C0D;
-    color: #F4F4F5;
+    background-color: #05070B;
+    color: #F8FAFC;
   }
 
   code, pre, .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 }
 
@@ -248,3 +248,23 @@ html.dark .liquid-glass {
 }
 
 
+
+
+/* Responsive beta polish */
+*, *::before, *::after { box-sizing: border-box; }
+input, select, textarea, button { max-width: 100%; }
+img, video, iframe { max-width: 100%; }
+@media (max-width: 767px) {
+  input, select, textarea { font-size: 16px !important; }
+  .auth-modal-card { width: calc(100vw - 1rem); max-width: calc(100vw - 1rem); }
+}
+html.dark { color-scheme: dark; }
+html.dark body { background-color: #05070B; color: #F8FAFC; }
+[class~="bg-pink-500"] { background-color: #4F46E5 !important; }
+[class~="hover:bg-pink-600"]:hover { background-color: #4338CA !important; }
+[class~="text-pink-500"], [class~="text-pink-600"], [class~="text-pink-700"] { color: #4F46E5 !important; }
+[class~="border-pink-100"], [class~="border-pink-200"] { border-color: #E0E7FF !important; }
+[class~="bg-pink-50"], [class~="bg-pink-100"] { background-color: #EEF2FF !important; }
+html.dark [class~="text-pink-300"], html.dark [class~="text-pink-400"] { color: #A5B4FC !important; }
+html.dark [class~="bg-pink-950"], html.dark [class~="bg-pink-950/60"], html.dark [class~="bg-pink-950/70"] { background-color: #111827 !important; }
+html.dark [class~="border-pink-950"], html.dark [class~="border-pink-900"], html.dark [class~="border-pink-800"] { border-color: rgba(165, 180, 252, 0.18) !important; }
