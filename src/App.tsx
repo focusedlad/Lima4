@@ -885,7 +885,6 @@ export default function App() {
         onClose={() => setIsProfileModalOpen(false)}
         currentUser={currentUser}
         onUpdateProfile={(updated) => setCurrentUser(updated)}
-        onSwitchUser={(newUser) => setCurrentUser(newUser)}
         onOpenTerms={() => setIsTermsModalOpen(true)}
       />
 
