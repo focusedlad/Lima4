@@ -35,6 +35,8 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
   const [newTargetHours, setNewTargetHours] = useState<number>(30);
   const [newPeriod, setNewPeriod] = useState<'today' | 'weekend' | '7_days' | '14_days' | '30_days'>('7_days');
   const [newCategory, setNewCategory] = useState<string>('Deep Work');
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadChallenges();
@@ -46,38 +48,34 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
   };
 
   const handleJoin = async (challenge: StudyChallengeItem) => {
-    await SupabaseService.joinChallenge(challenge.id, currentUser);
-    setChallenges((prev) =>
-      prev.map((c) =>
-        c.id === challenge.id
-          ? {
-              ...c,
-              isJoined: true,
-              participantsCount: c.participantsCount + 1,
-              myProgressHours: Math.min(currentUser.totalHoursStudied, c.targetHours),
-            }
-          : c
-      )
-    );
+    setActionError(null);
+    try {
+      await SupabaseService.joinChallenge(challenge.id, currentUser);
+      await loadChallenges();
+    } catch (error: any) {
+      setActionError(error?.message || 'Could not join this challenge. Please try again.');
+    }
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
-
-    const created = await SupabaseService.createChallenge({
-      title: newTitle.trim(),
-      description: newDescription.trim(),
-      targetHours: Number(newTargetHours),
-      period: newPeriod,
-      category: newCategory,
-      creator: currentUser,
-    });
-
-    setChallenges([created, ...challenges]);
-    setIsCreateModalOpen(false);
-    setNewTitle('');
-    setNewDescription('');
+    setActionError(null);
+    setIsSaving(true);
+    try {
+      const created = await SupabaseService.createChallenge({
+        title: newTitle.trim(), description: newDescription.trim(), targetHours: Number(newTargetHours),
+        period: newPeriod, category: newCategory, creator: currentUser,
+      });
+      setChallenges((previous) => [created, ...previous]);
+      setIsCreateModalOpen(false);
+      setNewTitle('');
+      setNewDescription('');
+    } catch (error: any) {
+      setActionError(error?.message || 'The challenge could not be created. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const filteredChallenges = challenges.filter((c) => {
@@ -161,6 +159,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
       </div>
 
       {/* Challenges Grid */}
+      {actionError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700 dark:border-rose-400/20 dark:bg-rose-950/40 dark:text-rose-200">{actionError}</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredChallenges.map((challenge) => {
           const progressPercent = Math.min(
@@ -263,6 +262,16 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
             </div>
           );
         })}
+        {filteredChallenges.length === 0 && (
+          <div className="col-span-full rounded-3xl border border-dashed border-slate-300 bg-white/80 px-5 py-12 text-center dark:border-white/15 dark:bg-[#0B1020]">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300">
+              <Target className="h-5 w-5" />
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">No challenges yet</h3>
+            <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-slate-500 dark:text-slate-400">Create the first study challenge or check back when other real members start one.</p>
+            <button type="button" onClick={() => setIsCreateModalOpen(true)} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-indigo-700">Create the first challenge</button>
+          </div>
+        )}
       </div>
 
       {/* Create Challenge Modal */}
