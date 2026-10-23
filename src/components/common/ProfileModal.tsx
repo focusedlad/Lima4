@@ -21,7 +21,7 @@ interface ProfileModalProps {
   currentUser: UserProfile;
   isOpen: boolean;
   onClose: () => void;
-  onUpdateProfile: (updated: UserProfile) => void;
+  onUpdateProfile: (updated: UserProfile) => void | Promise<void>;
   onOpenTerms?: () => void;
 }
 
@@ -46,6 +46,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [goal, setGoal] = useState(currentUser.currentGoal);
   const [avatar, setAvatar] = useState(currentUser.avatar);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -56,10 +58,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     return isCustomUni ? (customUniversity.trim() || 'Global Campus') : selectedUniversity;
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const uni = getResolvedUniversity();
-    onUpdateProfile({
+    const updated: UserProfile = {
       ...currentUser,
       name: name.trim() || currentUser.name,
       countryCode: currentCountry.code,
@@ -72,12 +74,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       currentSubject: subject.trim() || currentUser.currentSubject,
       currentGoal: goal.trim() || currentUser.currentGoal,
       avatar: avatar.trim() || currentUser.avatar,
-    });
-    setIsSaved(true);
-    setTimeout(() => {
-      setIsSaved(false);
-      onClose();
-    }, 1200);
+    };
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await onUpdateProfile(updated);
+      setIsSaved(true);
+      setTimeout(() => { setIsSaved(false); onClose(); }, 900);
+    } catch (error: any) {
+      setSaveError(error?.message || 'Your profile could not be saved. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
     return (
@@ -288,6 +296,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             </label>
 
+            {saveError && (
+              <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-400/20 dark:bg-rose-950/40 dark:text-rose-200">
+                {saveError}
+              </p>
+            )}
             <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3">
               <button
                 type="button"
@@ -311,10 +324,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-xs active:scale-95"
+                  disabled={isSaving}
+                  className="flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-xs active:scale-95"
                 >
                   {isSaved ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
-                  {isSaved ? 'Saved!' : 'Save Changes'}
+                  {isSaving ? 'Saving…' : isSaved ? 'Saved!' : 'Save Changes'}
                 </button>
               </div>
             </div>
