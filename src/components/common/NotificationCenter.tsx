@@ -28,6 +28,10 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
+function getSupabaseClient() {
+  return getActiveSupabaseClient();
+}
+
 function normalizeChannel(value: string) {
   const trimmed = value.trim();
   if (/^UC[a-zA-Z0-9_-]{20,}$/.test(trimmed)) return trimmed;
@@ -39,7 +43,7 @@ function normalizeChannel(value: string) {
 export const NotificationCenter: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [channelInput, setChannelInput] = useState('');
-  const [channels, setChannels] = useState<FollowedChannel[]>(() => readJson(FOLLOW_KEY, []));
+  const [channels, setChannels] = useState<FollowedChannel[]>([]);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported'
   );
@@ -54,7 +58,66 @@ export const NotificationCenter: React.FC = () => {
   const [studyTimerActive, setStudyTimerActive] = useState(false);
   const [challengeTimerActive, setChallengeTimerActive] = useState(false);
 
-  useEffect(() => { localStorage.setItem(FOLLOW_KEY, JSON.stringify(channels)); }, [channels]);
+  const [channelsLoaded, setChannelsLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadChannels = async () => {
+      const { data: sessionData } = await getSupabaseClient().auth.getSession();
+      const userId = sessionData.session?.user.id;
+      if (!userId) {
+        if (!cancelled) { setChannels([]); setChannelsLoaded(true); }
+        return;
+      }
+      const { data, error: loadError } = await getSupabaseClient()
+        .from('user_youtube_follows')
+        .select('id, channel_key, channel_input, channel_id, channel_title, channel_thumbnail, last_live_video_ids, last_checked_at')
+        .order('created_at', { ascending: false });
+      if (cancelled) return;
+      if (loadError) {
+        setError('Could not load followed channels from your account. Please try again.');
+        setChannelsLoaded(true);
+        return;
+      }
+      setChannels((data || []).map((row: any) => ({
+        id: row.id,
+        channel: row.channel_input,
+        channelId: row.channel_id || undefined,
+        title: row.channel_title || undefined,
+        thumbnail: row.channel_thumbnail || undefined,
+        lastLiveVideoIds: row.last_live_video_ids || [],
+        lastCheckedAt: row.last_checked_at || undefined,
+      })));
+      setChannelsLoaded(true);
+    };
+    void loadChannels();
+    const { data: authListener } = getSupabaseClient().auth.onAuthStateChange(() => {
+      setChannelsLoaded(false);
+      void loadChannels();
+    });
+    return () => { cancelled = true; authListener.subscription.unsubscribe(); };
+  }, []);
+
+  const persistChannel = async (channel: FollowedChannel, operation: 'upsert' | 'delete') => {
+    const client = getSupabaseClient();
+    if (operation === 'delete') {
+      const { error: deleteError } = await client.from('user_youtube_follows').delete().eq('id', channel.id);
+      if (deleteError) throw deleteError;
+      return;
+    }
+    const { error: saveError } = await client.from('user_youtube_follows').upsert({
+      ...(channel.id.startsWith('channel_') ? {} : { id: channel.id }),
+      channel_key: (channel.channelId || channel.channel).toLowerCase(),
+      channel_input: channel.channel,
+      channel_id: channel.channelId || null,
+      channel_title: channel.title || null,
+      channel_thumbnail: channel.thumbnail || null,
+      last_live_video_ids: channel.lastLiveVideoIds || [],
+      last_checked_at: channel.lastCheckedAt || null,
+    }, { onConflict: 'user_id,channel_key' });
+    if (saveError) throw saveError;
+  };
+
   useEffect(() => {
     const prefs = readJson(PREF_KEY, { live: true, study: true, challenges: true, studyMinutes: 60, challengeMinutes: 30 });
     localStorage.setItem(PREF_KEY, JSON.stringify({ ...prefs, live: alertsEnabled, studyMinutes: studyReminder, challengeMinutes: challengeReminder }));
@@ -101,14 +164,16 @@ export const NotificationCenter: React.FC = () => {
       const streams = result.streams || [];
       const previousIds = channel.lastLiveVideoIds || [];
       const newStreams = streams.filter((stream) => !previousIds.includes(stream.videoId));
-      setChannels((current) => current.map((item) => item.id === channel.id ? {
-        ...item,
+      const updatedChannel: FollowedChannel = {
+        ...channel,
         channelId: result.channelId,
         title: result.channelTitle,
         thumbnail: result.channelThumbnail,
         lastLiveVideoIds: streams.map((stream) => stream.videoId),
         lastCheckedAt: result.checkedAt,
-      } : item));
+      };
+      setChannels((current) => current.map((item) => item.id === channel.id ? updatedChannel : item));
+      try { await persistChannel(updatedChannel, 'upsert'); } catch { /* Keep this check usable if a profile's database access is temporarily unavailable. */ }
       setLiveByChannel((current) => ({ ...current, [result.channelId]: streams }));
       setLastCheck(result.checkedAt);
       if (alertsEnabled && newStreams.length > 0 && previousIds.length > 0) {
@@ -135,11 +200,29 @@ export const NotificationCenter: React.FC = () => {
       setError('You are already following that channel on this device.');
       return;
     }
+    if (!channelsLoaded) { setError('Your saved channels are still loading. Try again in a moment.'); return; }
+    const client = getSupabaseClient();
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session?.user) { setError('Sign in with your email account to save followed channels.'); return; }
     const channel: FollowedChannel = { id: `channel_${Date.now()}`, channel: normalized };
-    setChannels((current) => [channel, ...current]);
-    setChannelInput('');
-    const result = await lookupChannel(channel);
-    if (!result) setMessage('Saved this channel on this device. Live status will work once the YouTube API key is configured.');
+    try {
+      await persistChannel(channel, 'upsert');
+      const { data: savedRows, error: reloadError } = await client.from('user_youtube_follows')
+        .select('id, channel_key, channel_input, channel_id, channel_title, channel_thumbnail, last_live_video_ids, last_checked_at')
+        .order('created_at', { ascending: false });
+      if (reloadError) throw reloadError;
+      const savedChannels: FollowedChannel[] = (savedRows || []).map((row: any) => ({
+        id: row.id, channel: row.channel_input, channelId: row.channel_id || undefined,
+        title: row.channel_title || undefined, thumbnail: row.channel_thumbnail || undefined,
+        lastLiveVideoIds: row.last_live_video_ids || [], lastCheckedAt: row.last_checked_at || undefined,
+      }));
+      setChannels(savedChannels);
+      setChannelInput('');
+      const saved = savedChannels.find((item) => item.channel.toLowerCase() === normalized.toLowerCase());
+      if (saved) await lookupChannel(saved);
+    } catch {
+      setError('Could not save this channel to your account. Check your connection and try again.');
+    }
   };
 
   const checkAll = useCallback(async (silent = false) => {
@@ -177,7 +260,11 @@ export const NotificationCenter: React.FC = () => {
     setMessage(`${kind === 'study' ? 'Focus' : 'Challenge'} reminder set for ${minutes} minutes while this page remains open.`);
   };
 
-  const removeChannel = (id: string) => setChannels((current) => current.filter((channel) => channel.id !== id));
+  const removeChannel = (id: string) => {
+    const channel = channels.find((item) => item.id === id);
+    if (!channel) return;
+    void persistChannel(channel, 'delete').then(() => setChannels((current) => current.filter((item) => item.id !== id))).catch(() => setError('Could not remove this channel from your account.'));
+  };
   const permissionLabel = useMemo(() => permission === 'granted' ? 'Enabled' : permission === 'denied' ? 'Blocked in browser settings' : permission === 'unsupported' ? 'Not supported' : 'Not enabled', [permission]);
 
   return (
@@ -212,10 +299,10 @@ export const NotificationCenter: React.FC = () => {
             <div className="mb-2 flex items-center justify-between"><h3 className="text-sm font-bold">YouTube channels you follow</h3><button type="button" disabled={!channels.length || busyId !== null} onClick={() => void checkAll(false)} className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-sky-800 hover:bg-sky-50 disabled:opacity-40 dark:text-sky-200 dark:hover:bg-white/5"><RefreshCw className={`h-3 w-3 ${busyId ? 'animate-spin' : ''}`} /> Check live</button></div>
             <form onSubmit={addChannel} className="flex gap-2">
               <input value={channelInput} onChange={(e) => setChannelInput(e.target.value)} placeholder="Channel URL or @handle" aria-label="YouTube channel URL or handle" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-[#0C1218] dark:focus:ring-sky-950" />
-              <button type="submit" disabled={!channelInput.trim() || busyId !== null} aria-label="Follow channel" className="flex items-center justify-center rounded-xl bg-[#71313B] px-3 text-white hover:bg-[#57232C] disabled:opacity-40"><Plus className="h-4 w-4" /></button>
+              <button type="submit" disabled={!channelInput.trim() || busyId !== null || !channelsLoaded} aria-label="Follow channel" className="flex items-center justify-center rounded-xl bg-[#71313B] px-3 text-white hover:bg-[#57232C] disabled:opacity-40"><Plus className="h-4 w-4" /></button>
             </form>
             <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">Follows are saved on this device. Add YOUTUBE_API_KEY to Vercel to enable live lookup; the key stays server-side.</p>
-            {channels.length === 0 ? <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500 dark:border-white/10">No channels followed yet. Add a creator you like.</div> : (
+            {!channelsLoaded ? <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500 dark:border-white/10">Loading your followed channels…</div> : channels.length === 0 ? <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500 dark:border-white/10">No channels followed yet. Add a creator you like.</div> : (
               <div className="mt-3 space-y-2">
                 {channels.map((channel) => {
                   const streams = (channel.channelId && liveByChannel[channel.channelId]) || [];
