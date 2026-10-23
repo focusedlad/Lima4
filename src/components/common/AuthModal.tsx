@@ -80,103 +80,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     return isCustomUni ? (customUniversity.trim() || 'Global Campus') : selectedUniversity;
   };
 
-  const syncProfileUpdates = async (profile: UserProfile) => {
+  const syncProfileUpdates = async (profile: UserProfile, newlyRegistered = false) => {
     const uni = getResolvedUniversity();
     const updates: Partial<UserProfile> = {
-      countryCode: currentCountry.code,
-      countryName: currentCountry.name,
-      countryFlag: 'Global',
-      university: uni,
-      universityOrLocation: `${uni} (${currentCountry.name})`,
-      studyField: selectedStudyField,
-      isGhostMode,
-      termsAccepted: true,
-      termsAcceptedAt: new Date().toISOString(),
-      termsVersion: '2026.1',
+      countryCode: currentCountry.code, countryName: currentCountry.name, countryFlag: currentCountry.flag,
+      university: uni, universityOrLocation: `${uni} (${currentCountry.name})`,
+      studyField: selectedStudyField, isGhostMode, termsAccepted: true,
+      termsAcceptedAt: new Date().toISOString(), termsVersion: '2026.1',
     };
-
     const updatedFull = { ...profile, ...updates };
-    if (onUpdateProfile) {
-      onUpdateProfile(updates);
-    }
+    onUpdateProfile?.(updates);
     StorageService.saveUser(updatedFull);
-    if (email && password) {
-      StorageService.saveRegisteredAccount(email, password, updatedFull);
-    }
-    await SupabaseService.syncUser(updatedFull);
-    return updatedFull;
+    const syncResult = await SupabaseService.syncUser(updatedFull);
+    return { profile: updatedFull, isFirstUser: newlyRegistered && Boolean(syncResult?.isFirstUser) };
   };
-
   const handleAppleSignIn = async () => {
-    if (!hasAcceptedTerms) {
-      setTermsError(true);
-      setErrorMsg('Please accept the platform agreement before signing in.');
-      return;
-    }
-    setLoading(true);
-    setErrorMsg(null);
-    setTermsError(false);
-
-    try {
-      const res = await SupabaseService.signInWithApple();
-      if (!res.success) {
-        setErrorMsg(res.error || 'Apple Sign-in failed.');
-        return;
-      }
-      setSuccessMsg('Successfully connected with Apple ID!');
-      const updatedUser: UserProfile = {
-        ...currentUser,
-        name: currentUser.name || 'Apple Studier',
-        email: 'student@privaterelay.appleid.com',
-      };
-      const finalUser = await syncProfileUpdates(updatedUser);
-      onAuthSuccess(finalUser);
-      setTimeout(() => {
-        setSuccessMsg(null);
-        onClose();
-      }, 1000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Could not complete Apple sign-in.');
-    } finally {
-      setLoading(false);
-    }
+    if (!hasAcceptedTerms) { setTermsError(true); setErrorMsg('Please accept the platform agreement before signing in.'); return; }
+    setLoading(true); setErrorMsg(null); setTermsError(false);
+    try { const res = await SupabaseService.signInWithApple(); if (!res.success) setErrorMsg(res.error || 'Apple sign-in could not start.'); }
+    catch (err: any) { setErrorMsg(err.message || 'Could not start Apple sign-in.'); }
+    finally { setLoading(false); }
   };
 
   const handleGoogleSignIn = async () => {
-    if (!hasAcceptedTerms) {
-      setTermsError(true);
-      setErrorMsg('Please accept the platform agreement before signing in.');
-      return;
-    }
-    setLoading(true);
-    setErrorMsg(null);
-    setTermsError(false);
-
-    try {
-      const res = await SupabaseService.signInWithGoogle();
-      if (!res.success) {
-        setErrorMsg(res.error || 'Google Sign-in failed.');
-        return;
-      }
-      setSuccessMsg('Signed in with Google!');
-      const updatedUser: UserProfile = {
-        ...currentUser,
-        name: currentUser.name || 'Google Studier',
-      };
-      const finalUser = await syncProfileUpdates(updatedUser);
-      onAuthSuccess(finalUser);
-      setTimeout(() => {
-        setSuccessMsg(null);
-        onClose();
-      }, 1000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Google sign-in failed.');
-    } finally {
-      setLoading(false);
-    }
+    if (!hasAcceptedTerms) { setTermsError(true); setErrorMsg('Please accept the platform agreement before signing in.'); return; }
+    setLoading(true); setErrorMsg(null); setTermsError(false);
+    try { const res = await SupabaseService.signInWithGoogle(); if (!res.success) setErrorMsg(res.error || 'Google sign-in could not start.'); }
+    catch (err: any) { setErrorMsg(err.message || 'Could not start Google sign-in.'); }
+    finally { setLoading(false); }
   };
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!hasAcceptedTerms) {
       setTermsError(true);
@@ -204,23 +138,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         // If stored student details exist, use them
         const baseUser = res.profile || currentUser;
         const updatedUser: UserProfile = {
-          ...baseUser,
+          ...baseUser, id: res.user?.id || baseUser.id,
           email: email.trim().toLowerCase(),
-          name: res.profile?.name || displayName || email.split('@')[0],
+          name: res.user?.user_metadata?.full_name || res.user?.user_metadata?.name || (baseUser.id === currentUser.id && baseUser.name !== 'New Studier' ? baseUser.name : displayName || email.split('@')[0]),
         };
-        const finalUser = await syncProfileUpdates(updatedUser);
+        const { profile: finalUser } = await syncProfileUpdates(updatedUser, false);
         onAuthSuccess(finalUser);
       } else {
         const res = await SupabaseService.signUpWithEmail(email, password, displayName || 'New Studier');
-        if (!res.success) {
-          setErrorMsg(res.error || 'Signup failed.');
+        if (!res.success) { setErrorMsg(res.error || 'Signup failed.'); return; }
+        if (!res.session) {
+          setSuccessMsg('Account created. Check your email and open the verification link to finish setting up your account. The link will return you to this app.');
           return;
         }
         setSuccessMsg('Student account created successfully!');
         const uni = getResolvedUniversity();
         const updatedUser: UserProfile = {
           ...currentUser,
-          id: res.user?.id || `usr_${Date.now()}`,
+          id: res.user?.id || currentUser.id,
           email: email.trim().toLowerCase(),
           name: displayName || email.split('@')[0],
           handle: `@${(displayName || email.split('@')[0]).toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
@@ -234,9 +169,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           totalHoursStudied: currentUser.totalHoursStudied || 0,
           xp: currentUser.xp || 100,
         };
-        const finalUser = await syncProfileUpdates(updatedUser);
-        StorageService.saveRegisteredAccount(email, password, finalUser);
+        const { profile: finalUser, isFirstUser } = await syncProfileUpdates(updatedUser, true);
         onAuthSuccess(finalUser);
+        if (isFirstUser) {
+          setSuccessMsg('Welcome — you are the first registered member of cheri. You are helping start the real community; other members will appear as they join.');
+          return;
+        }
       }
 
       setTimeout(() => {
@@ -250,35 +188,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleGuestSignIn = async () => {
-    if (!hasAcceptedTerms) {
-      setTermsError(true);
-      setErrorMsg('Please accept the agreement to continue as Guest.');
-      return;
-    }
-    setLoading(true);
-    setErrorMsg(null);
-    try {
-      setSuccessMsg('Guest mode active.');
-      const guestUser: UserProfile = {
-        ...currentUser,
-        id: `guest_${Date.now()}`,
-        name: displayName || 'Guest Studier',
-      };
-      const finalUser = await syncProfileUpdates(guestUser);
-      onAuthSuccess(finalUser);
-      setTimeout(() => {
-        setSuccessMsg(null);
-        onClose();
-      }, 800);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Could not start guest session.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignOut = async () => {
+    const handleSignOut = async () => {
     setLoading(true);
     try {
       await SupabaseService.signOut();
@@ -292,8 +202,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm animate-fade-in">
-      <div className="squircle-card max-w-lg w-full p-6 sm:p-7 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl relative max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-950/70 backdrop-blur-sm animate-fade-in overflow-x-hidden">
+      <div className="auth-modal-card squircle-card w-[calc(100vw-1rem)] max-w-lg min-w-0 p-4 sm:p-7 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-2xl relative max-h-[calc(100dvh-1rem)] overflow-y-auto overflow-x-hidden overscroll-contain">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800 mb-5">
           <div className="flex items-center gap-3">
@@ -547,16 +457,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
           </form>
 
-          {/* Guest Mode & Custom Supabase System Connection */}
-          <div className="pt-2 flex flex-col items-center gap-2">
-            <button
-              type="button"
-              onClick={handleGuestSignIn}
-              className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 text-xs font-semibold underline"
-            >
-              Continue as Guest (Local Session)
-            </button>
-          </div>
+
         </div>
 
         {/* Legal Terms Modal */}
