@@ -138,6 +138,15 @@ export interface MilestoneItem {
   createdAt?: string;
 }
 
+async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const { data: { session } } = await getActiveSupabaseClient().auth.getSession();
+  if (!session?.user) throw new Error('Please sign in to use community features.');
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', 'Bearer ' + session.access_token);
+  if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  return fetch(input, { ...init, headers });
+}
+
 export const SupabaseService = {
   getClient(): SupabaseClient {
     return supabase;
@@ -315,7 +324,7 @@ export const SupabaseService = {
    */
   async fetchChallenges(): Promise<StudyChallengeItem[]> {
     try {
-      const res = await fetch('/api/db/challenges');
+      const res = await authenticatedFetch('/api/db/challenges');
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.challenges)) {
@@ -401,7 +410,7 @@ export const SupabaseService = {
    */
   async fetchLeaderboard(timeframe: 'today' | 'week' | 'month' | 'all'): Promise<LeaderboardEntry[]> {
     try {
-      const res = await fetch(`/api/db/leaderboard?timeframe=${timeframe}`);
+      const res = await authenticatedFetch(`/api/db/leaderboard?timeframe=${timeframe}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.leaderboard)) {
@@ -429,7 +438,7 @@ export const SupabaseService = {
    */
   async fetchFriends(userUid: string): Promise<FriendItem[]> {
     try {
-      const res = await fetch(`/api/db/friends?userUid=${encodeURIComponent(userUid)}`);
+      const res = await authenticatedFetch(`/api/db/friends?userUid=${encodeURIComponent(userUid)}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.friends)) {
@@ -497,7 +506,7 @@ export const SupabaseService = {
    */
   async searchUsers(query: string): Promise<UserSearchResult[]> {
     try {
-      const res = await fetch(`/api/db/users/search?q=${encodeURIComponent(query)}`);
+      const res = await authenticatedFetch(`/api/db/users/search?q=${encodeURIComponent(query)}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.users)) {
@@ -514,7 +523,7 @@ export const SupabaseService = {
    */
   async fetchMilestones(userUid: string, friendsOnly: boolean): Promise<MilestoneItem[]> {
     try {
-      const res = await fetch(`/api/db/milestones?friendsOnly=${friendsOnly}&userUid=${encodeURIComponent(userUid)}`);
+      const res = await authenticatedFetch(`/api/db/milestones?friendsOnly=${friendsOnly}&userUid=${encodeURIComponent(userUid)}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.milestones)) {
