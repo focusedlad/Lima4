@@ -135,6 +135,42 @@ export async function insertFocusLog(input: {
       .set({ studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}` })
       .where(eq(challengeParticipants.userUid, input.userUid));
 
+    // Publish a global activity milestone exactly once when a participant reaches a challenge goal.
+    const completedChallenges = await db
+      .select({
+        challengeId: studyChallenges.challengeId,
+        title: studyChallenges.title,
+        targetHours: studyChallenges.targetHours,
+        category: studyChallenges.category,
+        studiedMinutes: challengeParticipants.studiedMinutes,
+        userName: users.name,
+        userHandle: users.handle,
+        userAvatar: users.avatar,
+        university: users.university,
+      })
+      .from(challengeParticipants)
+      .innerJoin(studyChallenges, eq(challengeParticipants.challengeId, studyChallenges.challengeId))
+      .innerJoin(users, eq(users.uid, input.userUid))
+      .where(eq(challengeParticipants.userUid, input.userUid));
+
+    for (const challenge of completedChallenges) {
+      if (challenge.studiedMinutes < challenge.targetHours * 60) continue;
+      await db.insert(milestones).values({
+        milestoneId: `challenge_${challenge.challengeId}_${input.userUid}_completed`,
+        userUid: input.userUid,
+        userName: challenge.userName || 'Studier',
+        userHandle: challenge.userHandle || '',
+        userAvatar: challenge.userAvatar || '',
+        university: challenge.university || '',
+        type: 'challenge_completed',
+        title: `Challenge completed: ${challenge.title}`,
+        description: `Completed the ${challenge.title} study challenge.`,
+        subjectTag: challenge.category || 'Study Challenge',
+        streakDays: 1,
+        xpEarned: 50,
+      }).onConflictDoNothing();
+    }
+
     // User totals are synchronized from the authenticated profile endpoint; do not increment twice.
 
     return result[0];
