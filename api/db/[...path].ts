@@ -60,7 +60,7 @@ export default async function handler(req: any, res: any) {
       return res.status(201).json({ success: true, challenge: { ...row, id: row.challengeId, isJoined: true, myProgressHours: 0 } });
     }
 
-    if (parts.length === 3 && parts[0] === 'challenges' && parts[1] === 'join' && method === 'POST') {
+    if (parts.length === 2 && parts[0] === 'challenges' && parts[1] === 'join' && method === 'POST') {
       const challengeId = typeof body.challengeId === 'string' ? body.challengeId : '';
       if (!challengeId) return res.status(400).json({ error: 'Challenge ID is required.' });
       const profile = await getUserByUid(authUser.id);
