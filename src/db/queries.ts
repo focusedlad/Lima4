@@ -470,14 +470,6 @@ export async function cheerMilestoneInDb(milestoneId: string) {
     throw new Error('Database operation failed', { cause: error });
   }
 }
-`);
-    return Number(result?.count || 0);
-  } catch (error) {
-    console.error('Database getRegisteredUserCount failed:', error);
-    throw new Error('Database operation failed', { cause: error });
-  }
-}
-
 export async function insertFocusLog(input: {
   userUid: string;
   durationMinutes: number;
