@@ -71,12 +71,12 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
   const videoElementRef = useRef<HTMLVideoElement>(null);
   const youtubeIframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Width in pixels based on size mode
+  // Width is responsive, while the user can still choose compact, standard or large.
   const getWidgetWidth = useCallback((s: StreamerWidgetSize) => {
     if (s === 'pip') return 240;
-    if (s === 'compact') return 240;
-    if (s === 'standard') return 330;
-    return 440; // large
+    if (s === 'compact') return 260;
+    if (s === 'standard') return 360;
+    return 520;
   }, []);
 
   // Initialize position on first visible render
@@ -275,6 +275,7 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
         right: position ? undefined : '16px',
         width: `${currentWidth}px`,
         maxWidth: 'calc(100vw - 16px)',
+        width: `min(${currentWidth}px, calc(100vw - 16px))`,
       }}
     >
       <div className="bg-stone-900/95 dark:bg-stone-950/95 text-white rounded-[24px] border border-stone-700/80 dark:border-stone-800 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.55)] backdrop-blur-xl overflow-hidden ring-1 ring-white/10">
@@ -558,8 +559,9 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
                 src={`https://www.youtube-nocookie.com/embed/${stream.videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
                 title="Focus Video Mini-Player"
                 className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
               />
             )}
           </div>
