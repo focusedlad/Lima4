@@ -491,25 +491,50 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
   try {
     const ghostRows = await db.select({ uid: users.uid }).from(users).where(eq(users.isGhostMode, true));
     const ghostUids = ghostRows.map((row) => row.uid);
-    if (friendsOnly && userUid) {
-      const friendRows = await db
-        .select({ friendUid: friendships.friendUid })
-        .from(friendships)
-        .where(eq(friendships.userUid, userUid));
-      const friendUids = [...new Set([...friendRows.map((f) => f.friendUid), userUid])].filter((uid) => !ghostUids.includes(uid));
-      if (!friendUids.length) return [];
+    const friendRows = userUid
+      ? await db.select({ friendUid: friendships.friendUid }).from(friendships).where(eq(friendships.userUid, userUid))
+      : [];
+    const friendUids = [...new Set(friendRows.map((f) => f.friendUid))].filter((uid) => uid !== userUid);
+
+    if (friendsOnly) {
+      const visibleUids = [...new Set([...(userUid ? [userUid] : []), ...friendUids])];
+      if (!visibleUids.length) return [];
       return await db
         .select()
         .from(milestones)
-        .where(inArray(milestones.userUid, friendUids))
+        .where(and(
+          inArray(milestones.userUid, visibleUids),
+          or(
+            ...(userUid ? [eq(milestones.userUid, userUid)] : []),
+            eq(milestones.visibility, 'public'),
+            eq(milestones.visibility, 'friends')
+          )
+        ))
         .orderBy(desc(milestones.createdAt))
         .limit(50);
     }
-    const query = db.select().from(milestones);
-    if (ghostUids.length) {
-      return await db.select().from(milestones).where(notInArray(milestones.userUid, ghostUids)).orderBy(desc(milestones.createdAt)).limit(50);
-    }
-    return await query.orderBy(desc(milestones.createdAt)).limit(50);
+
+    const publicOwnerUids = ghostUids.length
+      ? notInArray(milestones.userUid, ghostUids)
+      : undefined;
+    const visibleConditions = [
+      ...(userUid ? [eq(milestones.userUid, userUid)] : []),
+      and(
+        eq(milestones.visibility, 'public'),
+        ...(publicOwnerUids ? [publicOwnerUids] : [])
+      ),
+      ...(userUid && friendUids.length
+        ? [and(eq(milestones.visibility, 'friends'), inArray(milestones.userUid, friendUids))]
+        : [])
+    ].filter(Boolean) as any[];
+
+    if (!visibleConditions.length) return [];
+    return await db
+      .select()
+      .from(milestones)
+      .where(or(...visibleConditions))
+      .orderBy(desc(milestones.createdAt))
+      .limit(50);
   } catch (error) {
     console.error('Database getMilestonesFeed failed:', error);
     throw new Error('Database operation failed', { cause: error });
