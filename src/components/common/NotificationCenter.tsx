@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, BellRing, Check, Clock3, ExternalLink, LoaderCircle, Plus, Radio, RefreshCw, Trash2, X } from 'lucide-react';
+import { getActiveSupabaseClient } from '../../services/supabase';
 
 type FollowedChannel = {
   id: string;
@@ -87,7 +88,13 @@ export const NotificationCenter: React.FC = () => {
     if (!silent) { setError(''); setMessage(''); }
     try {
       const query = channel.channelId || channel.channel;
-      const response = await fetch(`/api/youtube/live?channel=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } });
+      const { data: sessionData, error: sessionError } = await getActiveSupabaseClient().auth.getSession();
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error('Sign in with your email account before checking live channels.');
+      }
+      const response = await fetch(`/api/youtube/live?channel=${encodeURIComponent(query)}`, {
+        headers: { Accept: 'application/json', Authorization: `Bearer ${sessionData.session.access_token}` },
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || 'Live channel lookup failed.');
       const result = data as LookupResult;
