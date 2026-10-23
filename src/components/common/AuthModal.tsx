@@ -70,6 +70,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [canResendVerification, setCanResendVerification] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
 
   if (!isOpen) return null;
 
@@ -125,13 +127,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true);
     setErrorMsg(null);
+    setSuccessMsg(null);
+    setCanResendVerification(false);
     setTermsError(false);
 
     try {
       if (mode === 'login') {
         const res = await SupabaseService.signInWithEmail(email, password);
         if (!res.success) {
-          setErrorMsg(res.error || 'Invalid email or password.');
+          const message = res.error || 'Invalid email or password.';
+          setErrorMsg(message);
+          setCanResendVerification(/email not confirmed|not confirmed|confirm your email/i.test(message));
           return;
         }
         setSuccessMsg('Welcome back to cheri!');
@@ -166,9 +172,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           countryName: currentCountry.name,
           studyField: selectedStudyField,
           isGhostMode,
-          currentStreak: currentUser.currentStreak || 1,
+          currentStreak: currentUser.currentStreak || 0,
           totalHoursStudied: currentUser.totalHoursStudied || 0,
-          xp: currentUser.xp || 100,
+          xp: currentUser.xp || 0,
         };
         const { profile: finalUser, isFirstUser } = await syncProfileUpdates(updatedUser, true);
         onAuthSuccess(finalUser);
@@ -186,6 +192,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setErrorMsg(err.message || 'Authentication error.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) { setErrorMsg('Enter your email address first.'); return; }
+    setResendingVerification(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    try {
+      const result = await SupabaseService.resendVerificationEmail(email);
+      if (!result.success) { setErrorMsg(result.error || 'Could not resend the verification email.'); return; }
+      setSuccessMsg('A fresh verification email has been sent. Open its link to finish creating your account.');
+      setCanResendVerification(false);
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Could not resend the verification email.');
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -242,6 +265,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{errorMsg}</span>
           </div>
+        )}
+        {canResendVerification && (
+          <button type="button" onClick={() => void handleResendVerification()} disabled={resendingVerification} className="mb-4 w-full rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 disabled:opacity-60 dark:border-indigo-400/20 dark:bg-indigo-950/40 dark:text-indigo-200">
+            {resendingVerification ? 'Sending verification email…' : 'Resend verification email'}
+          </button>
         )}
 
         <div className="space-y-4 text-xs">
