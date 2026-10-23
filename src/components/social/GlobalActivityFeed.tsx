@@ -107,20 +107,29 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
   };
 
   const handleToggleFriend = async (user: UserSearchResult) => {
+    setActionError(null);
     const isAdded = isFriendAdded(user.uid);
-    if (isAdded) {
-      await SupabaseService.removeFriend(currentUser.id, user.uid);
-      setFriends((prev) => prev.filter((f) => f.friendUid !== user.uid));
-    } else {
-      await SupabaseService.addFriend(currentUser.id, {
-        uid: user.uid,
-        name: user.name,
-        handle: user.handle,
-        avatar: user.avatar,
-        university: user.university,
-      });
-      await loadFriends();
-      audioSynth.playChime('peer_nudge');
+    try {
+      if (isAdded) {
+        await SupabaseService.removeFriend(currentUser.id, user.uid);
+        setFriends((prev) => prev.filter((f) => f.friendUid !== user.uid));
+      } else {
+        await SupabaseService.addFriend(currentUser.id, { uid: user.uid, name: user.name, handle: user.handle, avatar: user.avatar, university: user.university });
+        await loadFriends();
+        audioSynth.playChime('peer_nudge');
+      }
+    } catch (error: any) {
+      setActionError(error?.message || 'That change could not be saved. Please try again.');
+    }
+  };
+
+  const handleRemoveFriend = async (friendUid: string) => {
+    setActionError(null);
+    try {
+      await SupabaseService.removeFriend(currentUser.id, friendUid);
+      setFriends((prev) => prev.filter((friend) => friend.friendUid !== friendUid));
+    } catch (error: any) {
+      setActionError(error?.message || 'Could not remove this study partner.');
     }
   };
 
@@ -635,10 +644,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                     </div>
 
                     <button
-                      onClick={async () => {
-                        await SupabaseService.removeFriend(currentUser.id, friend.friendUid);
-                        setFriends((prev) => prev.filter((f) => f.friendUid !== friend.friendUid));
-                      }}
+                      onClick={() => void handleRemoveFriend(friend.friendUid)}
                       className="px-2.5 py-1 rounded-xl text-xs font-semibold text-stone-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
                     >
                       Remove
