@@ -43,8 +43,13 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
   }, []);
 
   const loadChallenges = async () => {
-    const list = await SupabaseService.fetchChallenges();
-    setChallenges(list);
+    try {
+      const list = await SupabaseService.fetchChallenges();
+      setChallenges(list);
+      setActionError(null);
+    } catch (error: any) {
+      setActionError(error?.message || 'Could not load saved challenges. Please try again.');
+    }
   };
 
   const handleJoin = async (challenge: StudyChallengeItem) => {
