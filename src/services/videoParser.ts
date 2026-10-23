@@ -164,11 +164,11 @@ export function createCreatorFromVideo(
 export function getSavedVideoLinks(): SavedVideoLink[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_RECENT_VIDEOS);
-    if (!raw) return DEFAULT_RECENT_LINKS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_RECENT_LINKS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch (_) {
-    return DEFAULT_RECENT_LINKS;
+    return [];
   }
 }
 
@@ -197,33 +197,3 @@ export function removeSavedVideoLink(id: string): SavedVideoLink[] {
     return [];
   }
 }
-
-export const DEFAULT_RECENT_LINKS: SavedVideoLink[] = [
-  {
-    id: 'rec_lofi_1',
-    url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
-    title: 'Lofi Girl 24/7 Study Stream',
-    sourceType: 'youtube',
-    workMin: 25,
-    breakMin: 5,
-    addedAt: '2026-03-01',
-  },
-  {
-    id: 'rec_synth_2',
-    url: 'https://www.youtube.com/watch?v=turb9FvXzM8',
-    title: 'James Scholz 12h Pomodoro Sprint',
-    sourceType: 'youtube',
-    workMin: 50,
-    breakMin: 10,
-    addedAt: '2026-03-02',
-  },
-  {
-    id: 'rec_rain_3',
-    url: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
-    title: 'Tokyo Rain & Quiet Library Ambience',
-    sourceType: 'youtube',
-    workMin: 45,
-    breakMin: 15,
-    addedAt: '2026-03-03',
-  },
-];
