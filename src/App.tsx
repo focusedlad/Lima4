@@ -482,14 +482,30 @@ export default function App() {
     };
     setCurrentUser(updatedUser);
 
-    // Keep this session locally for immediate feedback and persist it to the authenticated backend.
+    const newLog: FocusSessionLog = {
+      id: 'log_' + Date.now(),
+      date: new Date().toISOString().slice(0, 10),
+      durationMinutes, category, subject, xpEarned: earnedXp,
+    };
     setFocusLogs((previous) => [newLog, ...previous]);
     void (async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id !== currentUser.id) return;
+      if (!session?.user || session.user.id !== currentUser.id) return;
       const saved = await ApiDatabase.logFocusSession(newLog, currentUser.id, session.access_token);
-      if (!saved) console.warn('This focus session could not be synced to the server.');
-    })();
+      if (!saved) {
+        console.warn('This focus session could not be synced to the server.');
+        return;
+      }
+      if (!updatedUser.isGhostMode) {
+        await SupabaseService.postMilestone({
+          user: updatedUser,
+          title: 'Completed ' + durationMinutes + 'm focus session',
+          description: 'Focused on ' + subject + ' in a real study session.',
+          subjectTag: subject,
+          type: 'session_completed',
+        });
+      }
+    })().catch((error) => console.warn('Could not sync focus session:', error));
   };
 
 
