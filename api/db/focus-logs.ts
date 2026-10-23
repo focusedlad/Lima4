@@ -1,4 +1,4 @@
-import { getAuthenticatedSupabaseUser } from './_auth';
+import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth';
 import { getFocusLogsByUser, insertFocusLog } from '../../src/db/queries';
 
 export default async function handler(req: any, res: any) {
