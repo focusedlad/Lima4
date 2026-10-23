@@ -153,6 +153,7 @@ export default async function handler(req: any, res: any) {
         type: ['session_completed', 'streak_milestone', 'challenge_completed'].includes(body.type) ? body.type : 'session_completed',
         title, description, subjectTag: typeof body.subjectTag === 'string' ? body.subjectTag.slice(0, 80) : '',
         streakDays: Number(profile?.currentStreak || 0), xpEarned: 0,
+        visibility: ['public', 'friends', 'private'].includes(body.visibility) ? body.visibility : 'public',
       });
       return res.status(201).json({ success: true, milestone: { ...row, id: row.milestoneId, createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : '' } });
     }
