@@ -268,3 +268,51 @@ html.dark body { background-color: #05070B; color: #F8FAFC; }
 html.dark [class~="text-pink-300"], html.dark [class~="text-pink-400"] { color: #A5B4FC !important; }
 html.dark [class~="bg-pink-950"], html.dark [class~="bg-pink-950/60"], html.dark [class~="bg-pink-950/70"] { background-color: #111827 !important; }
 html.dark [class~="border-pink-950"], html.dark [class~="border-pink-900"], html.dark [class~="border-pink-800"] { border-color: rgba(165, 180, 252, 0.18) !important; }
+
+
+/* Beta UI: neutral surfaces with indigo used only for meaningful actions. */
+.clay-card-purple, .clay-card-yellow, .clay-card-mint, .clay-card-pink, .clay-card-coral, .clay-card-sky {
+  background: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+html.dark .clay-card-purple, html.dark .clay-card-yellow, html.dark .clay-card-mint,
+html.dark .clay-card-pink, html.dark .clay-card-coral, html.dark .clay-card-sky {
+  background: #0B1020 !important;
+  border-color: rgba(148, 163, 184, 0.16) !important;
+  box-shadow: none !important;
+}
+.profile-modal-card input, .profile-modal-card select, .profile-modal-card textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+html.dark .profile-modal-card label,
+html.dark .profile-modal-card .text-stone-700,
+html.dark .profile-modal-card .text-stone-600,
+html.dark .profile-modal-card .text-stone-500 {
+  color: #CBD5E1 !important;
+}
+html.dark .profile-modal-card .bg-stone-50,
+html.dark .profile-modal-card .bg-white,
+html.dark .profile-modal-card .bg-stone-100 {
+  background-color: #111827 !important;
+}
+html.dark .profile-modal-card .border-stone-100,
+html.dark .profile-modal-card .border-stone-200 {
+  border-color: rgba(148, 163, 184, 0.18) !important;
+}
+html.dark .profile-modal-card input,
+html.dark .profile-modal-card select,
+html.dark .profile-modal-card textarea {
+  color: #F8FAFC !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+.profile-modal-card input:focus, .profile-modal-card select:focus, .profile-modal-card textarea:focus {
+  outline: 2px solid #818CF8;
+  outline-offset: 1px;
+}
+@media (max-width: 640px) {
+  .profile-modal-card .grid-cols-2 { grid-template-columns: minmax(0, 1fr); }
+  .profile-modal-card { border-radius: 1.25rem; }
+  .focus-zen-fullscreen { touch-action: manipulation; }
+}
