@@ -456,33 +456,14 @@ export const SupabaseService = {
     userUid: string,
     friend: { uid: string; name: string; handle?: string; avatar?: string; university?: string }
   ): Promise<void> {
-    try {
-      await authenticatedFetch('/api/db/friends', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userUid,
-          friendUid: friend.uid,
-          friendName: friend.name,
-          friendHandle: friend.handle,
-          friendAvatar: friend.avatar,
-          friendUniversity: friend.university,
-        }),
-      });
-    } catch (_) {}
-
-    const current = await this.fetchFriends(userUid);
-    if (!current.some((f) => f.friendUid === friend.uid)) {
-      current.push({
-        id: Date.now(),
-        userUid,
-        friendUid: friend.uid,
-        friendName: friend.name,
-        friendHandle: friend.handle || `@${friend.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
-        friendAvatar: friend.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-        friendUniversity: friend.university || 'Global Campus',
-      });
-      localStorage.setItem(`lumina_friends_${userUid}`, JSON.stringify(current));
+    if (!friend.uid || friend.uid === userUid) throw new Error('Choose another registered member.');
+    const response = await authenticatedFetch('/api/db/friends', {
+      method: 'POST',
+      body: JSON.stringify({ friendUid: friend.uid }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'Could not add this member.');
     }
   },
 
@@ -490,15 +471,13 @@ export const SupabaseService = {
    * Remove friend connection
    */
   async removeFriend(userUid: string, friendUid: string): Promise<void> {
-    try {
-      await authenticatedFetch(`/api/db/friends/${encodeURIComponent(friendUid)}?userUid=${encodeURIComponent(userUid)}`, {
-        method: 'DELETE',
-      });
-    } catch (_) {}
-
-    const current = await this.fetchFriends(userUid);
-    const updated = current.filter((f) => f.friendUid !== friendUid);
-    localStorage.setItem(`lumina_friends_${userUid}`, JSON.stringify(updated));
+    const response = await authenticatedFetch(`/api/db/friends/${encodeURIComponent(friendUid)}?userUid=${encodeURIComponent(userUid)}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'Could not remove this member.');
+    }
   },
 
   /**
