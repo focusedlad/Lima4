@@ -54,6 +54,7 @@ export const studyChallenges = pgTable('study_challenges', {
   endDate: text('end_date').notNull(),
   participantsCount: integer('participants_count').default(1).notNull(),
   category: text('category').default('General').notNull(),
+  visibility: text('visibility').default('public').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -96,6 +97,7 @@ export const milestones = pgTable('milestones', {
   streakDays: integer('streak_days').default(1).notNull(),
   xpEarned: integer('xp_earned').default(50).notNull(),
   cheersCount: integer('cheers_count').default(0).notNull(),
+  visibility: text('visibility').default('public').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
