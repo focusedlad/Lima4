@@ -144,7 +144,10 @@ export default function App() {
       const result = await ApiDatabase.syncUser(currentUser, session.access_token);
       const createdAt = Date.parse(session.user.created_at || '');
       const accountIsNew = Number.isFinite(createdAt) && Date.now() - createdAt < 15 * 60 * 1000;
-      if (!cancelled && result?.isFirstUser && accountIsNew) setFirstUserNotice(true);
+      const pendingWelcomeEmail = localStorage.getItem('cheri_pending_first_user_welcome');
+      const pendingWelcome = pendingWelcomeEmail === (session.user.email || '').toLowerCase();
+      if (!cancelled && result?.isFirstUser && (accountIsNew || pendingWelcome)) setFirstUserNotice(true);
+      if (pendingWelcome) localStorage.removeItem('cheri_pending_first_user_welcome');
     };
     void syncAuthenticatedProfile();
     return () => { cancelled = true; };
@@ -775,7 +778,7 @@ export default function App() {
             <span>•</span>
             <span className="text-pink-600 dark:text-pink-400 font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse"></span>
-              All systems active
+              Beta preview
             </span>
           </div>
 
