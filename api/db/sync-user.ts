@@ -1,10 +1,22 @@
 import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth';
-import { getRegisteredUserCount, upsertUser } from '../../src/db/queries';
+import { getRegisteredUserCount, getUserByUid, upsertUser } from '../../src/db/queries';
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
   const authUser = await getAuthenticatedSupabaseUser(req);
   if (!authUser) return res.status(401).json({ error: 'A verified Supabase account is required.' });
+  if (req.method === 'GET') {
+    try {
+      const user = await getUserByUid(authUser.id);
+      return res.status(200).json({ success: true, user });
+    } catch (error) {
+      console.error('Failed to load authenticated profile:', error);
+      return res.status(500).json({ error: 'Database operation failed.' });
+    }
+  }
   const body = req.body || {};
   if (body.uid && body.uid !== authUser.id) return res.status(403).json({ error: 'Cannot update another account.' });
   try {
