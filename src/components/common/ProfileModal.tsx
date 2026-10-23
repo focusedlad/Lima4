@@ -319,7 +319,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             </div>
 </form>
-      </div>        )}
       </div>
     </div>
   );
