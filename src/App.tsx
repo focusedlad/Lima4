@@ -80,14 +80,15 @@ import { SettingsView } from './components/settings/SettingsView';
 
 export default function App() {
   // Application Data States
-  const [currentUser, setCurrentUser] = useState<UserProfile>(() => StorageService.getUser());
+  const [currentUser, setCurrentUser] = useState<UserProfile>(() => INITIAL_USER);
   const [spaces, setSpaces] = useState<StudySpace[]>(() => StorageService.getSpaces());
   const [decks, setDecks] = useState<StudyDeck[]>(() => StorageService.getDecks());
   const [creators, setCreators] = useState<YouTubeCreator[]>(() => StorageService.getCreators());
   const [admissions, setAdmissions] = useState<AdmissionRequest[]>(() => StorageService.getAdmissions());
   const [focusLogs, setFocusLogs] = useState<FocusSessionLog[]>(() => StorageService.getFocusLogs());
   const [heatmapDays, setHeatmapDays] = useState(() => generate31DayHeatmap());
-  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>(() => StorageService.getActivityFeed());
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
+  const [firstUserNotice, setFirstUserNotice] = useState(false);
 
   // Navigation & Active Screen (Study Timer, Challenges, Leaderboard, Analytics)
   const [currentTab, setCurrentTab] = useState<MainNavTab>('focus');
@@ -134,10 +135,20 @@ export default function App() {
     localStorage.setItem('cheri_theme_preference', themePreference);
   }, [isDarkMode, themePreference]);
 
-  // Synchronize profile with Cloud SQL / PostgreSQL relational database
+  // Only sync real, authenticated accounts to the shared backend.
   useEffect(() => {
-    ApiDatabase.syncUser(currentUser);
-  }, [currentUser.id, currentUser.name, currentUser.xp, currentUser.totalHoursStudied]);
+    let cancelled = false;
+    const syncAuthenticatedProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user || session.user.id !== currentUser.id) return;
+      const result = await ApiDatabase.syncUser(currentUser, session.access_token);
+      const createdAt = Date.parse(session.user.created_at || '');
+      const accountIsNew = Number.isFinite(createdAt) && Date.now() - createdAt < 15 * 60 * 1000;
+      if (!cancelled && result?.isFirstUser && accountIsNew) setFirstUserNotice(true);
+    };
+    void syncAuthenticatedProfile();
+    return () => { cancelled = true; };
+  }, [currentUser.id, currentUser.name, currentUser.email, currentUser.avatar, currentUser.university, currentUser.universityOrLocation, currentUser.studyField, currentUser.xp, currentUser.totalHoursStudied, currentUser.currentStreak]);
 
   const toggleTheme = () => {
     setThemePreference((prev) => {
@@ -222,48 +233,32 @@ export default function App() {
   const activeAnnouncement =
     announcements.find((a) => a.isActive && a.id !== dismissedAnnouncementId) || null;
 
-  // Listen to Supabase Auth state
+  // Supabase Auth is the source of truth; local demo identities are never accounts.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const applySession = (session: any) => {
       if (session?.user) {
-        const email = session.user.email || '';
-        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
-        setCurrentUser((prev) => ({
-          ...prev,
-          email,
-          name: prev.name && prev.name !== 'Studier' ? prev.name : name,
-          id: session.user.id,
-        }));
+        const authUser = session.user;
+        const email = authUser.email || '';
+        const metadataName = authUser.user_metadata?.full_name || authUser.user_metadata?.name;
+        setCurrentUser((previous) => {
+          const base = previous.id === authUser.id ? previous : INITIAL_USER;
+          return { ...base, id: authUser.id, email, name: metadataName || (previous.id === authUser.id ? previous.name : email.split('@')[0] || 'New Studier') };
+        });
+        setIsAuthModalOpen(false);
+      } else {
+        setCurrentUser(INITIAL_USER);
+        setIsAuthModalOpen(true);
       }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const email = session.user.email || '';
-        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split('@')[0];
-        setCurrentUser((prev) => ({
-          ...prev,
-          email,
-          name: prev.name && prev.name !== 'Studier' ? prev.name : name,
-          id: session.user.id,
-        }));
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
+    supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => applySession(session));
+    return () => subscription.unsubscribe();
   }, []);
-
   // Real-time Activity Feed Sync
   useEffect(() => {
     const unsubFeed = FirebaseService.subscribeActivityFeed((remoteFeed) => {
-      if (remoteFeed && remoteFeed.length > 0) {
-        setActivityFeed(remoteFeed);
-      }
-    }, INITIAL_ACTIVITY_FEED);
+      setActivityFeed(Array.isArray(remoteFeed) ? remoteFeed : []);
+    }, []);
 
     return () => {
       unsubFeed();
@@ -553,11 +548,11 @@ export default function App() {
   }
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#FDFBF7] dark:bg-[#0D0C0D] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-pink-200 dark:selection:bg-pink-900 transition-colors duration-200 relative">
+    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#F8FAFC] dark:bg-[#05070B] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-indigo-200 dark:selection:bg-indigo-900 transition-colors duration-200 relative">
       {/* Fluid Liquid Motion Interactive Background */}
       <FluidLiquidBackground />
       {/* Top Global Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#FDFBF7]/90 dark:bg-[#0D0C0D]/95 backdrop-blur-md border-b border-pink-100 dark:border-stone-800/80 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden">
+      <header className="sticky top-0 z-40 bg-[#F8FAFC]/90 dark:bg-[#05070B]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Logo & Slogan */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
@@ -713,6 +708,12 @@ export default function App() {
 
       {/* Main Page Body */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-8 overflow-x-hidden">
+        {firstUserNotice && (
+          <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-400/20 dark:bg-indigo-950/40 dark:text-indigo-100" role="status">
+            <p className="m-0">Welcome — you are the first registered member of cheri. You are helping start the real community; other members will appear as they join.</p>
+            <button type="button" onClick={() => setFirstUserNotice(false)} className="shrink-0 rounded-xl px-3 py-2 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/60">Dismiss</button>
+          </div>
+        )}
         {/* Tab 1: Pure Distraction-Free Study Space (Pomodoro & Study Time Stopwatch) */}
         {currentTab === 'focus' && (
           <div className="pb-20">
@@ -801,7 +802,7 @@ export default function App() {
       </main>
 
       {/* Global Platform Footer */}
-      <footer className="mt-auto border-t border-pink-100 dark:border-stone-800/80 bg-white/70 dark:bg-[#0D0C0D]/90 py-6 px-4 sm:px-8 text-xs text-stone-500 pb-28 sm:pb-24">
+      <footer className="mt-auto border-t border-slate-200 dark:border-white/10 bg-white/70 dark:bg-[#05070B]/90 py-6 px-4 sm:px-8 text-xs text-stone-500 pb-28 sm:pb-24">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Cherry className="w-4 h-4 text-pink-500 fill-pink-500/20" />
