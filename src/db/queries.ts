@@ -1,6 +1,6 @@
 import { db } from './index';
 import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones, milestoneCheers } from './schema';
-import { eq, desc, sql, or, and, ilike, inArray } from 'drizzle-orm';
+import { eq, desc, sql, or, and, ilike, inArray, notInArray } from 'drizzle-orm';
 
 export interface UserSyncInput {
   uid: string;
@@ -450,15 +450,15 @@ export async function insertMilestone(input: {
 
 export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean) {
   try {
+    const ghostRows = await db.select({ uid: users.uid }).from(users).where(eq(users.isGhostMode, true));
+    const ghostUids = ghostRows.map((row) => row.uid);
     if (friendsOnly && userUid) {
       const friendRows = await db
         .select({ friendUid: friendships.friendUid })
         .from(friendships)
         .where(eq(friendships.userUid, userUid));
-
-      const friendUids = friendRows.map((f) => f.friendUid);
-      friendUids.push(userUid); // Include own milestones in friends feed too
-
+      const friendUids = [...new Set([...friendRows.map((f) => f.friendUid), userUid])].filter((uid) => !ghostUids.includes(uid));
+      if (!friendUids.length) return [];
       return await db
         .select()
         .from(milestones)
@@ -466,12 +466,11 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
         .orderBy(desc(milestones.createdAt))
         .limit(50);
     }
-
-    return await db
-      .select()
-      .from(milestones)
-      .orderBy(desc(milestones.createdAt))
-      .limit(50);
+    const query = db.select().from(milestones);
+    if (ghostUids.length) {
+      return await db.select().from(milestones).where(notInArray(milestones.userUid, ghostUids)).orderBy(desc(milestones.createdAt)).limit(50);
+    }
+    return await query.orderBy(desc(milestones.createdAt)).limit(50);
   } catch (error) {
     console.error('Database getMilestonesFeed failed:', error);
     throw new Error('Database operation failed', { cause: error });
