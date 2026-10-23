@@ -207,6 +207,20 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
 
   const intervalRef = useRef<number | null>(null);
 
+  useEffect(() => {
+    if (!isZenFullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsZenFullscreen(false);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isZenFullscreen]);
+
   const currentWallpaper =
     FOCUS_WALLPAPERS.find((w) => w.id === selectedWallpaperId) || FOCUS_WALLPAPERS[0];
 
@@ -876,7 +890,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
 
       {/* Fullscreen Zen Study Immersion Modal */}
       {isZenFullscreen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-between p-6 sm:p-12 text-white bg-black select-none animate-fade-in overflow-hidden">
+        <div className="focus-zen-fullscreen fixed inset-0 z-[100] flex h-[100dvh] min-h-[100dvh] w-screen max-w-none flex-col justify-between p-4 pt-[max(env(safe-area-inset-top),1rem)] pb-[max(env(safe-area-inset-bottom),1rem)] sm:p-12 text-white bg-[#030407] select-none animate-fade-in overflow-hidden">
           {/* Wallpaper Layer OR Live Video Background in Zen Fullscreen */}
           {videoBackground ? (
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
