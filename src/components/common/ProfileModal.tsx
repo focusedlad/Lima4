@@ -94,7 +94,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-800 flex items-center justify-center">
               <User className="w-5 h-5" />
             </div>
             <div>
@@ -125,7 +125,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   value={avatar}
                   onChange={(e) => setAvatar(e.target.value)}
                   placeholder="https://..."
-                  className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200"
+                  className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
             </div>
@@ -138,7 +138,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Kai Chen"
-                className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
               />
             </div>
 
@@ -156,7 +156,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       setIsCustomUni(false);
                     }
                   }}
-                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 >
                   {COUNTRIES_CATALOG.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -178,7 +178,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         setSelectedUniversity(e.target.value);
                       }
                     }}
-                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                    className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                   >
                     {currentCountry.universities.map((u) => (
                       <option key={u} value={u}>
@@ -214,7 +214,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <select
                   value={selectedStudyField}
                   onChange={(e) => setSelectedStudyField(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 >
                   {STUDY_FIELDS.map((f) => (
                     <option key={f} value={f}>
@@ -231,7 +231,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   value={subject}
                   onChange={(e) => setSubjectTag(e.target.value)}
                   placeholder="e.g. #USMLE / #MCAT"
-                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                  className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                 />
               </div>
             </div>
@@ -243,18 +243,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 value={goal}
                 onChange={(e) => setGoal(e.target.value)}
                 placeholder="What are you currently conquering?"
-                className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-200 resize-none"
+                className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200 resize-none"
               />
             </div>
 
             {/* Membership Tier Info */}
-            <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-center justify-between gap-3">
+            <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-amber-100 text-amber-800">
+                <div className="p-2 rounded-xl bg-indigo-100 text-indigo-800">
                   <Crown className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                  <div className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                     <span>
                       {currentUser.subscriptionTier === 'campus_elite'
                         ? 'Campus Elite Tier'
@@ -262,11 +262,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                         ? 'Pro Academic Tier'
                         : 'Free Scholar Tier'}
                     </span>
-                    <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-200 text-amber-900 font-bold uppercase">
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-indigo-200 text-indigo-900 font-bold uppercase">
                       {currentUser.subscriptionStatus || 'Active'}
                     </span>
                   </div>
-                  <div className="text-[11px] text-amber-800">
+                  <div className="text-[11px] text-indigo-800">
                     {currentUser.subscriptionTier === 'campus_elite'
                       ? 'Verified leader, unlimited AI & private rooms'
                       : currentUser.subscriptionTier === 'pro'
@@ -310,7 +310,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 }}
                 className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-white underline flex items-center gap-1.5 self-start sm:self-center"
               >
-                <Scale className="w-3.5 h-3.5 text-amber-700" />
+                <Scale className="w-3.5 h-3.5 text-indigo-700" />
                 <span>View Platform Rules & Terms of Service</span>
               </button>
 
