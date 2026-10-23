@@ -865,7 +865,10 @@ export default function App() {
       {/* Supabase Cloud Authentication Modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) setIsAuthModalOpen(false);
+        }}
         currentUser={currentUser}
         onAuthSuccess={(profile) => {
           setCurrentUser(profile);
