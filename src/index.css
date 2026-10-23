@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind v4: make dark: utilities follow the app-managed theme class. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --cream-bg: #FAF8F5;
