@@ -2,6 +2,7 @@ import {
   addFriend,
   cheerMilestoneInDb,
   getAllStudyChallenges,
+  getStudyChallengeById,
   getCheeredMilestoneIds,
   getChallengeLeaderboard,
   getFriendsByUser,
@@ -28,9 +29,19 @@ export default async function handler(req: any, res: any) {
 
   try {
     if (parts.length === 1 && parts[0] === 'challenges' && method === 'GET') {
-      const [rows, membership] = await Promise.all([getAllStudyChallenges(), getJoinedChallengeProgress(authUser.id)]);
+      const [rows, membership, myFriends] = await Promise.all([
+        getAllStudyChallenges(),
+        getJoinedChallengeProgress(authUser.id),
+        getFriendsByUser(authUser.id),
+      ]);
       const joined = new Map(membership.map((item: any) => [item.challengeId, item.studiedMinutes]));
-      const challenges = rows.map((row: any) => ({
+      const myFriendUids = new Set(myFriends.map((friend: any) => friend.friendUid));
+      const visibleRows = await Promise.all(rows.map(async (row: any) => {
+        if (row.creatorUid === authUser.id || joined.has(row.challengeId) || myFriendUids.has(row.creatorUid)) return row;
+        const creatorFriends = await getFriendsByUser(row.creatorUid);
+        return creatorFriends.some((friend: any) => friend.friendUid === authUser.id) ? row : null;
+      }));
+      const challenges = visibleRows.filter(Boolean).map((row: any) => ({
         id: row.challengeId, challengeId: row.challengeId, title: row.title, description: row.description || '',
         creatorUid: row.creatorUid, creatorName: row.creatorName, creatorAvatar: row.creatorAvatar || '',
         targetHours: row.targetHours, period: row.period, startDate: row.startDate, endDate: row.endDate,
@@ -64,6 +75,17 @@ export default async function handler(req: any, res: any) {
     if (parts.length === 2 && parts[0] === 'challenges' && parts[1] === 'join' && method === 'POST') {
       const challengeId = typeof body.challengeId === 'string' ? body.challengeId : '';
       if (!challengeId) return res.status(400).json({ error: 'Challenge ID is required.' });
+      const challenge = await getStudyChallengeById(challengeId);
+      if (!challenge) return res.status(404).json({ error: 'This challenge no longer exists.' });
+      if (challenge.creatorUid !== authUser.id) {
+        const [myFriends, creatorFriends] = await Promise.all([
+          getFriendsByUser(authUser.id),
+          getFriendsByUser(challenge.creatorUid),
+        ]);
+        const isFriend = myFriends.some((friend: any) => friend.friendUid === challenge.creatorUid)
+          || creatorFriends.some((friend: any) => friend.friendUid === authUser.id);
+        if (!isFriend) return res.status(403).json({ error: 'Only friends of the challenge creator can join this challenge.' });
+      }
       const profile = await getUserByUid(authUser.id);
       await joinStudyChallenge({
         challengeId, userUid: authUser.id,
