@@ -99,6 +99,14 @@ export const milestones = pgTable('milestones', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// One cheer per registered member per milestone.
+export const milestoneCheers = pgTable('milestone_cheers', {
+  id: serial('id').primaryKey(),
+  milestoneId: text('milestone_id').notNull(),
+  userUid: text('user_uid').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // Legacy tables preserved for compatibility
 export const studySpaces = pgTable('study_spaces', {
   id: serial('id').primaryKey(),
