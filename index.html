@@ -13,57 +13,12 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
-    <title>Lima4 — focus & study</title>
+    <title>Lima4 — focus &amp; study</title>
     <meta name="description" content="A calm focus and study platform with a Pomodoro timer, community challenges, live study streams, and progress tracking." />
     <meta property="og:title" content="Lima4 — focus &amp; study" />
     <meta property="og:description" content="A calm focus and study platform with a Pomodoro timer, community challenges, live study streams, and progress tracking." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      (() => {
-        let startupIssue = '';
-        const showRecovery = (message) => {
-          startupIssue = String(message || 'The app did not finish loading.');
-          const root = document.getElementById('root');
-          if (!root || root.childElementCount > 0) return;
-          root.innerHTML = '';
-          const panel = document.createElement('main');
-          panel.style.cssText = 'min-height:100vh;padding:32px 20px;background:#FBFCFD;color:#243746;font:16px system-ui,sans-serif;display:grid;place-items:center';
-          panel.innerHTML = '<section style="max-width:620px;padding:24px;border:1px solid #D5E5EE;border-radius:20px;background:white"><h1 style="font-size:24px;margin:0 0 12px">Lima4 is having trouble loading</h1><p style="line-height:1.6">This can happen when an old app cache gets stuck or a script fails. Try a clean reload below. Your account data is not deleted.</p><pre id="startup-detail" style="white-space:pre-wrap;overflow-wrap:anywhere;background:#F1F5F9;padding:12px;border-radius:10px;font-size:12px"></pre><button id="lima4-clean-reload" style="padding:12px 18px;border:0;border-radius:10px;background:#71313B;color:white;font-weight:600">Clear app cache and reload</button></section>';
-          root.appendChild(panel);
-          const detail = panel.querySelector('#startup-detail');
-          if (detail) detail.textContent = startupIssue;
-          panel.querySelector('#lima4-clean-reload')?.addEventListener('click', async () => {
-            try {
-              if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                await Promise.all(registrations.map((registration) => registration.unregister()));
-              }
-              if ('caches' in window) {
-                const keys = await caches.keys();
-                await Promise.all(keys.map((key) => caches.delete(key)));
-              }
-            } catch (error) {
-              console.warn('Could not clear every app cache:', error);
-            }
-            window.location.reload();
-          });
-        };
-        window.addEventListener('error', (event) => {
-          if (!document.getElementById('root')?.childElementCount) {
-            showRecovery(event.message || 'A JavaScript file failed to load.');
-          }
-        });
-        window.addEventListener('unhandledrejection', (event) => {
-          console.error('Lima4 startup promise rejected:', event.reason);
-        });
-        window.setTimeout(() => {
-          if (!document.getElementById('root')?.childElementCount) {
-            showRecovery(startupIssue || 'The app stayed blank for 10 seconds. A cached or failed script may be preventing startup.');
-          }
-        }, 10000);
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>
