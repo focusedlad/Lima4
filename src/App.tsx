@@ -257,6 +257,24 @@ export default function App() {
       } catch (error) {
         console.warn('Could not load saved account profile:', error);
       }
+      try {
+        const logsResponse = await fetch('/api/db/focus-logs', { headers: { Authorization: 'Bearer ' + session.access_token } });
+        if (logsResponse.ok) {
+          const logsPayload = await logsResponse.json();
+          if (Array.isArray(logsPayload?.logs)) {
+            setFocusLogs(logsPayload.logs.map((log: any) => ({
+              id: String(log.id),
+              date: String(log.date || ''),
+              durationMinutes: Number(log.durationMinutes || 0),
+              category: log.category as FocusCategory,
+              subject: String(log.subject || ''),
+              xpEarned: Number(log.xpEarned || 0),
+            })));
+          }
+        }
+      } catch (error) {
+        console.warn('Could not load saved focus history:', error);
+      }
       if (cancelled) return;
       const base = saved ? {
         ...INITIAL_USER,
