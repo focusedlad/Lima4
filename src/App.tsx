@@ -267,6 +267,7 @@ export default function App() {
         ...INITIAL_USER,
         id: authUser.id, email,
         name: saved.name || metadataName || email.split('@')[0] || 'New Studier',
+        handle: saved.handle || (saved.name || metadataName || email.split('@')[0] || 'studier').toLowerCase().replace(/[^a-z0-9]/g, '_'),
         avatar: saved.avatar || INITIAL_USER.avatar,
         university: saved.university || INITIAL_USER.university,
         universityOrLocation: saved.university || INITIAL_USER.universityOrLocation,
