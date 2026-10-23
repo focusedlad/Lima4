@@ -55,6 +55,396 @@ export async function upsertUser(input: UserSyncInput) {
   }
 }
 
+export async function getRegisteredUserCount(): Promise<number> {
+  try {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(users)
+      .where(sql`${users.uid} ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+  userUid: string;
+  durationMinutes: number;
+  category: string;
+  subject: string;
+  xpEarned: number;
+  date: string;
+}) {
+  try {
+    const result = await db
+      .insert(focusLogs)
+      .values({
+        userUid: input.userUid,
+        durationMinutes: input.durationMinutes,
+        category: input.category,
+        subject: input.subject,
+        xpEarned: input.xpEarned,
+        date: input.date,
+      })
+      .returning();
+
+    // Also update user's total hours and streak
+    await db
+      .update(users)
+      .set({
+        totalHoursStudied: sql`${users.totalHoursStudied} + ${Math.round(input.durationMinutes / 60)}`,
+        xp: sql`${users.xp} + ${input.xpEarned}`,
+      })
+      .where(eq(users.uid, input.userUid));
+
+    // Also increment any active challenge participants
+    await db
+      .update(challengeParticipants)
+      .set({
+        studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}`,
+      })
+      .where(eq(challengeParticipants.userUid, input.userUid));
+
+    return result[0];
+  } catch (error) {
+    console.error('Database insertFocusLog failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getFocusLogsByUser(userUid: string) {
+  try {
+    return await db
+      .select()
+      .from(focusLogs)
+      .where(eq(focusLogs.userUid, userUid))
+      .orderBy(desc(focusLogs.createdAt))
+      .limit(50);
+  } catch (error) {
+    console.error('Database getFocusLogsByUser failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function insertStudyChallenge(input: {
+  challengeId: string;
+  title: string;
+  description?: string;
+  creatorUid: string;
+  creatorName: string;
+  creatorAvatar?: string;
+  targetHours: number;
+  period: string;
+  startDate: string;
+  endDate: string;
+  category?: string;
+}) {
+  try {
+    const result = await db
+      .insert(studyChallenges)
+      .values({
+        challengeId: input.challengeId,
+        title: input.title,
+        description: input.description || '',
+        creatorUid: input.creatorUid,
+        creatorName: input.creatorName,
+        creatorAvatar: input.creatorAvatar || '',
+        targetHours: input.targetHours,
+        period: input.period,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        category: input.category || 'General',
+        participantsCount: 1,
+      })
+      .returning();
+
+    // Auto add creator as participant
+    await db.insert(challengeParticipants).values({
+      challengeId: input.challengeId,
+      userUid: input.creatorUid,
+      userName: input.creatorName,
+      userAvatar: input.creatorAvatar || '',
+      studiedMinutes: 0,
+    });
+
+    return result[0];
+  } catch (error) {
+    console.error('Database insertStudyChallenge failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getAllStudyChallenges() {
+  try {
+    return await db.select().from(studyChallenges).orderBy(desc(studyChallenges.createdAt)).limit(50);
+  } catch (error) {
+    console.error('Database getAllStudyChallenges failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function joinStudyChallenge(input: {
+  challengeId: string;
+  userUid: string;
+  userName: string;
+  userAvatar?: string;
+}) {
+  try {
+    // Check if already joined
+    const existing = await db
+      .select()
+      .from(challengeParticipants)
+      .where(
+        sql`${challengeParticipants.challengeId} = ${input.challengeId} AND ${challengeParticipants.userUid} = ${input.userUid}`
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      await db.insert(challengeParticipants).values({
+        challengeId: input.challengeId,
+        userUid: input.userUid,
+        userName: input.userName,
+        userAvatar: input.userAvatar || '',
+        studiedMinutes: 0,
+      });
+
+      await db
+        .update(studyChallenges)
+        .set({
+          participantsCount: sql`${studyChallenges.participantsCount} + 1`,
+        })
+        .where(eq(studyChallenges.challengeId, input.challengeId));
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Database joinStudyChallenge failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getChallengeLeaderboard(challengeId: string) {
+  try {
+    return await db
+      .select()
+      .from(challengeParticipants)
+      .where(eq(challengeParticipants.challengeId, challengeId))
+      .orderBy(desc(challengeParticipants.studiedMinutes))
+      .limit(50);
+  } catch (error) {
+    console.error('Database getChallengeLeaderboard failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all') {
+  try {
+    // For 'all', pull users ordered by totalHoursStudied and xp
+    return await db
+      .select({
+        id: users.id,
+        uid: users.uid,
+        name: users.name,
+        handle: users.handle,
+        avatar: users.avatar,
+        university: users.university,
+        studyField: users.studyField,
+        totalHoursStudied: users.totalHoursStudied,
+        xp: users.xp,
+        currentStreak: users.currentStreak,
+      })
+      .from(users)
+      .orderBy(desc(users.totalHoursStudied), desc(users.xp))
+      .limit(50);
+  } catch (error) {
+    console.error('Database getLeaderboardByTimeframe failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+// Friendship Queries
+export async function addFriend(input: {
+  userUid: string;
+  friendUid: string;
+  friendName: string;
+  friendHandle?: string;
+  friendAvatar?: string;
+  friendUniversity?: string;
+}) {
+  try {
+    const existing = await db
+      .select()
+      .from(friendships)
+      .where(
+        sql`${friendships.userUid} = ${input.userUid} AND ${friendships.friendUid} = ${input.friendUid}`
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      const res = await db
+        .insert(friendships)
+        .values({
+          userUid: input.userUid,
+          friendUid: input.friendUid,
+          friendName: input.friendName,
+          friendHandle: input.friendHandle || '',
+          friendAvatar: input.friendAvatar || '',
+          friendUniversity: input.friendUniversity || '',
+        })
+        .returning();
+      return res[0];
+    }
+    return existing[0];
+  } catch (error) {
+    console.error('Database addFriend failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function removeFriend(userUid: string, friendUid: string) {
+  try {
+    await db
+      .delete(friendships)
+      .where(
+        sql`${friendships.userUid} = ${userUid} AND ${friendships.friendUid} = ${friendUid}`
+      );
+    return { success: true };
+  } catch (error) {
+    console.error('Database removeFriend failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getFriendsByUser(userUid: string) {
+  try {
+    return await db
+      .select()
+      .from(friendships)
+      .where(eq(friendships.userUid, userUid))
+      .orderBy(desc(friendships.createdAt));
+  } catch (error) {
+    console.error('Database getFriendsByUser failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function searchUsersByQuery(query: string) {
+  try {
+    const clean = query.trim().replace(/^@/, '');
+    if (!clean) return [];
+    return await db
+      .select({
+        id: users.id,
+        uid: users.uid,
+        name: users.name,
+        handle: users.handle,
+        avatar: users.avatar,
+        university: users.university,
+        studyField: users.studyField,
+        totalHoursStudied: users.totalHoursStudied,
+        currentStreak: users.currentStreak,
+        xp: users.xp,
+      })
+      .from(users)
+      .where(
+        or(
+          ilike(users.handle, `%${clean}%`),
+          ilike(users.name, `%${clean}%`),
+          ilike(users.university, `%${clean}%`)
+        )
+      )
+      .limit(20);
+  } catch (error) {
+    console.error('Database searchUsersByQuery failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+// Milestone & Activity Feed Queries
+export async function insertMilestone(input: {
+  milestoneId: string;
+  userUid: string;
+  userName: string;
+  userHandle?: string;
+  userAvatar?: string;
+  university?: string;
+  type?: string;
+  title: string;
+  description: string;
+  subjectTag?: string;
+  streakDays?: number;
+  xpEarned?: number;
+}) {
+  try {
+    const result = await db
+      .insert(milestones)
+      .values({
+        milestoneId: input.milestoneId,
+        userUid: input.userUid,
+        userName: input.userName,
+        userHandle: input.userHandle || '',
+        userAvatar: input.userAvatar || '',
+        university: input.university || '',
+        type: input.type || 'session_completed',
+        title: input.title,
+        description: input.description,
+        subjectTag: input.subjectTag || '',
+        streakDays: input.streakDays || 1,
+        xpEarned: input.xpEarned || 50,
+      })
+      .returning();
+    return result[0];
+  } catch (error) {
+    console.error('Database insertMilestone failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean) {
+  try {
+    if (friendsOnly && userUid) {
+      const friendRows = await db
+        .select({ friendUid: friendships.friendUid })
+        .from(friendships)
+        .where(eq(friendships.userUid, userUid));
+
+      const friendUids = friendRows.map((f) => f.friendUid);
+      friendUids.push(userUid); // Include own milestones in friends feed too
+
+      return await db
+        .select()
+        .from(milestones)
+        .where(inArray(milestones.userUid, friendUids))
+        .orderBy(desc(milestones.createdAt))
+        .limit(50);
+    }
+
+    return await db
+      .select()
+      .from(milestones)
+      .orderBy(desc(milestones.createdAt))
+      .limit(50);
+  } catch (error) {
+    console.error('Database getMilestonesFeed failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function cheerMilestoneInDb(milestoneId: string) {
+  try {
+    await db
+      .update(milestones)
+      .set({
+        cheersCount: sql`${milestones.cheersCount} + 1`,
+      })
+      .where(eq(milestones.milestoneId, milestoneId));
+    return { success: true };
+  } catch (error) {
+    console.error('Database cheerMilestone failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+`);
+    return Number(result?.count || 0);
+  } catch (error) {
+    console.error('Database getRegisteredUserCount failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
 export async function insertFocusLog(input: {
   userUid: string;
   durationMinutes: number;
