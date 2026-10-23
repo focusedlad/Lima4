@@ -227,6 +227,16 @@ export async function getAllStudyChallenges() {
   }
 }
 
+export async function getStudyChallengeById(challengeId: string) {
+  try {
+    const rows = await db.select().from(studyChallenges).where(eq(studyChallenges.challengeId, challengeId)).limit(1);
+    return rows[0] || null;
+  } catch (error) {
+    console.error('Database getStudyChallengeById failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
 export async function joinStudyChallenge(input: {
   challengeId: string;
   userUid: string;
