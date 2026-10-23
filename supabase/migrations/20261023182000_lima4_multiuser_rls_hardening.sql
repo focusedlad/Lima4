@@ -71,13 +71,7 @@ CREATE POLICY lima4_select_policy ON public.milestones
   FOR SELECT TO authenticated
   USING (
     user_uid = (SELECT auth.uid())::text
-    OR (
-      visibility = 'public'
-      AND NOT EXISTS (
-        SELECT 1 FROM public.users u
-        WHERE u.uid = milestones.user_uid AND u.is_ghost_mode = true
-      )
-    )
+    OR visibility = 'public'
     OR (
       visibility = 'friends'
       AND EXISTS (
@@ -102,8 +96,6 @@ CREATE POLICY lima4_select_policy ON public.study_spaces
   FOR SELECT TO authenticated
   USING (is_private = false OR host_uid = (SELECT auth.uid())::text);
 
-CREATE UNIQUE INDEX IF NOT EXISTS challenge_participants_challenge_user_unique
-  ON public.challenge_participants (challenge_id, user_uid);
 CREATE INDEX IF NOT EXISTS idx_friendships_user_friend
   ON public.friendships (user_uid, friend_uid);
 CREATE INDEX IF NOT EXISTS idx_friendships_friend_user
@@ -116,3 +108,19 @@ CREATE INDEX IF NOT EXISTS idx_milestones_visibility_created
   ON public.milestones (visibility, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_study_challenges_visibility_dates
   ON public.study_challenges (visibility, start_date, end_date);
+
+-- Avoid per-row auth.uid() evaluation in existing YouTube-follow policies.
+DROP POLICY IF EXISTS "Users can add their own YouTube follows" ON public.user_youtube_follows;
+CREATE POLICY "Users can add their own YouTube follows" ON public.user_youtube_follows
+  FOR INSERT TO authenticated WITH CHECK ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can read their own YouTube follows" ON public.user_youtube_follows;
+CREATE POLICY "Users can read their own YouTube follows" ON public.user_youtube_follows
+  FOR SELECT TO authenticated USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can remove their own YouTube follows" ON public.user_youtube_follows;
+CREATE POLICY "Users can remove their own YouTube follows" ON public.user_youtube_follows
+  FOR DELETE TO authenticated USING ((SELECT auth.uid()) = user_id);
+DROP POLICY IF EXISTS "Users can update their own YouTube follows" ON public.user_youtube_follows;
+CREATE POLICY "Users can update their own YouTube follows" ON public.user_youtube_follows
+  FOR UPDATE TO authenticated
+  USING ((SELECT auth.uid()) = user_id)
+  WITH CHECK ((SELECT auth.uid()) = user_id);
