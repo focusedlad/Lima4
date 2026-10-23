@@ -55,6 +55,8 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
 
   // Post Milestone Form State
   const [isPosting, setIsPosting] = useState<boolean>(false);
+  const [isSubmittingMilestone, setIsSubmittingMilestone] = useState<boolean>(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [postTitle, setPostTitle] = useState<string>('');
   const [postDescription, setPostDescription] = useState<string>('');
   const [postSubject, setPostSubject] = useState<string>(
@@ -123,38 +125,43 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
   };
 
   const handleCheer = async (milestoneId: string) => {
-    if (cheeredIds[milestoneId]) return;
-    audioSynth.playChime('peer_nudge');
-    setCheeredIds((prev) => ({ ...prev, [milestoneId]: true }));
-    setMilestones((prev) =>
-      prev.map((m) =>
-        m.milestoneId === milestoneId
-          ? { ...m, cheersCount: m.cheersCount + 1, userHasCheered: true }
-          : m
-      )
-    );
-    await SupabaseService.cheerMilestone(milestoneId);
+    if (cheeredIds[milestoneId] || milestones.some((item) => item.milestoneId === milestoneId && item.userHasCheered)) return;
+    setActionError(null);
+    try {
+      const result = await SupabaseService.cheerMilestone(milestoneId);
+      setCheeredIds((prev) => ({ ...prev, [milestoneId]: true }));
+      if (result.alreadyCheered) {
+        await loadMilestones(feedMode);
+        return;
+      }
+      setMilestones((prev) => prev.map((m) => m.milestoneId === milestoneId ? { ...m, cheersCount: m.cheersCount + 1, userHasCheered: true } : m));
+      audioSynth.playChime('peer_nudge');
+    } catch (error: any) {
+      setActionError(error?.message || 'Your cheer could not be saved. Please try again.');
+    }
   };
 
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postTitle.trim()) return;
-
-    const newMilestone = await SupabaseService.postMilestone({
-      user: currentUser,
-      title: postTitle.trim(),
-      description:
-        postDescription.trim() ||
-        `Focused session on ${postSubject} at ${currentUser.university || 'Global Campus'}.`,
-      subjectTag: postSubject.trim(),
-      type: postType,
-    });
-
-    setMilestones((prev) => [newMilestone, ...prev]);
-    setPostTitle('');
-    setPostDescription('');
-    setIsPosting(false);
-    audioSynth.playChime('pomodoro_complete');
+    setActionError(null);
+    setIsSubmittingMilestone(true);
+    try {
+      const newMilestone = await SupabaseService.postMilestone({
+        user: currentUser, title: postTitle.trim(),
+        description: postDescription.trim() || `Focused session on ${postSubject}.`,
+        subjectTag: postSubject.trim(), type: postType,
+      });
+      setMilestones((prev) => [newMilestone, ...prev]);
+      setPostTitle('');
+      setPostDescription('');
+      setIsPosting(false);
+      audioSynth.playChime('pomodoro_complete');
+    } catch (error: any) {
+      setActionError(error?.message || 'Your milestone could not be published. Please try again.');
+    } finally {
+      setIsSubmittingMilestone(false);
+    }
   };
 
   // Filtered milestones by subject tag
@@ -169,6 +176,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
   return (
     <div className="space-y-6 pb-20 animate-fade-in">
       {/* Top Header & Navigation Modes */}
+      {actionError && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700 dark:border-rose-400/20 dark:bg-rose-950/40 dark:text-rose-200">{actionError}</p>}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1">
@@ -454,10 +462,11 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-950 font-bold text-xs hover:bg-stone-800 transition-all shadow-xs"
+              disabled={isSubmittingMilestone}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white dark:bg-white text-white dark:text-stone-950 font-bold text-xs hover:bg-stone-800 transition-all shadow-xs"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Broadcast to Feed</span>
+              <span>{isSubmittingMilestone ? 'Publishing…' : 'Publish milestone'}</span>
             </button>
           </div>
         </form>
