@@ -181,35 +181,36 @@ export async function insertStudyChallenge(input: {
   visibility?: 'public' | 'friends' | 'private';
 }) {
   try {
-    const result = await db
-      .insert(studyChallenges)
-      .values({
+    return await db.transaction(async (tx) => {
+      const [challenge] = await tx
+        .insert(studyChallenges)
+        .values({
+          challengeId: input.challengeId,
+          title: input.title,
+          description: input.description || '',
+          creatorUid: input.creatorUid,
+          creatorName: input.creatorName,
+          creatorAvatar: input.creatorAvatar || '',
+          targetHours: input.targetHours,
+          period: input.period,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          category: input.category || 'General',
+          visibility: input.visibility || 'public',
+          participantsCount: 1,
+        })
+        .returning();
+
+      await tx.insert(challengeParticipants).values({
         challengeId: input.challengeId,
-        title: input.title,
-        description: input.description || '',
-        creatorUid: input.creatorUid,
-        creatorName: input.creatorName,
-        creatorAvatar: input.creatorAvatar || '',
-        targetHours: input.targetHours,
-        period: input.period,
-        startDate: input.startDate,
-        endDate: input.endDate,
-        category: input.category || 'General',
-        visibility: input.visibility || 'public',
-        participantsCount: 1,
-      })
-      .returning();
+        userUid: input.creatorUid,
+        userName: input.creatorName,
+        userAvatar: input.creatorAvatar || '',
+        studiedMinutes: 0,
+      });
 
-    // Auto add creator as participant
-    await db.insert(challengeParticipants).values({
-      challengeId: input.challengeId,
-      userUid: input.creatorUid,
-      userName: input.creatorName,
-      userAvatar: input.creatorAvatar || '',
-      studiedMinutes: 0,
+      return challenge;
     });
-
-    return result[0];
   } catch (error) {
     console.error('Database insertStudyChallenge failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -256,33 +257,30 @@ export async function joinStudyChallenge(input: {
   userAvatar?: string;
 }) {
   try {
-    // Check if already joined
-    const existing = await db
-      .select()
-      .from(challengeParticipants)
-      .where(
-        sql`${challengeParticipants.challengeId} = ${input.challengeId} AND ${challengeParticipants.userUid} = ${input.userUid}`
-      )
-      .limit(1);
-
-    if (existing.length === 0) {
-      await db.insert(challengeParticipants).values({
-        challengeId: input.challengeId,
-        userUid: input.userUid,
-        userName: input.userName,
-        userAvatar: input.userAvatar || '',
-        studiedMinutes: 0,
-      });
-
-      await db
-        .update(studyChallenges)
-        .set({
-          participantsCount: sql`${studyChallenges.participantsCount} + 1`,
+    return await db.transaction(async (tx) => {
+      const inserted = await tx
+        .insert(challengeParticipants)
+        .values({
+          challengeId: input.challengeId,
+          userUid: input.userUid,
+          userName: input.userName,
+          userAvatar: input.userAvatar || '',
+          studiedMinutes: 0,
         })
-        .where(eq(studyChallenges.challengeId, input.challengeId));
-    }
+        .onConflictDoNothing({
+          target: [challengeParticipants.challengeId, challengeParticipants.userUid],
+        })
+        .returning({ id: challengeParticipants.id });
 
-    return { success: true };
+      if (inserted.length > 0) {
+        await tx
+          .update(studyChallenges)
+          .set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` })
+          .where(eq(studyChallenges.challengeId, input.challengeId));
+      }
+
+      return { success: true, joined: inserted.length > 0 };
+    });
   } catch (error) {
     console.error('Database joinStudyChallenge failed:', error);
     throw new Error('Database operation failed', { cause: error });
