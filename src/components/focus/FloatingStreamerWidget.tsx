@@ -69,6 +69,7 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
   const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
   const videoElementRef = useRef<HTMLVideoElement>(null);
+  const youtubeIframeRef = useRef<HTMLIFrameElement>(null);
 
   // Width in pixels based on size mode
   const getWidgetWidth = useCallback((s: StreamerWidgetSize) => {
@@ -106,10 +107,12 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [size, getWidgetWidth]);
 
-  // Update HTML5 video element mute state if playing direct media
+  // Change YouTube mute state without remounting the iframe (which restarts playback).
   useEffect(() => {
-    if (videoElementRef.current) {
-      videoElementRef.current.muted = isMuted;
+    if (videoElementRef.current) videoElementRef.current.muted = isMuted;
+    const player = youtubeIframeRef.current?.contentWindow;
+    if (player && stream && !stream.directVideoUrl && stream.sourceType !== 'direct' && stream.sourceType !== 'vimeo' && stream.sourceType !== 'embed') {
+      player.postMessage(JSON.stringify({ event: 'command', func: isMuted ? 'mute' : 'unMute', args: [] }), '*');
     }
   }, [isMuted, stream]);
 
