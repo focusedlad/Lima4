@@ -206,6 +206,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   const [activeSound, setActiveSound] = useState<string | null>(null);
 
   const intervalRef = useRef<number | null>(null);
+  const videoBackgroundIframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (!isZenFullscreen) return;
@@ -220,6 +221,17 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
       window.removeEventListener('keydown', handleEscape);
     };
   }, [isZenFullscreen]);
+
+  // Mute/unmute YouTube through the IFrame API instead of changing its URL.
+  // Changing the URL remounts the iframe and restarts live/replayed videos.
+  useEffect(() => {
+    const player = videoBackgroundIframeRef.current?.contentWindow;
+    if (!player || !videoBackground?.videoId) return;
+    player.postMessage(
+      JSON.stringify({ event: 'command', func: isVideoMuted ? 'mute' : 'unMute', args: [] }),
+      'https://www.youtube-nocookie.com'
+    );
+  }, [isVideoMuted, videoBackground?.videoId]);
 
   const currentWallpaper =
     FOCUS_WALLPAPERS.find((w) => w.id === selectedWallpaperId) || FOCUS_WALLPAPERS[0];
@@ -342,9 +354,6 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   };
 
   const togglePlay = () => {
-    if (!isRunning) {
-      audioSynth.playChime('pomodoro_complete');
-    }
     setIsRunning(!isRunning);
     setIsPhoneAway(false);
   };
@@ -393,7 +402,6 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
     const secs = studyTimeSeconds % 60;
     const lapString = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     setLaps((prev) => [lapString, ...prev.slice(0, 4)]);
-    audioSynth.playChime('peer_nudge');
   };
 
   const handleSwitchFocusType = (type: FocusMainType) => {
@@ -507,9 +515,8 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
               />
             ) : videoBackground.videoId ? (
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${videoBackground.videoId}?autoplay=1&mute=${
-                  isVideoMuted ? '1' : '0'
-                }&controls=0&loop=1&playlist=${videoBackground.videoId}&playsinline=1&modestbranding=1`}
+                ref={videoBackgroundIframeRef}
+                src={`https://www.youtube-nocookie.com/embed/${videoBackground.videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoBackground.videoId}&playsinline=1&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
                 title={videoBackground.name}
                 className="w-full h-full object-cover scale-[1.35] pointer-events-none border-0"
                 allow="autoplay; encrypted-media"
@@ -744,7 +751,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
           <div className="flex flex-col items-center justify-center py-6 sm:py-8">
             <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
               {/* Outer SVG Progress Ring */}
-              <svg className="w-full h-full transform -rotate-90 filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+              <svg viewBox="0 0 256 256" className="w-full h-full transform -rotate-90 filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
                 {/* Background track ring */}
                 <circle
                   cx="128"
