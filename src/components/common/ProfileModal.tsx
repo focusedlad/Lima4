@@ -27,89 +27,7 @@ interface ProfileModalProps {
   onOpenTerms?: () => void;
 }
 
-const PRESET_ACCOUNTS: UserProfile[] = [
-  {
-    id: 'usr_kai',
-    name: 'Kai Chen',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    universityOrLocation: 'Tokyo Institute of Technology (Japan)',
-    countryCode: 'JP',
-    countryName: 'Japan',
-    countryFlag: '',
-    university: 'Tokyo Institute of Technology',
-    studyField: 'Medicine & Healthcare (USMLE, Pre-Med)',
-    isGhostMode: false,
-    currentSubject: '#USMLE / Neuro',
-    currentGoal: 'Consolidate cranial nerve pathways & finish 50m sprint',
-    status: 'in_focus',
-    currentStreak: 14,
-    totalHoursStudied: 93.5,
-    xp: 4120,
-    deskPet: {
-      name: 'Mochi',
-      species: 'shiba',
-      level: 4,
-      currentXp: 320,
-      nextLevelXp: 500,
-      mood: 'focused',
-      decorations: ['Steaming Matcha', 'Bonsai Tree', 'Vinyl Turntable'],
-    },
-  },
-  {
-    id: 'usr_eleanor',
-    name: 'Eleanor Vance',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    universityOrLocation: 'University of Oxford (United Kingdom)',
-    countryCode: 'GB',
-    countryName: 'United Kingdom',
-    countryFlag: '',
-    university: 'University of Oxford',
-    studyField: 'Law & Jurisprudence (Bar Exam, LLB)',
-    isGhostMode: false,
-    currentSubject: '#BarExam / Torts',
-    currentGoal: 'Civil procedure summary memo & contract precedent',
-    status: 'in_focus',
-    currentStreak: 22,
-    totalHoursStudied: 142.0,
-    xp: 6850,
-    deskPet: {
-      name: 'Matcha',
-      species: 'owl',
-      level: 6,
-      currentXp: 180,
-      nextLevelXp: 700,
-      mood: 'focused',
-      decorations: ['Antique Bookshelf', 'Warm Desk Lamp'],
-    },
-  },
-  {
-    id: 'usr_jinwoo',
-    name: 'Jin-Woo Park',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    universityOrLocation: 'Seoul National University (SNU) (South Korea)',
-    countryCode: 'KR',
-    countryName: 'South Korea',
-    countryFlag: '',
-    university: 'Seoul National University (SNU)',
-    studyField: 'Medicine & Healthcare (USMLE, Pre-Med)',
-    isGhostMode: false,
-    currentSubject: '#USMLE / Pathology',
-    currentGoal: 'Renal cell carcinoma histology & pharmacology',
-    status: 'in_focus',
-    currentStreak: 31,
-    totalHoursStudied: 188.5,
-    xp: 8900,
-    deskPet: {
-      name: 'Boba',
-      species: 'capybara',
-      level: 7,
-      currentXp: 410,
-      nextLevelXp: 850,
-      mood: 'happy',
-      decorations: ['Hot Spring Tub', 'Bonsai Tree'],
-    },
-  },
-];
+const PRESET_ACCOUNTS: UserProfile[] = [];
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   currentUser,
@@ -133,7 +51,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [goal, setGoal] = useState(currentUser.currentGoal);
   const [avatar, setAvatar] = useState(currentUser.avatar);
   const [isSaved, setIsSaved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'edit' | 'switch'>('edit');
+  const activeTab: 'edit' | 'switch' = 'edit';
 
   if (!isOpen) return null;
 
@@ -242,15 +160,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           >
             Edit Profile
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('switch')}
-            className={`flex-1 py-2 rounded-xl transition-all ${
-              activeTab === 'switch' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-800'
-            }`}
-          >
-            Switch Account ({PRESET_ACCOUNTS.length})
-          </button>
+
         </div>
 
         {activeTab === 'edit' ? (
