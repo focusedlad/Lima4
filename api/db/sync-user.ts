@@ -24,6 +24,7 @@ export default async function handler(req: any, res: any) {
       uid: authUser.id,
       email: authUser.email || '',
       name: String(body.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Studier').slice(0, 100),
+      handle: typeof body.handle === 'string' ? body.handle.replace(/^@/, '').slice(0, 40) : undefined,
       avatar: typeof body.avatar === 'string' ? body.avatar.slice(0, 1000) : '',
       university: typeof body.university === 'string' ? body.university.slice(0, 200) : '',
       studyField: typeof body.studyField === 'string' ? body.studyField.slice(0, 200) : '',
