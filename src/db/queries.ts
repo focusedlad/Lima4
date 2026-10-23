@@ -100,7 +100,15 @@ export async function getRegisteredUserCount(): Promise<number> {
     const [result] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(users)
-      .where(sql`${users.uid} ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+      .where(sql`${users.uid} ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'`);
+    return Number(result?.count || 0);
+  } catch (error) {
+    console.error('Database getRegisteredUserCount failed:', error);
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function insertFocusLog(input: {
   userUid: string;
   durationMinutes: number;
   category: string;
