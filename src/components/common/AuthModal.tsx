@@ -180,7 +180,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onAuthSuccess(finalUser);
         if (isFirstUser) {
           setSuccessMsg('Welcome — you are the first registered member of cheri. You are helping start the real community; other members will appear as they join.');
-          return;
         }
       }
 
