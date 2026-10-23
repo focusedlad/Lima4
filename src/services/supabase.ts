@@ -273,6 +273,7 @@ export const SupabaseService = {
           uid: session.user.id,
           email: session.user.email || user.email || '',
           name: user.name,
+          handle: user.handle,
           avatar: user.avatar,
           university: user.university || user.universityOrLocation,
           studyField: user.studyField,
