@@ -148,6 +148,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const res = await SupabaseService.signUpWithEmail(email, password, displayName || 'New Studier');
         if (!res.success) { setErrorMsg(res.error || 'Signup failed.'); return; }
         if (!res.session) {
+          localStorage.setItem('cheri_pending_first_user_welcome', email.trim().toLowerCase());
           setSuccessMsg('Account created. Check your email and open the verification link to finish setting up your account. The link will return you to this app.');
           return;
         }
