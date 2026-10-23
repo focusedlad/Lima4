@@ -478,7 +478,8 @@ export async function insertMilestone(input: {
         description: input.description,
         subjectTag: input.subjectTag || '',
         streakDays: input.streakDays || 1,
-        xpEarned: input.xpEarned || 50,
+        xpEarned: input.xpEarned ?? 50,
+        visibility: input.visibility || 'public',
       })
       .returning();
     return result[0];
