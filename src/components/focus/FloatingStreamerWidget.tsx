@@ -273,9 +273,8 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
         left: position ? `${position.x}px` : undefined,
         top: position ? `${position.y}px` : undefined,
         right: position ? undefined : '16px',
-        width: `${currentWidth}px`,
-        maxWidth: 'calc(100vw - 16px)',
         width: `min(${currentWidth}px, calc(100vw - 16px))`,
+        maxWidth: 'calc(100vw - 16px)',
       }}
     >
       <div className="bg-stone-900/95 dark:bg-stone-950/95 text-white rounded-[24px] border border-stone-700/80 dark:border-stone-800 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.55)] backdrop-blur-xl overflow-hidden ring-1 ring-white/10">
