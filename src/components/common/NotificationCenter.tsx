@@ -93,7 +93,7 @@ export const NotificationCenter: React.FC = () => {
     void loadChannels();
     const { data: authListener } = getSupabaseClient().auth.onAuthStateChange(() => {
       setChannelsLoaded(false);
-      void loadChannels();
+      queueMicrotask(() => { void loadChannels(); });
     });
     return () => { cancelled = true; authListener.subscription.unsubscribe(); };
   }, []);
