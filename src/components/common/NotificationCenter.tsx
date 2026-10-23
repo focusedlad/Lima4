@@ -201,7 +201,7 @@ export const NotificationCenter: React.FC = () => {
       return;
     }
     if (channels.some((item) => item.channel.toLowerCase() === normalized.toLowerCase())) {
-      setError('You are already following that channel on this device.');
+      setError('You are already following that channel on your account.');
       return;
     }
     if (!channelsLoaded) { setError('Your saved channels are still loading. Try again in a moment.'); return; }
@@ -305,7 +305,7 @@ export const NotificationCenter: React.FC = () => {
               <input value={channelInput} onChange={(e) => setChannelInput(e.target.value)} placeholder="Channel URL or @handle" aria-label="YouTube channel URL or handle" className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100 dark:border-white/10 dark:bg-[#0C1218] dark:focus:ring-sky-950" />
               <button type="submit" disabled={!channelInput.trim() || busyId !== null || !channelsLoaded} aria-label="Follow channel" className="flex items-center justify-center rounded-xl bg-[#71313B] px-3 text-white hover:bg-[#57232C] disabled:opacity-40"><Plus className="h-4 w-4" /></button>
             </form>
-            <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">Follows are saved on this device. Add YOUTUBE_API_KEY to Vercel to enable live lookup; the key stays server-side.</p>
+            <p className="mt-1.5 text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">Followed channels are saved privately to your account. Add YOUTUBE_API_KEY to Vercel to enable live lookup; the key stays server-side.</p>
             {!channelsLoaded ? <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500 dark:border-white/10">Loading your followed channels…</div> : channels.length === 0 ? <div className="mt-3 rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500 dark:border-white/10">No channels followed yet. Add a creator you like.</div> : (
               <div className="mt-3 space-y-2">
                 {channels.map((channel) => {
