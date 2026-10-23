@@ -316,3 +316,19 @@ html.dark .profile-modal-card textarea {
   .profile-modal-card { border-radius: 1.25rem; }
   .focus-zen-fullscreen { touch-action: manipulation; }
 }
+
+
+/* Deep charcoal mode across every legacy Tailwind surface, not just the app shell. */
+html.dark [class~="dark:bg-stone-950"] { background-color: #030407 !important; }
+html.dark [class~="dark:bg-stone-900"] { background-color: #0B1020 !important; }
+html.dark [class~="dark:bg-stone-800"] { background-color: #0F172A !important; }
+html.dark [class~="dark:bg-stone-700"] { background-color: #172033 !important; }
+html.dark [class~="dark:border-stone-800"],
+html.dark [class~="dark:border-stone-700"],
+html.dark [class~="dark:border-stone-600"] { border-color: rgba(148, 163, 184, 0.16) !important; }
+html.dark [class~="dark:bg-[#0D0C0D]"],
+html.dark [class~="dark:bg-[#0D0C0D]/95"],
+html.dark [class~="dark:bg-[#0D0C0D]/90"] { background-color: #05070B !important; }
+html.dark [class~="dark:text-stone-100"] { color: #F8FAFC !important; }
+html.dark [class~="dark:text-stone-300"] { color: #CBD5E1 !important; }
+html.dark [class~="dark:text-stone-400"] { color: #94A3B8 !important; }
