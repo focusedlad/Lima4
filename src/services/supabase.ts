@@ -365,7 +365,7 @@ export const SupabaseService = {
     };
 
     try {
-      await fetch('/api/db/challenges', {
+      await authenticatedFetch('/api/db/challenges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -392,7 +392,7 @@ export const SupabaseService = {
    */
   async joinChallenge(challengeId: string, user: UserProfile): Promise<void> {
     try {
-      await fetch('/api/db/challenges/join', {
+      await authenticatedFetch('/api/db/challenges/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -457,7 +457,7 @@ export const SupabaseService = {
     friend: { uid: string; name: string; handle?: string; avatar?: string; university?: string }
   ): Promise<void> {
     try {
-      await fetch('/api/db/friends', {
+      await authenticatedFetch('/api/db/friends', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -491,7 +491,7 @@ export const SupabaseService = {
    */
   async removeFriend(userUid: string, friendUid: string): Promise<void> {
     try {
-      await fetch(`/api/db/friends/${encodeURIComponent(friendUid)}?userUid=${encodeURIComponent(userUid)}`, {
+      await authenticatedFetch(`/api/db/friends/${encodeURIComponent(friendUid)}?userUid=${encodeURIComponent(userUid)}`, {
         method: 'DELETE',
       });
     } catch (_) {}
@@ -566,7 +566,7 @@ export const SupabaseService = {
     };
 
     try {
-      await fetch('/api/db/milestones', {
+      await authenticatedFetch('/api/db/milestones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -594,7 +594,7 @@ export const SupabaseService = {
    */
   async cheerMilestone(milestoneId: string): Promise<void> {
     try {
-      await fetch(`/api/db/milestones/${encodeURIComponent(milestoneId)}/cheer`, {
+      await authenticatedFetch(`/api/db/milestones/${encodeURIComponent(milestoneId)}/cheer`, {
         method: 'POST',
       });
     } catch (_) {}
