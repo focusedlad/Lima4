@@ -1,6 +1,6 @@
 import { db } from './index';
 import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones, milestoneCheers } from './schema';
-import { eq, desc, sql, or, and, gt, ilike, inArray, notInArray } from 'drizzle-orm';
+import { eq, desc, sql, or, and, gt, gte, ilike, inArray, notInArray } from 'drizzle-orm';
 
 export interface UserSyncInput {
   uid: string;
@@ -283,24 +283,43 @@ export async function getChallengeLeaderboard(challengeId: string) {
 
 export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all') {
   try {
-    // For 'all', pull users ordered by totalHoursStudied and xp
-    return await db
-      .select({
-        id: users.id,
-        uid: users.uid,
-        name: users.name,
-        handle: users.handle,
-        avatar: users.avatar,
-        university: users.university,
-        studyField: users.studyField,
-        totalHoursStudied: users.totalHoursStudied,
-        xp: users.xp,
-        currentStreak: users.currentStreak,
-      })
+    if (timeframe === 'all') {
+      return await db
+        .select({ id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar, university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied, xp: users.xp, currentStreak: users.currentStreak })
+        .from(users)
+        .where(and(eq(users.isGhostMode, false), or(gt(users.totalHoursStudied, 0), gt(users.xp, 0))))
+        .orderBy(desc(users.totalHoursStudied), desc(users.xp))
+        .limit(50);
+    }
+
+    const now = new Date();
+    const start = new Date(now);
+    if (timeframe === 'week') {
+      const day = start.getDay() || 7;
+      start.setDate(start.getDate() - day + 1);
+    } else if (timeframe === 'month') {
+      start.setDate(1);
+    }
+    const startDate = start.toISOString().slice(0, 10);
+    const aggregates = await db
+      .select({ uid: focusLogs.userUid, minutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`, xp: sql<number>`COALESCE(SUM(${focusLogs.xpEarned}), 0)::int` })
+      .from(focusLogs)
+      .where(gte(focusLogs.date, startDate))
+      .groupBy(focusLogs.userUid);
+    if (!aggregates.length) return [];
+    const aggregateByUid = new Map(aggregates.map((row) => [row.uid, row]));
+    const members = await db
+      .select({ id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar, university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied, xp: users.xp, currentStreak: users.currentStreak })
       .from(users)
-      .where(and(eq(users.isGhostMode, false), or(gt(users.totalHoursStudied, 0), gt(users.xp, 0))))
-      .orderBy(desc(users.totalHoursStudied), desc(users.xp))
-      .limit(50);
+      .where(and(eq(users.isGhostMode, false), inArray(users.uid, aggregates.map((row) => row.uid))));
+    return members
+      .map((member) => {
+        const stats = aggregateByUid.get(member.uid);
+        return { ...member, totalHoursStudied: Math.round(((stats?.minutes || 0) / 60) * 100) / 100, xp: Number(stats?.xp || 0) };
+      })
+      .filter((member) => member.totalHoursStudied > 0 || member.xp > 0)
+      .sort((a, b) => b.totalHoursStudied - a.totalHoursStudied || b.xp - a.xp)
+      .slice(0, 50);
   } catch (error) {
     console.error('Database getLeaderboardByTimeframe failed:', error);
     throw new Error('Database operation failed', { cause: error });
