@@ -81,22 +81,7 @@ export async function getRegisteredUserCount(): Promise<number> {
       })
       .returning();
 
-    // Also update user's total hours and streak
-    await db
-      .update(users)
-      .set({
-        totalHoursStudied: sql`${users.totalHoursStudied} + ${Math.round(input.durationMinutes / 60)}`,
-        xp: sql`${users.xp} + ${input.xpEarned}`,
-      })
-      .where(eq(users.uid, input.userUid));
-
-    // Also increment any active challenge participants
-    await db
-      .update(challengeParticipants)
-      .set({
-        studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}`,
-      })
-      .where(eq(challengeParticipants.userUid, input.userUid));
+    // User totals are synchronized from the authenticated profile endpoint; do not increment twice.
 
     return result[0];
   } catch (error) {
