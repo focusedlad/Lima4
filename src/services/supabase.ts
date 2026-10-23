@@ -138,6 +138,13 @@ export interface MilestoneItem {
   createdAt?: string;
 }
 
+function getAuthRedirectUrl(): string {
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return window.location.origin;
+  if (hostname.endsWith('.vercel.app') || hostname === 'lima4.vercel.app') return 'https://lima4.vercel.app';
+  return window.location.origin;
+}
+
 async function authenticatedFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
   const { data: { session } } = await getActiveSupabaseClient().auth.getSession();
   if (!session?.user) throw new Error('Please sign in to use community features.');
@@ -180,7 +187,7 @@ export const SupabaseService = {
     try {
       const { error } = await getActiveSupabaseClient().auth.signInWithOAuth({
         provider: 'apple',
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: getAuthRedirectUrl() },
       });
       if (error) return { success: false, error: error.message };
       return { success: true };
@@ -196,7 +203,7 @@ export const SupabaseService = {
     try {
       const { error } = await getActiveSupabaseClient().auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: getAuthRedirectUrl() },
       });
       if (error) return { success: false, error: error.message };
       return { success: true };
@@ -232,7 +239,7 @@ export const SupabaseService = {
         password: pass,
         options: {
           data: { full_name: name.trim() },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: getAuthRedirectUrl(),
         },
       });
       if (error) return { success: false, error: error.message };
