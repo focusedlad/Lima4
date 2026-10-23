@@ -40,7 +40,6 @@ import {
   AdmissionRequest,
   FocusSessionLog,
   FocusCategory,
-  ActivityFeedItem,
   SubscriptionPlan,
   GlobalAnnouncement,
   EmployeeAccount,
@@ -50,9 +49,6 @@ import {
 import {
   StorageService,
   generate31DayHeatmap,
-  INITIAL_SPACES,
-  INITIAL_ACTIVITY_FEED,
-  INITIAL_DECKS,
 } from './services/storage';
 import { audioSynth } from './services/audioSynth';
 import { Navbar, MainNavTab } from './components/common/Navbar';
@@ -88,7 +84,6 @@ export default function App() {
   const [admissions, setAdmissions] = useState<AdmissionRequest[]>(() => StorageService.getAdmissions());
   const [focusLogs, setFocusLogs] = useState<FocusSessionLog[]>(() => StorageService.getFocusLogs());
   const [heatmapDays, setHeatmapDays] = useState(() => generate31DayHeatmap());
-  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [firstUserNotice, setFirstUserNotice] = useState(false);
 
   // Navigation & Active Screen (Study Timer, Challenges, Leaderboard, Analytics)
@@ -321,11 +316,7 @@ export default function App() {
     StorageService.saveFocusLogs(focusLogs);
   }, [focusLogs]);
 
-  useEffect(() => {
-    StorageService.saveActivityFeed(activityFeed);
-  }, [activityFeed]);
-
-  // Dedicated Admin Portal Link routing & secret access
+  // Dedicated Admin Portal Link routing & secret access  // Dedicated Admin Portal Link routing & secret access
   const [badgeClicks, setBadgeClicks] = useState<number>(0);
 
   useEffect(() => {
@@ -403,48 +394,7 @@ export default function App() {
     }
   };
 
-  // Social feed handlers with Firebase Sync
-  const handleCheerActivity = (activityId: string) => {
-    setActivityFeed((prev) =>
-      prev.map((item) => {
-        if (item.id === activityId) {
-          const cheered = !item.userHasCheered;
-          return {
-            ...item,
-            userHasCheered: cheered,
-            cheersCount: cheered ? item.cheersCount + 1 : Math.max(0, item.cheersCount - 1),
-          };
-        }
-        return item;
-      })
-    );
-    FirebaseService.cheerActivity(activityId).catch(() => {});
-  };
-
-  const handlePostMilestone = (title: string, description: string, subjectTag: string) => {
-    const newItem: ActivityFeedItem = {
-      id: `act_${Date.now()}`,
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userAvatar: currentUser.avatar,
-      countryFlag: currentUser.countryFlag || '',
-      countryName: currentUser.countryName || 'Global',
-      university: currentUser.university || currentUser.universityOrLocation,
-      type: 'streak_milestone',
-      title,
-      description,
-      xpEarned: 50,
-      streakDays: currentUser.currentStreak,
-      timestamp: 'Just now',
-      cheersCount: 1,
-      userHasCheered: true,
-      subjectTag,
-    };
-    setActivityFeed([newItem, ...activityFeed]);
-    FirebaseService.addActivityItem(newItem).catch(() => {});
-  };
-
-  const handleToggleGhostMode = () => {
+    const handleToggleGhostMode = () => {
     setCurrentUser((prev) => {
       const updatedGhost = !prev.isGhostMode;
       return {
