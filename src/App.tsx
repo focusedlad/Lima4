@@ -52,6 +52,7 @@ import {
 } from './services/storage';
 import { audioSynth } from './services/audioSynth';
 import { Navbar, MainNavTab } from './components/common/Navbar';
+import { NotificationCenter } from './components/common/NotificationCenter';
 import { QuickActionModal } from './components/common/QuickActionModal';
 import { SoundSynthesizerModal } from './components/audio/SoundSynthesizerModal';
 import { FocusTimerHero } from './components/focus/FocusTimerHero';
@@ -576,6 +577,7 @@ export default function App() {
 
           {/* Quick Metrics & Ambiance Toggle */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <NotificationCenter />
             {/* Ghost Mode Quick Toggle */}
             <button
               onClick={handleToggleGhostMode}
