@@ -88,10 +88,10 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
-      <div className="clay-card-yellow p-6 border border-amber-200">
+      <div className="clay-card-yellow p-6 border border-indigo-200">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-400 text-stone-950 flex items-center justify-center font-bold shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-400 text-stone-950 flex items-center justify-center font-bold shadow-xs">
               <Trophy className="w-6 h-6" />
             </div>
             <div>
@@ -114,7 +114,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
         </div>
 
         {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-amber-200/60 dark:border-stone-800">
+        <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-indigo-200/60 dark:border-stone-800">
           <button
             onClick={() => setActiveFilter('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -170,11 +170,11 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
           return (
             <div
               key={challenge.id}
-              className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm flex flex-col justify-between transition-all hover:border-amber-400 group"
+              className="p-5 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 shadow-sm flex flex-col justify-between transition-all hover:border-indigo-400 group"
             >
               <div>
                 <div className="flex items-start justify-between gap-3 mb-2.5">
-                  <span className="px-2.5 py-1 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 font-bold text-[10px] uppercase tracking-wider">
+                  <span className="px-2.5 py-1 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 font-bold text-[10px] uppercase tracking-wider">
                     {challenge.category}
                   </span>
                   <div className="flex items-center gap-1.5 text-xs text-stone-500 font-semibold">
@@ -183,7 +183,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   </div>
                 </div>
 
-                <h3 className="text-base font-extrabold text-stone-900 dark:text-white mb-1.5 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                <h3 className="text-base font-extrabold text-stone-900 dark:text-white mb-1.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {challenge.title}
                 </h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 line-clamp-2 mb-4">
@@ -193,7 +193,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                 {/* Target Metric Card */}
                 <div className="p-3 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-100 dark:border-stone-800 mb-4 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-500" />
+                    <Clock className="w-4 h-4 text-indigo-500" />
                     <span className="text-stone-600 dark:text-stone-300">Goal Target:</span>
                   </div>
                   <span className="font-extrabold text-stone-900 dark:text-white">
@@ -212,7 +212,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                     </div>
                     <div className="w-full h-2 rounded-full bg-stone-100 dark:bg-stone-800 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-amber-400 transition-all duration-500"
+                        className="h-full rounded-full bg-indigo-400 transition-all duration-500"
                         style={{ width: `${progressPercent}%` }}
                       />
                     </div>
@@ -242,7 +242,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   ) : (
                     <button
                       onClick={() => handleJoin(challenge)}
-                      className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs transition-colors"
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-400 hover:bg-indigo-300 text-stone-950 font-bold text-xs transition-colors"
                     >
                       Join Challenge
                     </button>
@@ -280,7 +280,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
           <div className="w-full max-w-lg bg-white dark:bg-stone-900 rounded-3xl p-6 border border-stone-200 dark:border-stone-800 shadow-2xl animate-fade-in">
             <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center font-bold">
+                <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center font-bold">
                   <Target className="w-4 h-4" />
                 </div>
                 <h2 className="text-base font-bold text-stone-900 dark:text-white">
@@ -306,7 +306,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   placeholder="e.g. 7-Day 35h Midterm Sprint"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
                   required
                 />
               </div>
@@ -320,7 +320,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   placeholder="Outline the goals and daily commitment expected..."
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
                 />
               </div>
 
@@ -335,7 +335,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                     max="500"
                     value={newTargetHours}
                     onChange={(e) => setNewTargetHours(Number(e.target.value) || 10)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs font-bold"
+                    className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs font-bold"
                   />
                 </div>
 
@@ -346,7 +346,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   <select
                     value={newPeriod}
                     onChange={(e) => setNewPeriod(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                    className="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
                   >
                     <option value="today">Today (24 Hours)</option>
                     <option value="weekend">Weekend Sprint</option>
@@ -366,7 +366,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   placeholder="e.g. Medicine, STEM, Deep Work, Law..."
                   value={newCategory}
                   onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
                 />
               </div>
 
