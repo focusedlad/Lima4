@@ -3,8 +3,8 @@ import { UserProfile, FocusSessionLog, StudySpace, StudyDeck } from '../types';
 export const ApiDatabase = {
   async syncUser(user: UserProfile, idToken?: string) {
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+      if (!idToken) return null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` };
 
       const res = await fetch('/api/db/sync-user', {
         method: 'POST',
@@ -31,8 +31,8 @@ export const ApiDatabase = {
 
   async logFocusSession(log: FocusSessionLog, userUid: string, idToken?: string) {
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+      if (!idToken) return null;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` };
 
       const res = await fetch('/api/db/focus-logs', {
         method: 'POST',
