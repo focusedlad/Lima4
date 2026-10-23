@@ -236,17 +236,17 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
       </div>
 
       {/* Two Prominent Feed Mode Tabs: Friends Only vs Global Feed */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-1.5 bg-[#FDFBF7] dark:bg-[#1A1819] rounded-[24px] border border-pink-100 dark:border-pink-950/80">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-1.5 bg-[#F8FAFC] dark:bg-[#1A1819] rounded-[24px] border border-indigo-100 dark:border-indigo-950/80">
         <div className="grid grid-cols-2 gap-1 flex-1 sm:max-w-md">
           <button
             onClick={() => setFeedMode('friends')}
             className={`py-2 px-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
               feedMode === 'friends'
-                ? 'bg-white dark:bg-[#221F21] text-pink-700 dark:text-pink-300 shadow-xs border border-pink-200 dark:border-pink-900 ring-1 ring-pink-300 dark:ring-pink-800'
+                ? 'bg-white dark:bg-[#0B1020] text-indigo-700 dark:text-indigo-300 shadow-xs border border-indigo-200 dark:border-indigo-900 ring-1 ring-indigo-300 dark:ring-indigo-800'
                 : 'text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
-            <Users className="w-4 h-4 text-pink-500 shrink-0" />
+            <Users className="w-4 h-4 text-indigo-500 shrink-0" />
             <span>Friends Feed Only</span>
           </button>
 
@@ -254,7 +254,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
             onClick={() => setFeedMode('global')}
             className={`py-2 px-4 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
               feedMode === 'global'
-                ? 'bg-white dark:bg-[#221F21] text-sky-700 dark:text-sky-300 shadow-xs border border-sky-200 dark:border-sky-900 ring-1 ring-sky-300 dark:ring-sky-800'
+                ? 'bg-white dark:bg-[#0B1020] text-sky-700 dark:text-sky-300 shadow-xs border border-sky-200 dark:border-sky-900 ring-1 ring-sky-300 dark:ring-sky-800'
                 : 'text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white'
             }`}
           >
@@ -271,8 +271,8 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
               onClick={() => setSubjectFilter(tag)}
               className={`px-3 py-1.5 rounded-xl font-semibold transition-all whitespace-nowrap ${
                 subjectFilter === tag
-                  ? 'bg-pink-500 text-white shadow-xs'
-                  : 'text-stone-500 hover:text-stone-900 dark:text-stone-400 hover:bg-pink-50 dark:hover:bg-stone-800'
+                  ? 'bg-indigo-500 text-white shadow-xs'
+                  : 'text-stone-500 hover:text-stone-900 dark:text-stone-400 hover:bg-indigo-50 dark:hover:bg-stone-800'
               }`}
             >
               {tag === 'all' ? 'All Subjects' : `#${tag}`}
@@ -284,13 +284,13 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
       {/* Friend Search Bar - Quick Look-Up by Unique Name / Handle */}
       <div className="relative">
         <div className="relative flex items-center">
-          <Search className="w-4 h-4 text-pink-400 absolute left-3.5 pointer-events-none" />
+          <Search className="w-4 h-4 text-indigo-400 absolute left-3.5 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search real members by name or handle..."
-            className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white dark:bg-[#221F21] border border-pink-100 dark:border-pink-950/80 text-stone-900 dark:text-white text-xs placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 shadow-xs transition-all"
+            className="w-full pl-10 pr-10 py-3 rounded-2xl bg-white dark:bg-[#0B1020] border border-indigo-100 dark:border-indigo-950/80 text-stone-900 dark:text-white text-xs placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 shadow-xs transition-all"
           />
           {searchQuery && (
             <button
@@ -349,8 +349,8 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                       onClick={() => handleToggleFriend(user)}
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                         added
-                          ? 'bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-900'
-                          : 'bg-pink-500 text-white hover:bg-pink-600 shadow-xs'
+                          ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900'
+                          : 'bg-indigo-500 text-white hover:bg-indigo-600 shadow-xs'
                       }`}
                     >
                       {added ? (
@@ -528,12 +528,12 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                         {item.userName}
                       </span>
                       {item.userHandle && (
-                        <span className="text-[11px] font-mono font-semibold text-pink-600 dark:text-pink-400">
+                        <span className="text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400">
                           {item.userHandle}
                         </span>
                       )}
                       {isFriend && (
-                        <span className="px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-950 text-pink-700 dark:text-pink-300 text-[10px] font-bold border border-pink-200 dark:border-pink-800">
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold border border-indigo-200 dark:border-indigo-800">
                           Friend
                         </span>
                       )}
@@ -544,8 +544,8 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                     <div className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 flex items-center gap-2">
                       <span>{item.university || 'Global Campus'}</span>
                       {item.streakDays && (
-                        <span className="inline-flex items-center gap-0.5 font-bold text-pink-600 dark:text-pink-400">
-                          <Flame className="w-3 h-3 fill-pink-500" />
+                        <span className="inline-flex items-center gap-0.5 font-bold text-indigo-600 dark:text-indigo-400">
+                          <Flame className="w-3 h-3 fill-indigo-500" />
                           <span>{item.streakDays}d streak</span>
                         </span>
                       )}
@@ -561,7 +561,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
 
                     {item.subjectTag && (
                       <div className="mt-2.5">
-                        <span className="px-2.5 py-1 rounded-lg bg-pink-50 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 text-[11px] font-mono font-semibold border border-pink-100 dark:border-pink-950/60">
+                        <span className="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[11px] font-mono font-semibold border border-indigo-100 dark:border-indigo-950/60">
                           #{item.subjectTag.replace(/^#/, '')}
                         </span>
                       </div>
@@ -570,16 +570,16 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                 </div>
 
                 {/* Right: Cheer Button */}
-                <div className="flex sm:flex-col items-center justify-between sm:justify-center w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-pink-50 dark:border-pink-950/40 shrink-0">
+                <div className="flex sm:flex-col items-center justify-between sm:justify-center w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-indigo-50 dark:border-indigo-950/40 shrink-0">
                   <button
                     onClick={() => handleCheer(item.milestoneId || item.id)}
                     className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
                       hasCheered
-                        ? 'bg-pink-50 dark:bg-pink-950/60 text-pink-600 dark:text-pink-300 border border-pink-200 dark:border-pink-800 shadow-xs'
-                        : 'bg-[#FDFBF7] dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-pink-50 border border-pink-100 dark:border-stone-700'
+                        ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shadow-xs'
+                        : 'bg-[#F8FAFC] dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-indigo-50 border border-indigo-100 dark:border-stone-700'
                     }`}
                   >
-                    <Heart className={`w-3.5 h-3.5 ${hasCheered ? 'fill-pink-500 text-pink-500' : ''}`} />
+                    <Heart className={`w-3.5 h-3.5 ${hasCheered ? 'fill-indigo-500 text-indigo-500' : ''}`} />
                     <span>{item.cheersCount || 0}</span>
                   </button>
                 </div>
@@ -592,10 +592,10 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
       {/* Friends Management Modal */}
       {isFriendsListOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/70 backdrop-blur-sm animate-fade-in">
-          <div className="squircle-card max-w-md w-full p-6 bg-white dark:bg-[#221F21] border border-pink-100 dark:border-pink-950/80 shadow-2xl relative max-h-[85vh] flex flex-col rounded-3xl">
-            <div className="flex items-center justify-between pb-3 border-b border-pink-50 dark:border-pink-950/60 mb-4 shrink-0">
+          <div className="squircle-card max-w-md w-full p-6 bg-white dark:bg-[#0B1020] border border-indigo-100 dark:border-indigo-950/80 shadow-2xl relative max-h-[85vh] flex flex-col rounded-3xl">
+            <div className="flex items-center justify-between pb-3 border-b border-indigo-50 dark:border-indigo-950/60 mb-4 shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
