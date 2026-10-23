@@ -53,6 +53,8 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
   const [size, setSize] = useState<StreamerWidgetSize>('compact');
   const [isMuted, setIsMuted] = useState<boolean>(true);
   const [reloadKey, setReloadKey] = useState<number>(0);
+  const [manualWidth, setManualWidth] = useState<number | null>(null);
+  const resizeDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   // Link Drawer State
   const [isLinkDrawerOpen, setIsLinkDrawerOpen] = useState<boolean>(false);
@@ -169,14 +171,38 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
     }
   };
 
-  // Cycle sizes: pip -> compact -> standard -> large -> compact
+  // Cycle presets, or let the user fine-tune width using the corner grip.
   const handleNextSize = () => {
+    setManualWidth(null);
     setSize((current) => {
       if (current === 'pip') return 'compact';
       if (current === 'compact') return 'standard';
       if (current === 'standard') return 'large';
       return 'compact';
     });
+  };
+
+  const handleResizeStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizeDragRef.current = { startX: e.clientX, startWidth: manualWidth ?? getWidgetWidth(size) };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+  };
+
+  const handleResizeMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!resizeDragRef.current) return;
+    const maxWidth = Math.max(240, Math.min(720, window.innerWidth - 16));
+    const nextWidth = Math.max(240, Math.min(maxWidth, resizeDragRef.current.startWidth + e.clientX - resizeDragRef.current.startX));
+    setManualWidth(nextWidth);
+    setPosition((previous) => previous ? {
+      ...previous,
+      x: Math.min(previous.x, Math.max(8, window.innerWidth - nextWidth - 8)),
+    } : previous);
+  };
+
+  const handleResizeEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    resizeDragRef.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (_) {}
   };
 
   // Load custom video link
@@ -246,7 +272,7 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
 
   if (!isVisible || !stream) return null;
 
-  const currentWidth = getWidgetWidth(size);
+  const currentWidth = manualWidth ?? getWidgetWidth(size);
 
   // Determine embed source or render method
   const isDirectVideo = stream.sourceType === 'direct' || Boolean(stream.directVideoUrl);
@@ -563,6 +589,19 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
                 referrerPolicy="strict-origin-when-cross-origin"
               />
             )}
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize floating video player"
+              title="Drag left or right to resize"
+              onPointerDown={handleResizeStart}
+              onPointerMove={handleResizeMove}
+              onPointerUp={handleResizeEnd}
+              onPointerCancel={handleResizeEnd}
+              className="absolute bottom-1 right-1 z-10 flex h-7 w-7 cursor-ew-resize touch-none items-center justify-center rounded-lg border border-white/20 bg-black/65 text-white/90 shadow-lg hover:bg-black/85"
+            >
+              <GripHorizontal className="h-4 w-4 rotate-90" />
+            </div>
           </div>
         )}
 
