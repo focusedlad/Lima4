@@ -129,6 +129,12 @@ export async function insertFocusLog(input: {
       })
       .returning();
 
+    // Progress belongs to each challenge the authenticated user has joined.
+    await db
+      .update(challengeParticipants)
+      .set({ studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}` })
+      .where(eq(challengeParticipants.userUid, input.userUid));
+
     // User totals are synchronized from the authenticated profile endpoint; do not increment twice.
 
     return result[0];
