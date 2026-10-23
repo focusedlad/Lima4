@@ -25,7 +25,7 @@ const PLANS_KEY = 'lumina_subscription_plans';
 const ANNOUNCEMENTS_KEY = 'lumina_announcements';
 const EMPLOYEES_KEY = 'lumina_employees';
 const SETTINGS_KEY = 'lumina_system_settings';
-const DB_VERSION_KEY = 'lumina_beta_real_users_v3';
+const DB_VERSION_KEY = 'lumina_beta_real_users_v4';
 
 if (typeof window !== 'undefined') {
   try {
