@@ -203,6 +203,40 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   const [videoError, setVideoError] = useState<string | null>(null);
 
   const [isZenFullscreen, setIsZenFullscreen] = useState<boolean>(false);
+  const enterZenFullscreen = async () => {
+    // Enter browser-level fullscreen while this click is still a user gesture.
+    // Some mobile browsers (notably iOS Safari) do not expose the Fullscreen API;
+    // the fixed, viewport-sized Zen overlay remains the best available fallback there.
+    setIsZenFullscreen(true);
+    try {
+      const root = document.documentElement as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void> | void;
+      };
+      if (typeof root.requestFullscreen === 'function') {
+        await root.requestFullscreen({ navigationUI: 'hide' });
+      } else if (typeof root.webkitRequestFullscreen === 'function') {
+        await root.webkitRequestFullscreen();
+      }
+    } catch (error) {
+      // Keep Zen Mode open even if browser-level fullscreen is unsupported or denied.
+      console.info('Browser fullscreen is unavailable; keeping Zen Mode immersive.', error);
+    }
+  };
+
+  const exitZenFullscreen = async () => {
+    setIsZenFullscreen(false);
+    try {
+      const doc = document as Document & { webkitExitFullscreen?: () => Promise<void> | void };
+      if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+        await document.exitFullscreen();
+      } else if (doc.webkitFullscreenElement && typeof doc.webkitExitFullscreen === 'function') {
+        await doc.webkitExitFullscreen();
+      }
+    } catch (error) {
+      console.info('Browser fullscreen could not be exited programmatically.', error);
+    }
+  };
+
   const [activeSound, setActiveSound] = useState<string | null>(null);
 
   const intervalRef = useRef<number | null>(null);
@@ -215,10 +249,20 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsZenFullscreen(false);
     };
+    const handleFullscreenChange = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      if (!document.fullscreenElement && !doc.webkitFullscreenElement) {
+        setIsZenFullscreen(false);
+      }
+    };
     window.addEventListener('keydown', handleEscape);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
   }, [isZenFullscreen]);
 
@@ -618,7 +662,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
 
               {/* Fullscreen Zen Mode */}
               <button
-                onClick={() => setIsZenFullscreen(true)}
+                onClick={enterZenFullscreen}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 border border-white/15 text-stone-200 text-xs font-semibold backdrop-blur-md transition-colors"
                 title="Enter full-screen Zen study immersion"
               >
@@ -952,7 +996,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
               )}
 
               <button
-                onClick={() => setIsZenFullscreen(false)}
+                onClick={exitZenFullscreen}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 hover:bg-black/70 border border-white/10 text-xs font-bold text-stone-300 hover:text-white backdrop-blur-md transition-colors"
               >
                 <Minimize2 className="w-4 h-4" />
