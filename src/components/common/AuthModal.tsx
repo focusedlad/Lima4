@@ -230,15 +230,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-stone-100 dark:border-stone-800 mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950 text-stone-900 dark:text-amber-200 flex items-center justify-center font-bold">
-              <ShieldCheck className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+            <div className="w-10 h-10 rounded-2xl bg-indigo-100 dark:bg-indigo-950 text-stone-900 dark:text-indigo-200 flex items-center justify-center font-bold">
+              <ShieldCheck className="w-5 h-5 text-indigo-700 dark:text-indigo-400" />
             </div>
             <div>
               <h2 className="text-base font-bold text-stone-900 dark:text-white">
-                Student Account & Cloud Sync
+                Welcome to cheri
               </h2>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Supabase & PostgreSQL Social Study Sync
+                Sign in to save your focus sessions and study progress.
               </p>
             </div>
           </div>
@@ -279,18 +279,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-300'
                 : hasAcceptedTerms
                 ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200'
-                : 'bg-amber-50/60 border-amber-200 text-stone-900 dark:bg-stone-800 dark:border-stone-700 dark:text-white'
+                : 'bg-indigo-50/60 border-indigo-200 text-stone-900 dark:bg-stone-800 dark:border-stone-700 dark:text-white'
             }`}
           >
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex items-center gap-1.5 font-extrabold text-xs text-stone-900 dark:text-white">
-                <Scale className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                <Scale className="w-4 h-4 text-indigo-700 dark:text-indigo-400" />
                 <span>Platform Study Rules & Terms</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsRulesModalOpen(true)}
-                className="text-[11px] font-bold text-amber-800 dark:text-amber-400 hover:underline flex items-center gap-1"
+                className="text-[11px] font-bold text-indigo-800 dark:text-indigo-400 hover:underline flex items-center gap-1"
               >
                 <FileText className="w-3 h-3" />
                 <span>Read Full Terms</span>
@@ -306,7 +306,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <BookOpen className="w-3 h-3 text-indigo-500" /> Academic Integrity
               </span>
               <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-[10px] font-medium text-stone-700 dark:text-stone-300">
-                <EyeOff className="w-3 h-3 text-amber-500" /> Ghost Mode Privacy
+                <EyeOff className="w-3 h-3 text-indigo-500" /> Ghost Mode Privacy
               </span>
             </div>
 
@@ -321,7 +321,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     setErrorMsg(null);
                   }
                 }}
-                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 mt-0.5 shrink-0"
+                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 mt-0.5 shrink-0"
               />
               <span className="text-[11px] leading-tight font-medium text-stone-800 dark:text-stone-300">
                 I have read and agree to the platform community guidelines and terms.
@@ -430,7 +430,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="e.g. Liam Parker"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
                   />
                 </div>
               </div>
@@ -448,7 +448,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="student@university.edu"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
                 />
               </div>
             </div>
@@ -465,7 +465,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 6 characters"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-400 text-xs"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
                 />
               </div>
             </div>
