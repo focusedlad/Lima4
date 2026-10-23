@@ -364,45 +364,30 @@ export const SupabaseService = {
       myProgressHours: 0,
     };
 
-    try {
-      await authenticatedFetch('/api/db/challenges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challengeId: newChallenge.id,
-          title: newChallenge.title,
-          description: newChallenge.description,
-          creatorUid: newChallenge.creatorUid,
-          creatorName: newChallenge.creatorName,
-          creatorAvatar: newChallenge.creatorAvatar,
-          targetHours: newChallenge.targetHours,
-          period: newChallenge.period,
-          startDate: newChallenge.startDate,
-          endDate: newChallenge.endDate,
-          category: newChallenge.category,
-        }),
-      });
-    } catch (_) {}
-
-    return newChallenge;
+    const response = await authenticatedFetch('/api/db/challenges', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: newChallenge.title, description: newChallenge.description,
+        targetHours: newChallenge.targetHours, period: newChallenge.period, category: newChallenge.category,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.challenge) throw new Error(payload.error || 'The challenge could not be saved.');
+    return { ...newChallenge, ...payload.challenge, id: payload.challenge.id || payload.challenge.challengeId, isJoined: true, myProgressHours: 0 };
   },
 
   /**
    * Join an existing challenge
    */
   async joinChallenge(challengeId: string, user: UserProfile): Promise<void> {
-    try {
-      await authenticatedFetch('/api/db/challenges/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challengeId,
-          userUid: user.id,
-          userName: user.name,
-          userAvatar: user.avatar,
-        }),
-      });
-    } catch (_) {}
+    const response = await authenticatedFetch('/api/db/challenges/join', {
+      method: 'POST',
+      body: JSON.stringify({ challengeId }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'Could not join this challenge.');
+    }
   },
 
   /**
@@ -544,38 +529,26 @@ export const SupabaseService = {
       createdAt: 'Just now',
     };
 
-    try {
-      await authenticatedFetch('/api/db/milestones', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          milestoneId: newMilestone.milestoneId,
-          userUid: newMilestone.userUid,
-          userName: newMilestone.userName,
-          userHandle: newMilestone.userHandle,
-          userAvatar: newMilestone.userAvatar,
-          university: newMilestone.university,
-          type: newMilestone.type,
-          title: newMilestone.title,
-          description: newMilestone.description,
-          subjectTag: newMilestone.subjectTag,
-          streakDays: newMilestone.streakDays,
-          xpEarned: newMilestone.xpEarned,
-        }),
-      });
-    } catch (_) {}
-
-    return newMilestone;
+    const response = await authenticatedFetch('/api/db/milestones', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: newMilestone.title, description: newMilestone.description,
+        subjectTag: newMilestone.subjectTag, type: newMilestone.type,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.milestone) throw new Error(payload.error || 'The milestone could not be published.');
+    return { ...newMilestone, ...payload.milestone, id: payload.milestone.milestoneId || payload.milestone.id };
   },
 
   /**
    * Cheer a milestone
    */
   async cheerMilestone(milestoneId: string): Promise<void> {
-    try {
-      await authenticatedFetch(`/api/db/milestones/${encodeURIComponent(milestoneId)}/cheer`, {
-        method: 'POST',
-      });
-    } catch (_) {}
+    const response = await authenticatedFetch(`/api/db/milestones/${encodeURIComponent(milestoneId)}/cheer`, { method: 'POST' });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'Could not cheer this milestone.');
+    }
   },
 };
