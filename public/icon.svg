@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient: Soothing Ivory Cream to Soft Blossom Cream -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFDF9"/>
+      <stop offset="100%" stop-color="#FBF4EE"/>
+    </linearGradient>
+
+    <!-- Cherry Gradient: Deep Vibrant Pink -->
+    <linearGradient id="cherryGrad" x1="20%" y1="15%" x2="80%" y2="85%">
+      <stop offset="0%" stop-color="#FB7185"/>
+      <stop offset="35%" stop-color="#F43F5E"/>
+      <stop offset="70%" stop-color="#E11D48"/>
+      <stop offset="100%" stop-color="#BE123C"/>
+    </linearGradient>
+
+    <!-- Leaf Gradient: Soft Sage Mint to Fresh Green -->
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6EE7B7"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+
+    <!-- Drop Shadow for Berries -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#E11D48" flood-opacity="0.25"/>
+    </filter>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.06"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle Canvas Base -->
+  <rect x="16" y="16" width="480" height="480" rx="120" fill="url(#bgGrad)" stroke="#FCE7F3" stroke-width="8" filter="url(#cardShadow)"/>
+
+  <!-- Inner Soft Ring -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="#FCE7F3" stroke-width="3" stroke-dasharray="8 8" opacity="0.6"/>
+
+  <!-- Cherry Stems (Elegant smooth arc) -->
+  <path d="M 284 148 C 290 190 230 250 190 286" fill="none" stroke="#475569" stroke-width="12" stroke-linecap="round"/>
+  <path d="M 284 148 C 330 200 320 260 326 292" fill="none" stroke="#475569" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Stem Joint Node -->
+  <circle cx="284" cy="148" r="8" fill="#334155"/>
+
+  <!-- Fresh Spring Leaf -->
+  <path d="M 284 148 C 340 120 376 136 392 168 C 354 186 312 178 284 148 Z" fill="url(#leafGrad)"/>
+  <path d="M 288 152 C 330 148 358 156 384 165" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Left Cherry -->
+  <g filter="url(#softShadow)">
+    <circle cx="180" cy="320" r="76" fill="url(#cherryGrad)"/>
+    <!-- Indentation at top of berry -->
+    <path d="M 166 250 C 180 256 186 256 198 250" fill="none" stroke="#9F1239" stroke-width="5" stroke-linecap="round"/>
+    <!-- Specular Highlight 1 -->
+    <ellipse cx="152" cy="286" rx="22" ry="12" transform="rotate(-35 152 286)" fill="#FFFFFF" opacity="0.6"/>
+    <!-- Specular Highlight 2 (Glint) -->
+    <circle cx="140" cy="304" r="5" fill="#FFFFFF" opacity="0.8"/>
+  </g>
+
+  <!-- Right Cherry (Foreground Overlap) -->
+  <g filter="url(#softShadow)">
+    <circle cx="320" cy="336" r="82" fill="url(#cherryGrad)"/>
+    <!-- Indentation at top of berry -->
+    <path d="M 304 260 C 320 266 328 266 342 260" fill="none" stroke="#9F1239" stroke-width="5" stroke-linecap="round"/>
+    <!-- Specular Highlight 1 -->
+    <ellipse cx="290" cy="300" rx="25" ry="14" transform="rotate(-30 290 300)" fill="#FFFFFF" opacity="0.6"/>
+    <!-- Specular Highlight 2 (Glint) -->
+    <circle cx="276" cy="320" r="6" fill="#FFFFFF" opacity="0.85"/>
+  </g>
+
+  <!-- Brand Label "cheri" at the bottom -->
+  <text x="256" y="456" font-family="-apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif" font-size="34" font-weight="800" fill="#BE123C" letter-spacing="4" text-anchor="middle">cheri</text>
+</svg>

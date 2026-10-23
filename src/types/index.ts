@@ -14,6 +14,7 @@ export type UserRole = 'student' | 'moderator' | 'employee' | 'admin' | 'superad
 export interface UserProfile {
   id: string;
   name: string;
+  handle?: string;
   email?: string;
   avatar: string;
   universityOrLocation: string;

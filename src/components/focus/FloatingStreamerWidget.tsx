@@ -37,6 +37,7 @@ interface FloatingStreamerWidgetProps {
   onOpenRadar?: () => void;
   isSynced?: boolean;
   onChangeVideo?: (stream: YouTubeCreator) => void;
+  onSetAsBackground?: (stream: YouTubeCreator) => void;
 }
 
 export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
@@ -47,6 +48,7 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
   onOpenRadar,
   isSynced,
   onChangeVideo,
+  onSetAsBackground,
 }) => {
   const [size, setSize] = useState<StreamerWidgetSize>('compact');
   const [isMuted, setIsMuted] = useState<boolean>(true);
@@ -295,14 +297,29 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
           </div>
 
           {/* Right: Quick Action Controls */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Set as Focus Background Button */}
+            {onSetAsBackground && stream && (
+              <button
+                onClick={() => {
+                  onSetAsBackground(stream);
+                  onClose();
+                }}
+                className="px-1.5 py-0.5 rounded-md bg-pink-950/80 hover:bg-pink-900 border border-pink-700/60 text-pink-300 text-[10px] font-bold flex items-center gap-1 transition-colors"
+                title="Play this video as the Full-Screen Focus Background in your study screen"
+              >
+                <Maximize2 className="w-2.5 h-2.5 text-pink-400" />
+                <span className="hidden sm:inline">Set BG</span>
+              </button>
+            )}
+
             {/* Inline Link / Change Video Button */}
             <button
               onClick={() => setIsLinkDrawerOpen((prev) => !prev)}
               className={`p-1 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-semibold ${
                 isLinkDrawerOpen
-                  ? 'bg-amber-400 text-stone-950'
-                  : 'text-amber-400 hover:text-amber-300 hover:bg-stone-800'
+                  ? 'bg-pink-500 text-white'
+                  : 'text-pink-400 hover:text-pink-300 hover:bg-stone-800'
               }`}
               title="Paste any video link (YouTube, Vimeo, MP4...)"
               aria-label="Paste video link"
@@ -321,7 +338,7 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
               {isMuted ? (
                 <VolumeX className="w-3 h-3 text-stone-400" />
               ) : (
-                <Volume2 className="w-3 h-3 text-emerald-400" />
+                <Volume2 className="w-3 h-3 text-pink-400" />
               )}
             </button>
 
@@ -431,13 +448,38 @@ export const FloatingStreamerWidget: React.FC<FloatingStreamerWidgetProps> = ({
 
               {urlError && <p className="text-[10px] text-rose-400">{urlError}</p>}
 
-              <button
-                type="submit"
-                className="w-full py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-              >
-                <Play className="w-3 h-3 fill-stone-950" />
-                <span>Play in Floating Pop-Up</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="submit"
+                  className="py-1.5 px-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors shadow-xs"
+                >
+                  <Play className="w-3 h-3 fill-white" />
+                  <span>Movable Pop-Up</span>
+                </button>
+
+                {onSetAsBackground && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const parsed = parseAnyVideoUrl(pastedUrl, customTitle);
+                      if (!parsed) {
+                        setUrlError('Please enter a valid video link');
+                        return;
+                      }
+                      const newCreator = createCreatorFromVideo(parsed, { customTitle, workMin, breakMin });
+                      onSetAsBackground(newCreator);
+                      setPastedUrl('');
+                      setCustomTitle('');
+                      setIsLinkDrawerOpen(false);
+                      onClose();
+                    }}
+                    className="py-1.5 px-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors shadow-xs"
+                  >
+                    <Maximize2 className="w-3 h-3" />
+                    <span>Focus Background</span>
+                  </button>
+                )}
+              </div>
             </form>
 
             {/* Quick Recent Links */}

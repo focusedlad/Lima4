@@ -29,6 +29,8 @@ import {
   Smile,
   Bird,
   Tv,
+  Cherry,
+  Settings,
 } from 'lucide-react';
 import {
   UserProfile,
@@ -57,7 +59,6 @@ import { Navbar, MainNavTab } from './components/common/Navbar';
 import { QuickActionModal } from './components/common/QuickActionModal';
 import { SoundSynthesizerModal } from './components/audio/SoundSynthesizerModal';
 import { FocusTimerHero } from './components/focus/FocusTimerHero';
-import { YouTubeLiveRadar } from './components/focus/YouTubeLiveRadar';
 import { FloatingStreamerWidget } from './components/focus/FloatingStreamerWidget';
 import { StudyChallengesView } from './components/social/StudyChallengesView';
 import { LeaderboardView } from './components/social/LeaderboardView';
@@ -74,6 +75,7 @@ import { FirebaseService } from './services/firebase';
 import { supabase } from './services/supabase';
 import { FluidLiquidBackground } from './components/common/FluidLiquidBackground';
 import { ApiDatabase } from './services/apiDatabase';
+import { SettingsView } from './components/settings/SettingsView';
 
 
 export default function App() {
@@ -94,22 +96,43 @@ export default function App() {
   const [syncedCreator, setSyncedCreator] = useState<YouTubeCreator | null>(null);
   const [activeWatchingStream, setActiveWatchingStream] = useState<YouTubeCreator | null>(null);
   const [isStreamWidgetVisible, setIsStreamWidgetVisible] = useState<boolean>(true);
+  const [videoBackground, setVideoBackground] = useState<YouTubeCreator | null>(null);
 
-  // Dark Mode Theme State
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const saved = localStorage.getItem('lumina_theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Deep Dark Mode Theme State with System Preference Sync
+  const [themePreference, setThemePreference] = useState<'system' | 'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('cheri_theme_preference');
+    if (saved === 'system' || saved === 'dark' || saved === 'light') return saved;
+    return 'system';
+  });
+
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
   });
 
   useEffect(() => {
-    if (theme === 'dark') {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    setSystemPrefersDark(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      setSystemPrefersDark(e.matches);
+    };
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  const isDarkMode = themePreference === 'system' ? systemPrefersDark : themePreference === 'dark';
+
+  useEffect(() => {
+    if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('lumina_theme', theme);
-  }, [theme]);
+    localStorage.setItem('cheri_theme_preference', themePreference);
+  }, [isDarkMode, themePreference]);
 
   // Synchronize profile with Cloud SQL / PostgreSQL relational database
   useEffect(() => {
@@ -117,7 +140,10 @@ export default function App() {
   }, [currentUser.id, currentUser.name, currentUser.xp, currentUser.totalHoursStudied]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setThemePreference((prev) => {
+      const currentDark = prev === 'system' ? systemPrefersDark : prev === 'dark';
+      return currentDark ? 'light' : 'dark';
+    });
   };
 
   // Modals & Auth
@@ -527,21 +553,21 @@ export default function App() {
   }
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#FAF8F5] dark:bg-[#121214] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-amber-200 dark:selection:bg-amber-900 transition-colors duration-200 relative">
+    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#FDFBF7] dark:bg-[#0D0C0D] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-pink-200 dark:selection:bg-pink-900 transition-colors duration-200 relative">
       {/* Fluid Liquid Motion Interactive Background */}
       <FluidLiquidBackground />
       {/* Top Global Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 dark:bg-[#121214]/90 backdrop-blur-md border-b border-stone-200/70 dark:border-stone-800 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden">
+      <header className="sticky top-0 z-40 bg-[#FDFBF7]/90 dark:bg-[#0D0C0D]/95 backdrop-blur-md border-b border-pink-100 dark:border-stone-800/80 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Logo & Slogan */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-200 text-stone-950 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-white dark:ring-stone-800 shrink-0">
-              <Sparkles className="w-5 h-5 text-stone-950" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-pink-200/70 dark:ring-pink-900 shrink-0">
+              <Cherry className="w-5 h-5 text-pink-600 dark:text-pink-400 fill-pink-500/20" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="font-extrabold text-sm sm:text-base tracking-tight text-stone-900 dark:text-white truncate">
-                  Lumina Study
+                <span className="font-extrabold text-base sm:text-lg tracking-tight text-stone-900 dark:text-white truncate">
+                  cheri
                 </span>
                 <span
                   onClick={() => {
@@ -554,14 +580,14 @@ export default function App() {
                       return next;
                     });
                   }}
-                  className="hidden md:inline-block px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 text-[10px] font-bold cursor-default select-none border border-amber-200 dark:border-amber-800 shrink-0"
+                  className="hidden md:inline-block px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 text-[10px] font-bold cursor-default select-none border border-pink-200/80 dark:border-pink-900 shrink-0"
                   title="Campus Admin Access"
                 >
-                  Campus
+                  Focus App
                 </span>
               </div>
               <p className="text-[11px] text-stone-500 dark:text-stone-400 hidden md:block truncate">
-                Social Focus • Study Challenges • Live Leaderboards
+                Aesthetic Focus • Pomodoro & Study Time
               </p>
             </div>
           </div>
@@ -573,112 +599,76 @@ export default function App() {
               onClick={handleToggleGhostMode}
               className={`hidden lg:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-xs transition-colors min-h-[40px] ${
                 currentUser.isGhostMode
-                  ? 'bg-purple-100 dark:bg-purple-950 border-purple-300 dark:border-purple-700 text-purple-900 dark:text-purple-200 font-bold ring-1 ring-purple-300'
-                  : 'bg-white dark:bg-stone-800 border-stone-200/80 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700'
+                  ? 'bg-pink-100 dark:bg-pink-950 border-pink-300 dark:border-pink-800 text-pink-900 dark:text-pink-200 font-bold ring-1 ring-pink-300'
+                  : 'bg-white dark:bg-[#141315] border-pink-100 dark:border-stone-800 text-stone-600 dark:text-stone-300 hover:bg-pink-50/50 dark:hover:bg-[#1A181C]'
               }`}
               title={currentUser.isGhostMode ? 'Ghost Mode ON: Presence hidden from directory' : 'Ghost Mode OFF: Presence visible to peers'}
             >
-              <EyeOff className={`w-3.5 h-3.5 ${currentUser.isGhostMode ? 'text-purple-700 dark:text-purple-300' : 'text-stone-400'}`} />
+              <EyeOff className={`w-3.5 h-3.5 ${currentUser.isGhostMode ? 'text-pink-700 dark:text-pink-300' : 'text-stone-400'}`} />
               <span>{currentUser.isGhostMode ? 'Ghost' : 'Visible'}</span>
             </button>
 
             <button
               onClick={() => setIsAudioModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700 text-xs font-semibold text-stone-700 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-[#141315] hover:bg-pink-50/50 dark:hover:bg-[#1A181C] border border-pink-100 dark:border-stone-800 text-xs font-semibold text-stone-700 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
               title="Open Web Audio Synthesizer"
             >
-              <Volume2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <Volume2 className="w-3.5 h-3.5 text-pink-500 dark:text-pink-400" />
               <span>Ambience</span>
             </button>
 
             {/* Streak Counter */}
-            <div className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 text-xs font-bold text-stone-800 dark:text-stone-200 shadow-xs min-h-[40px]">
-              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <div className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-[#141315] border border-pink-100 dark:border-stone-800 text-xs font-bold text-stone-800 dark:text-stone-200 shadow-xs min-h-[40px]">
+              <Flame className="w-3.5 h-3.5 text-pink-500 fill-pink-500" />
               <span>{currentUser.currentStreak}d</span>
             </div>
 
-            {/* Desk Pet Peek */}
-            <div
-              onClick={() => setCurrentTab('analytics')}
-              className="hidden md:flex cursor-pointer items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white dark:bg-stone-800 border border-stone-200/80 dark:border-stone-700 hover:border-amber-300 dark:hover:border-amber-500 text-xs font-semibold text-stone-800 dark:text-stone-200 shadow-xs transition-colors min-h-[40px]"
-              title={`Desk Pet: ${currentUser.deskPet.name} Lv.${currentUser.deskPet.level}`}
-            >
-              <span className="flex items-center justify-center">
-                {currentUser.deskPet.species === 'shiba' ? (
-                  <Dog className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                ) : currentUser.deskPet.species === 'capybara' ? (
-                  <Smile className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                ) : (
-                  <Bird className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                )}
-              </span>
-              <span className="font-mono text-[11px] text-amber-700 dark:text-amber-400 font-bold">
-                Lv.{currentUser.deskPet.level}
-              </span>
-            </div>
-
-            {/* Dark / Light Mode Switch */}
+            {/* Dark / Light / System Mode Switch */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 border border-stone-200/80 dark:border-stone-700 text-stone-700 dark:text-stone-200 shadow-xs transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className="p-2 rounded-xl bg-white dark:bg-[#141315] hover:bg-pink-50/50 dark:hover:bg-[#1A181C] border border-pink-100 dark:border-stone-800 text-stone-700 dark:text-stone-200 shadow-xs transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+              title={isDarkMode ? 'Switch to Light Cream Mode' : 'Switch to Full Dark Mode'}
               aria-label="Toggle Dark Mode"
             >
-              {theme === 'dark' ? (
-                <Sun className="w-4 h-4 text-amber-400" />
+              {isDarkMode ? (
+                <Sun className="w-4 h-4 text-pink-400" />
               ) : (
-                <Moon className="w-4 h-4 text-stone-600" />
+                <Moon className="w-4 h-4 text-sky-500" />
               )}
             </button>
 
-            {/* Supabase Cloud Login / Sync Button */}
+            {/* Cloud Sync Button */}
             {currentUser.email ? (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-semibold shadow-xs hover:bg-emerald-100 transition-colors min-h-[40px]"
-                title="Supabase Cloud Sync Active"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-200 text-xs font-semibold shadow-xs hover:bg-sky-100 transition-colors min-h-[40px]"
+                title="Cloud Sync Active"
               >
-                <Cloud className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <Cloud className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
                 <span className="hidden sm:inline">Synced</span>
               </button>
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-stone-900 dark:bg-amber-400 text-white dark:text-stone-950 text-xs font-bold shadow-xs hover:bg-stone-800 dark:hover:bg-amber-300 transition-all active:scale-95 min-h-[40px]"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-white text-xs font-bold shadow-xs transition-all active:scale-95 min-h-[40px]"
                 title="Sign In with Apple, Google, or Email"
               >
-                <Cloud className="w-3.5 h-3.5 text-amber-300 dark:text-stone-950" />
+                <Cloud className="w-3.5 h-3.5 text-white" />
                 <span>Sign In</span>
               </button>
             )}
 
-            {/* Upgrade / Subscriptions Button */}
+            {/* User Profile & Settings Quick Button */}
             <button
-              onClick={() => setIsSubscriptionModalOpen(true)}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-stone-950 font-extrabold text-xs shadow-xs transition-all active:scale-95 min-h-[40px]"
-              title="View Membership Plans & Pricing"
+              onClick={() => setCurrentTab('settings')}
+              className="flex items-center gap-2 p-1 pl-2.5 pr-1.5 rounded-2xl bg-white dark:bg-[#141315] border border-pink-100 dark:border-stone-800 hover:border-pink-300 text-xs font-semibold text-stone-800 dark:text-stone-200 shadow-xs transition-all hover:scale-102"
+              title="Open cheri Settings & Profile"
             >
-              <Crown className="w-3.5 h-3.5" />
-              <span>
-                {currentUser.subscriptionTier === 'campus_elite'
-                  ? 'Elite'
-                  : currentUser.subscriptionTier === 'pro'
-                  ? 'Pro'
-                  : 'Upgrade'}
-              </span>
-            </button>
-
-            {/* User Profile & Account Switcher Button */}
-            <button
-              onClick={() => setIsProfileModalOpen(true)}
-              className="flex items-center gap-2 p-1 pl-2.5 pr-1.5 rounded-2xl bg-white border border-stone-200/80 hover:border-amber-300 text-xs font-semibold text-stone-800 shadow-xs transition-all hover:scale-102"
-              title="Edit Profile or Switch Account"
-            >
-              <span className="hidden sm:inline font-bold text-stone-900">{currentUser.name.split(' ')[0]}</span>
+              <span className="hidden sm:inline font-bold text-stone-900 dark:text-stone-100">{currentUser.name.split(' ')[0]}</span>
               <img
                 src={currentUser.avatar}
                 alt={currentUser.name}
-                className="w-7 h-7 rounded-full object-cover ring-2 ring-emerald-400"
+                className="w-7 h-7 rounded-full object-cover ring-2 ring-pink-400"
               />
             </button>
           </div>
@@ -723,9 +713,9 @@ export default function App() {
 
       {/* Main Page Body */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-8 overflow-x-hidden">
-        {/* Tab 1: Focus Timer & Any Video Player */}
+        {/* Tab 1: Pure Distraction-Free Study Space (Pomodoro & Study Time Stopwatch) */}
         {currentTab === 'focus' && (
-          <div className="space-y-8 pb-20">
+          <div className="pb-20">
             <FocusTimerHero
               onOpenAudioModal={() => setIsAudioModalOpen(true)}
               onSessionComplete={handleSessionComplete}
@@ -739,21 +729,28 @@ export default function App() {
                 setIsStreamWidgetVisible((prev) => !prev);
               }}
               isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
+              videoBackground={videoBackground}
+              onSetVideoBackground={(stream) => setVideoBackground(stream)}
+              onPopOutVideo={(stream) => {
+                setActiveWatchingStream(stream);
+                setIsStreamWidgetVisible(true);
+                setVideoBackground(null);
+              }}
             />
-
-            <div id="youtube-radar-section">
-              <YouTubeLiveRadar
-                creators={creators}
-                onToggleSubscribe={handleToggleCreatorSub}
-                onSyncWithCreator={handleSyncWithCreator}
-                onWatchStream={handleWatchStream}
-                syncedCreatorId={syncedCreator?.id}
-              />
-            </div>
           </div>
         )}
 
-        {/* Tab 2: Study Challenges */}
+        {/* Tab 2: Friends & Global Milestones Feed */}
+        {currentTab === 'feed' && (
+          <div className="pb-20">
+            <GlobalActivityFeed
+              currentUser={currentUser}
+              onToggleGhostMode={handleToggleGhostMode}
+            />
+          </div>
+        )}
+
+        {/* Tab 3: Study Challenges */}
         {currentTab === 'challenges' && (
           <StudyChallengesView
             currentUser={currentUser}
@@ -763,58 +760,78 @@ export default function App() {
           />
         )}
 
-        {/* Tab 3: Competitive Leaderboards */}
+        {/* Tab 4: Competitive Leaderboards */}
         {currentTab === 'leaderboard' && (
           <LeaderboardView currentUser={currentUser} />
         )}
 
-        {/* Tab 4: Analytics, Macronutrients & Desk Pet */}
+        {/* Tab 5: Analytics, Macronutrients & Desk Pet */}
         {currentTab === 'analytics' && (
-          <AnalyticsView
-            currentUser={currentUser}
-            heatmapDays={heatmapDays}
-            logs={focusLogs}
-            onUpdateDeskPet={(pet) =>
-              setCurrentUser((prev) => ({
-                ...prev,
-                deskPet: pet,
-              }))
-            }
-          />
+          <div className="pb-24">
+            <AnalyticsView
+              currentUser={currentUser}
+              heatmapDays={heatmapDays}
+              logs={focusLogs}
+              onUpdateDeskPet={(pet) =>
+                setCurrentUser((prev) => ({
+                  ...prev,
+                  deskPet: pet,
+                }))
+              }
+            />
+          </div>
+        )}
+
+        {/* Tab 6: Settings (Theme, Account Details, Focus Preferences) */}
+        {currentTab === 'settings' && (
+          <div className="pb-24">
+            <SettingsView
+              currentUser={currentUser}
+              onUpdateUser={(updated) => {
+                setCurrentUser(updated);
+                StorageService.saveUser(updated);
+              }}
+              themePreference={themePreference}
+              onSelectThemePreference={setThemePreference}
+              isDarkMode={isDarkMode}
+              onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            />
+          </div>
         )}
       </main>
 
       {/* Global Platform Footer */}
-      <footer className="mt-auto border-t border-stone-200/80 bg-white/70 py-6 px-4 sm:px-8 text-xs text-stone-500 pb-28 sm:pb-24">
+      <footer className="mt-auto border-t border-pink-100 dark:border-stone-800/80 bg-white/70 dark:bg-[#0D0C0D]/90 py-6 px-4 sm:px-8 text-xs text-stone-500 pb-28 sm:pb-24">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-stone-800">Lumina Study</span>
+            <Cherry className="w-4 h-4 text-pink-500 fill-pink-500/20" />
+            <span className="font-extrabold text-stone-800 dark:text-stone-200">cheri</span>
             <span>•</span>
-            <span className="text-stone-600 font-medium">Aura Focus Engine v2.4</span>
+            <span className="text-stone-600 dark:text-stone-400 font-medium">Aesthetic Focus & Study Timer</span>
             <span>•</span>
-            <span className="text-emerald-600 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              All systems operational
+            <span className="text-pink-600 dark:text-pink-400 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse"></span>
+              All systems active
             </span>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
             <button
               onClick={() => setIsTermsModalOpen(true)}
-              className="font-bold text-stone-700 hover:text-stone-950 underline flex items-center gap-1.5 transition-colors"
+              className="font-bold text-stone-700 dark:text-stone-300 hover:text-pink-600 underline flex items-center gap-1.5 transition-colors"
             >
-              <Scale className="w-3.5 h-3.5 text-amber-700" />
-              <span>Platform Rules, Regulations & Legal Terms</span>
+              <Scale className="w-3.5 h-3.5 text-pink-500" />
+              <span>Platform Rules & Legal Terms</span>
             </button>
             <span>•</span>
             <button
-              onClick={() => setIsSubscriptionModalOpen(true)}
-              className="hover:text-stone-900 transition-colors"
+              onClick={() => setCurrentTab('settings')}
+              className="hover:text-pink-600 transition-colors font-medium"
             >
-              Membership Plans
+              Account Settings
             </button>
             <span>•</span>
-            <span className="text-stone-400">© 2026 Lumina Study</span>
+            <span className="text-stone-400">© 2026 cheri</span>
           </div>
         </div>
       </footer>
@@ -836,6 +853,8 @@ export default function App() {
           setIsQuickActionOpen(false);
           if (action === 'start_focus') {
             setCurrentTab('focus');
+          } else if (action === 'view_feed') {
+            setCurrentTab('feed');
           } else if (action === 'create_challenge') {
             setCurrentTab('challenges');
           } else if (action === 'view_rankings') {
@@ -939,16 +958,17 @@ export default function App() {
         isVisible={Boolean((activeWatchingStream || syncedCreator) && isStreamWidgetVisible)}
         onClose={() => setIsStreamWidgetVisible(false)}
         onSyncTimer={(stream) => handleSyncWithCreator(stream)}
+        onSetAsBackground={(stream) => {
+          setVideoBackground(stream);
+          setIsStreamWidgetVisible(false);
+          setCurrentTab('focus');
+        }}
         onChangeVideo={(newVideo) => {
           setActiveWatchingStream(newVideo);
           setIsStreamWidgetVisible(true);
         }}
         onOpenRadar={() => {
           setCurrentTab('focus');
-          setTimeout(() => {
-            const el = document.getElementById('youtube-radar-section');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
         }}
         isSynced={syncedCreator?.id === (activeWatchingStream?.id || syncedCreator?.id)}
       />

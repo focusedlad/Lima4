@@ -18,7 +18,14 @@ import {
   Check,
   Award,
 } from 'lucide-react';
-import { SupabaseService } from '../../services/supabase';
+import {
+  SupabaseService,
+  getCustomSupabaseConfig,
+  setCustomSupabaseConfig,
+  clearCustomSupabaseConfig,
+  isSupabaseConfigured,
+} from '../../services/supabase';
+import { StorageService } from '../../services/storage';
 import { UserProfile } from '../../types';
 import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
 import { RulesAndFeaturesModal } from './RulesAndFeaturesModal';
@@ -91,6 +98,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const updatedFull = { ...profile, ...updates };
     if (onUpdateProfile) {
       onUpdateProfile(updates);
+    }
+    StorageService.saveUser(updatedFull);
+    if (email && password) {
+      StorageService.saveRegisteredAccount(email, password, updatedFull);
     }
     await SupabaseService.syncUser(updatedFull);
     return updatedFull;
@@ -189,11 +200,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setErrorMsg(res.error || 'Invalid email or password.');
           return;
         }
-        setSuccessMsg('Welcome back!');
+        setSuccessMsg('Welcome back to cheri!');
+        // If stored student details exist, use them
+        const baseUser = res.profile || currentUser;
         const updatedUser: UserProfile = {
-          ...currentUser,
-          email,
-          name: displayName || email.split('@')[0],
+          ...baseUser,
+          email: email.trim().toLowerCase(),
+          name: res.profile?.name || displayName || email.split('@')[0],
         };
         const finalUser = await syncProfileUpdates(updatedUser);
         onAuthSuccess(finalUser);
@@ -203,20 +216,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setErrorMsg(res.error || 'Signup failed.');
           return;
         }
-        setSuccessMsg('Account created successfully!');
+        setSuccessMsg('Student account created successfully!');
+        const uni = getResolvedUniversity();
         const updatedUser: UserProfile = {
           ...currentUser,
-          email,
+          id: res.user?.id || `usr_${Date.now()}`,
+          email: email.trim().toLowerCase(),
           name: displayName || email.split('@')[0],
+          handle: `@${(displayName || email.split('@')[0]).toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+          university: uni,
+          universityOrLocation: `${uni} (${currentCountry.name})`,
+          countryCode: currentCountry.code,
+          countryName: currentCountry.name,
+          studyField: selectedStudyField,
+          isGhostMode,
+          currentStreak: currentUser.currentStreak || 1,
+          totalHoursStudied: currentUser.totalHoursStudied || 0,
+          xp: currentUser.xp || 100,
         };
         const finalUser = await syncProfileUpdates(updatedUser);
+        StorageService.saveRegisteredAccount(email, password, finalUser);
         onAuthSuccess(finalUser);
       }
 
       setTimeout(() => {
         setSuccessMsg(null);
         onClose();
-      }, 1000);
+      }, 800);
     } catch (err: any) {
       setErrorMsg(err.message || 'Authentication error.');
     } finally {
@@ -509,20 +535,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50 text-xs"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin mx-auto" />
               ) : mode === 'login' ? (
-                'Sign In to Lumina Study'
+                'Sign In to cheri'
               ) : (
                 'Create Student Account'
               )}
             </button>
           </form>
 
-          {/* Guest Mode Option */}
-          <div className="pt-2 text-center">
+          {/* Guest Mode & Custom Supabase System Connection */}
+          <div className="pt-2 flex flex-col items-center gap-2">
             <button
               type="button"
               onClick={handleGuestSignIn}

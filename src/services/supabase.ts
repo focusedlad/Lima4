@@ -1,23 +1,69 @@
 import { createClient, SupabaseClient, User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { UserProfile, FocusSessionLog } from '../types';
+import { StorageService } from './storage';
 
-// Read environment variables for Supabase (if configured)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://xyzcompany.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+export interface CustomSupabaseCredentials {
+  url: string;
+  anonKey: string;
+}
+
+export function getCustomSupabaseConfig(): CustomSupabaseCredentials | null {
+  try {
+    const raw = localStorage.getItem('cheri_custom_supabase_config');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.url && parsed.anonKey) return parsed;
+    }
+  } catch (_) {}
+  return null;
+}
+
+export function setCustomSupabaseConfig(url: string, anonKey: string): void {
+  try {
+    localStorage.setItem('cheri_custom_supabase_config', JSON.stringify({ url: url.trim(), anonKey: anonKey.trim() }));
+    // Force re-init
+    _clientInstance = null;
+  } catch (_) {}
+}
+
+export function clearCustomSupabaseConfig(): void {
+  try {
+    localStorage.removeItem('cheri_custom_supabase_config');
+    _clientInstance = null;
+  } catch (_) {}
+}
+
+const customConfig = getCustomSupabaseConfig();
+const envUrl = import.meta.env.VITE_SUPABASE_URL;
+const envAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const effectiveUrl = customConfig?.url || envUrl || 'https://xyzcompany.supabase.co';
+const effectiveAnonKey = customConfig?.anonKey || envAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 
 export const isSupabaseConfigured = Boolean(
-  import.meta.env.VITE_SUPABASE_URL &&
-  import.meta.env.VITE_SUPABASE_ANON_KEY &&
-  !import.meta.env.VITE_SUPABASE_URL.includes('xyzcompany')
+  (customConfig && customConfig.url && customConfig.anonKey) ||
+  (envUrl && envAnonKey && !envUrl.includes('xyzcompany'))
 );
 
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-});
+let _clientInstance: SupabaseClient | null = null;
+
+export function getActiveSupabaseClient(): SupabaseClient {
+  if (!_clientInstance) {
+    const conf = getCustomSupabaseConfig();
+    const url = conf?.url || envUrl || 'https://xyzcompany.supabase.co';
+    const key = conf?.anonKey || envAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+    _clientInstance = createClient(url, key, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    });
+  }
+  return _clientInstance;
+}
+
+export const supabase: SupabaseClient = getActiveSupabaseClient();
 
 export interface StudyChallengeItem {
   id: string;
@@ -220,23 +266,39 @@ export const SupabaseService = {
   /**
    * Sign In with Email & Password
    */
-  async signInWithEmail(email: string, pass: string): Promise<{ success: boolean; user?: any; error?: string }> {
+  async signInWithEmail(email: string, pass: string): Promise<{ success: boolean; user?: any; profile?: UserProfile; error?: string }> {
     try {
-      if (!isSupabaseConfigured) {
-        // Local fallback authenticated state
-        return {
-          success: true,
-          user: { id: `usr_${Date.now()}`, email, user_metadata: { full_name: email.split('@')[0] } },
-        };
+      const client = getActiveSupabaseClient();
+      if (isSupabaseConfigured) {
+        const { data, error } = await client.auth.signInWithPassword({
+          email: email.trim(),
+          password: pass,
+        });
+
+        if (error) {
+          // If Supabase authentication returns an error, also check stored local registered student accounts
+          const localVerify = StorageService.verifyStudentCredentials(email, pass);
+          if (localVerify.success && localVerify.profile) {
+            return { success: true, profile: localVerify.profile, user: { id: localVerify.profile.id, email } };
+          }
+          return { success: false, error: error.message };
+        }
+
+        const localProfile = StorageService.findAccountByEmail(email);
+        return { success: true, user: data.user, profile: localProfile || undefined };
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password: pass,
-      });
+      // Local / Offline Student Accounts Verification
+      const localVerify = StorageService.verifyStudentCredentials(email, pass);
+      if (!localVerify.success) {
+        return { success: false, error: localVerify.error };
+      }
 
-      if (error) return { success: false, error: error.message };
-      return { success: true, user: data.user };
+      return {
+        success: true,
+        user: { id: localVerify.profile?.id || `usr_${Date.now()}`, email, user_metadata: { full_name: localVerify.profile?.name || email.split('@')[0] } },
+        profile: localVerify.profile,
+      };
     } catch (err: any) {
       return { success: false, error: err.message || 'Login failed' };
     }
@@ -247,23 +309,30 @@ export const SupabaseService = {
    */
   async signUpWithEmail(email: string, pass: string, name: string): Promise<{ success: boolean; user?: any; error?: string }> {
     try {
-      if (!isSupabaseConfigured) {
-        return {
-          success: true,
-          user: { id: `usr_${Date.now()}`, email, user_metadata: { full_name: name } },
-        };
+      const client = getActiveSupabaseClient();
+      if (isSupabaseConfigured) {
+        const { data, error } = await client.auth.signUp({
+          email: email.trim(),
+          password: pass,
+          options: {
+            data: { full_name: name },
+          },
+        });
+
+        if (error) return { success: false, error: error.message };
+        return { success: true, user: data.user };
       }
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: pass,
-        options: {
-          data: { full_name: name },
-        },
-      });
+      // Check if account already exists locally
+      const existing = StorageService.findAccountByEmail(email);
+      if (existing) {
+        return { success: false, error: 'An account with this email already exists. Please log in instead.' };
+      }
 
-      if (error) return { success: false, error: error.message };
-      return { success: true, user: data.user };
+      return {
+        success: true,
+        user: { id: `usr_${Date.now()}`, email: email.trim(), user_metadata: { full_name: name } },
+      };
     } catch (err: any) {
       return { success: false, error: err.message || 'Signup failed' };
     }

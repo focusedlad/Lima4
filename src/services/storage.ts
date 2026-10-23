@@ -1083,4 +1083,56 @@ export class StorageService {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch (_) {}
   }
+
+  /**
+   * Registered Student Accounts Persistence (Supabase & Local Database)
+   */
+  public static getRegisteredAccounts(): Record<string, { email: string; passwordHash: string; profile: UserProfile }> {
+    try {
+      const data = localStorage.getItem('cheri_registered_accounts');
+      if (data) return JSON.parse(data);
+    } catch (_) {}
+    return {};
+  }
+
+  public static saveRegisteredAccount(email: string, password: string, profile: UserProfile) {
+    try {
+      const accounts = this.getRegisteredAccounts();
+      const normEmail = email.trim().toLowerCase();
+      accounts[normEmail] = {
+        email: normEmail,
+        passwordHash: password, // preserved for local authentication fallback
+        profile: { ...profile, email: normEmail },
+      };
+      localStorage.setItem('cheri_registered_accounts', JSON.stringify(accounts));
+    } catch (_) {}
+  }
+
+  public static findAccountByEmail(email: string): UserProfile | null {
+    try {
+      const accounts = this.getRegisteredAccounts();
+      const normEmail = email.trim().toLowerCase();
+      if (accounts[normEmail]) {
+        return accounts[normEmail].profile;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  public static verifyStudentCredentials(email: string, password: string): { success: boolean; profile?: UserProfile; error?: string } {
+    try {
+      const accounts = this.getRegisteredAccounts();
+      const normEmail = email.trim().toLowerCase();
+      const account = accounts[normEmail];
+      if (!account) {
+        return { success: false, error: 'No account found with this email. Please click "Sign Up" to register.' };
+      }
+      if (account.passwordHash && account.passwordHash !== password) {
+        return { success: false, error: 'Incorrect password. Please verify your credentials and try again.' };
+      }
+      return { success: true, profile: account.profile };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Login verification failed.' };
+    }
+  }
 }

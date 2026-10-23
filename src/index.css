@@ -12,7 +12,7 @@
 
   html.dark {
     color-scheme: dark;
-    --cream-bg: #121214;
+    --cream-bg: #0D0C0D;
     --matte-charcoal: #F4F4F5;
   }
 
@@ -45,7 +45,7 @@
   }
 
   html.dark body {
-    background-color: #121214;
+    background-color: #0D0C0D;
     color: #F4F4F5;
   }
 
@@ -91,16 +91,16 @@ html.dark ::-webkit-scrollbar-thumb {
 
 html.dark .squircle-card {
   border-radius: 28px;
-  background: #18181B;
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.5);
+  background: #141315;
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #F4F4F5;
 }
 
 .squircle-card-dark {
   border-radius: 28px;
-  background: #18181B;
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.45), 0 0 20px -4px rgba(99, 102, 241, 0.15);
+  background: #141315;
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7), 0 0 20px -4px rgba(236, 72, 153, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -218,11 +218,30 @@ html.dark .clay-card-sky {
 }
 
 html.dark .liquid-glass {
-  background: rgba(24, 24, 27, 0.96);
+  background: rgba(20, 19, 21, 0.96);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.65);
+}
+
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+    width: 40%;
+  }
+  50% {
+    transform: translateX(50%);
+    width: 60%;
+  }
+  100% {
+    transform: translateX(200%);
+    width: 40%;
+  }
+}
+
+.animate-indeterminate {
+  animation: indeterminate 1.4s infinite ease-in-out;
 }
 
 
