@@ -298,6 +298,7 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
         currentStreak: users.currentStreak,
       })
       .from(users)
+      .where(eq(users.isGhostMode, false))
       .orderBy(desc(users.totalHoursStudied), desc(users.xp))
       .limit(50);
   } catch (error) {
@@ -391,10 +392,13 @@ export async function searchUsersByQuery(query: string) {
       })
       .from(users)
       .where(
-        or(
-          ilike(users.handle, `%${clean}%`),
-          ilike(users.name, `%${clean}%`),
-          ilike(users.university, `%${clean}%`)
+        and(
+          eq(users.isGhostMode, false),
+          or(
+            ilike(users.handle, `%${clean}%`),
+            ilike(users.name, `%${clean}%`),
+            ilike(users.university, `%${clean}%`)
+          )
         )
       )
       .limit(20);
