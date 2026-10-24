@@ -18,6 +18,9 @@ import {
   Target,
   BookOpen,
   Filter,
+  Share2,
+  MessageCircle,
+  Instagram,
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import {
@@ -57,6 +60,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
   const [isPosting, setIsPosting] = useState<boolean>(false);
   const [isSubmittingMilestone, setIsSubmittingMilestone] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [shareNotice, setShareNotice] = useState<{ id: string; message: string } | null>(null);
   const [postTitle, setPostTitle] = useState<string>('');
   const [postDescription, setPostDescription] = useState<string>('');
   const [postSubject, setPostSubject] = useState<string>(
@@ -147,6 +151,47 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
       audioSynth.playChime('peer_nudge');
     } catch (error: any) {
       setActionError(error?.message || 'Your cheer could not be saved. Please try again.');
+    }
+  };
+
+  const getMilestoneShareText = (item: MilestoneItem) =>
+    `${item.userName} on Lima4: ${item.title}\n${item.description}\nStudy with me: ${window.location.origin}`;
+
+  const handleShareMilestone = async (item: MilestoneItem) => {
+    const text = getMilestoneShareText(item);
+    setShareNotice(null);
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: item.title, text, url: window.location.origin });
+        setShareNotice({ id: item.milestoneId, message: 'Share sheet opened.' });
+        return;
+      } catch (error: any) {
+        if (error?.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNotice({ id: item.milestoneId, message: 'Caption copied. Paste it into the app you want to share with.' });
+    } catch {
+      window.prompt('Copy this study milestone to share', text);
+    }
+  };
+
+  const handleShareWhatsApp = (item: MilestoneItem) => {
+    const text = getMilestoneShareText(item);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleShareInstagram = async (item: MilestoneItem) => {
+    const text = getMilestoneShareText(item);
+    // Instagram does not offer a web URL for pre-filling a post caption; copy first and let the user publish it.
+    const tab = window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNotice({ id: item.milestoneId, message: 'Caption copied. Paste it into your Instagram post or Story; Lima4 cannot publish to Instagram for you.' });
+    } catch {
+      setShareNotice({ id: item.milestoneId, message: 'Instagram opened. Copy your caption from the share option if clipboard access is unavailable.' });
+      if (!tab) window.prompt('Copy this caption for Instagram', text);
     }
   };
 
@@ -574,8 +619,22 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                   </div>
                 </div>
 
-                {/* Right: Cheer Button */}
-                <div className="flex sm:flex-col items-center justify-between sm:justify-center w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-indigo-50 dark:border-indigo-950/40 shrink-0">
+                {/* Actions: cheers and owner-controlled external sharing */}
+                <div className="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-indigo-50 dark:border-indigo-950/40 shrink-0">
+                  {item.userUid === currentUser.id && (
+                    <div className="flex flex-wrap gap-1.5 sm:justify-end">
+                      <button onClick={() => handleShareMilestone(item)} className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-[11px] font-bold text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800" aria-label="Share milestone">
+                        <Share2 className="w-3.5 h-3.5" /> Share
+                      </button>
+                      <button onClick={() => handleShareWhatsApp(item)} className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-[11px] font-bold text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800" aria-label="Share milestone on WhatsApp">
+                        <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                      </button>
+                      <button onClick={() => handleShareInstagram(item)} className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl border border-stone-200 dark:border-stone-700 text-[11px] font-bold text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-stone-800" aria-label="Share milestone on Instagram">
+                        <Instagram className="w-3.5 h-3.5" /> Instagram
+                      </button>
+                    </div>
+                  )}
+                  {shareNotice?.id === item.milestoneId && <p role="status" className="max-w-64 text-[10px] leading-relaxed text-indigo-600 dark:text-indigo-300">{shareNotice.message}</p>}
                   <button
                     onClick={() => handleCheer(item.milestoneId || item.id)}
                     className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${

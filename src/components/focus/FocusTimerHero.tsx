@@ -203,9 +203,44 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   const [videoError, setVideoError] = useState<string | null>(null);
 
   const [isZenFullscreen, setIsZenFullscreen] = useState<boolean>(false);
+  const enterZenFullscreen = async () => {
+    // Enter browser-level fullscreen while this click is still a user gesture.
+    // Some mobile browsers (notably iOS Safari) do not expose the Fullscreen API;
+    // the fixed, viewport-sized Zen overlay remains the best available fallback there.
+    setIsZenFullscreen(true);
+    try {
+      const root = document.documentElement as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void> | void;
+      };
+      if (typeof root.requestFullscreen === 'function') {
+        await root.requestFullscreen({ navigationUI: 'hide' });
+      } else if (typeof root.webkitRequestFullscreen === 'function') {
+        await root.webkitRequestFullscreen();
+      }
+    } catch (error) {
+      // Keep Zen Mode open even if browser-level fullscreen is unsupported or denied.
+      console.info('Browser fullscreen is unavailable; keeping Zen Mode immersive.', error);
+    }
+  };
+
+  const exitZenFullscreen = async () => {
+    setIsZenFullscreen(false);
+    try {
+      const doc = document as Document & { webkitExitFullscreen?: () => Promise<void> | void };
+      if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+        await document.exitFullscreen();
+      } else if (doc.webkitFullscreenElement && typeof doc.webkitExitFullscreen === 'function') {
+        await doc.webkitExitFullscreen();
+      }
+    } catch (error) {
+      console.info('Browser fullscreen could not be exited programmatically.', error);
+    }
+  };
+
   const [activeSound, setActiveSound] = useState<string | null>(null);
 
   const intervalRef = useRef<number | null>(null);
+  const videoBackgroundIframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (!isZenFullscreen) return;
@@ -214,12 +249,33 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsZenFullscreen(false);
     };
+    const handleFullscreenChange = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      if (!document.fullscreenElement && !doc.webkitFullscreenElement) {
+        setIsZenFullscreen(false);
+      }
+    };
     window.addEventListener('keydown', handleEscape);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     };
   }, [isZenFullscreen]);
+
+  // Mute/unmute YouTube through the IFrame API instead of changing its URL.
+  // Changing the URL remounts the iframe and restarts live/replayed videos.
+  useEffect(() => {
+    const player = videoBackgroundIframeRef.current?.contentWindow;
+    if (!player || !videoBackground?.videoId) return;
+    player.postMessage(
+      JSON.stringify({ event: 'command', func: isVideoMuted ? 'mute' : 'unMute', args: [] }),
+      'https://www.youtube-nocookie.com'
+    );
+  }, [isVideoMuted, videoBackground?.videoId]);
 
   const currentWallpaper =
     FOCUS_WALLPAPERS.find((w) => w.id === selectedWallpaperId) || FOCUS_WALLPAPERS[0];
@@ -342,9 +398,6 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   };
 
   const togglePlay = () => {
-    if (!isRunning) {
-      audioSynth.playChime('pomodoro_complete');
-    }
     setIsRunning(!isRunning);
     setIsPhoneAway(false);
   };
@@ -393,7 +446,6 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
     const secs = studyTimeSeconds % 60;
     const lapString = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     setLaps((prev) => [lapString, ...prev.slice(0, 4)]);
-    audioSynth.playChime('peer_nudge');
   };
 
   const handleSwitchFocusType = (type: FocusMainType) => {
@@ -507,9 +559,8 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
               />
             ) : videoBackground.videoId ? (
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${videoBackground.videoId}?autoplay=1&mute=${
-                  isVideoMuted ? '1' : '0'
-                }&controls=0&loop=1&playlist=${videoBackground.videoId}&playsinline=1&modestbranding=1`}
+                ref={videoBackgroundIframeRef}
+                src={`https://www.youtube-nocookie.com/embed/${videoBackground.videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoBackground.videoId}&playsinline=1&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
                 title={videoBackground.name}
                 className="w-full h-full object-cover scale-[1.35] pointer-events-none border-0"
                 allow="autoplay; encrypted-media"
@@ -611,7 +662,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
 
               {/* Fullscreen Zen Mode */}
               <button
-                onClick={() => setIsZenFullscreen(true)}
+                onClick={enterZenFullscreen}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 border border-white/15 text-stone-200 text-xs font-semibold backdrop-blur-md transition-colors"
                 title="Enter full-screen Zen study immersion"
               >
@@ -744,7 +795,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
           <div className="flex flex-col items-center justify-center py-6 sm:py-8">
             <div className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center">
               {/* Outer SVG Progress Ring */}
-              <svg className="w-full h-full transform -rotate-90 filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+              <svg viewBox="0 0 256 256" className="w-full h-full transform -rotate-90 filter drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
                 {/* Background track ring */}
                 <circle
                   cx="128"
@@ -945,7 +996,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
               )}
 
               <button
-                onClick={() => setIsZenFullscreen(false)}
+                onClick={exitZenFullscreen}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 hover:bg-black/70 border border-white/10 text-xs font-bold text-stone-300 hover:text-white backdrop-blur-md transition-colors"
               >
                 <Minimize2 className="w-4 h-4" />

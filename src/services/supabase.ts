@@ -346,17 +346,15 @@ export const SupabaseService = {
    * Fetch Study Challenges from backend
    */
   async fetchChallenges(): Promise<StudyChallengeItem[]> {
-    try {
-      const res = await authenticatedFetch('/api/db/challenges');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && Array.isArray(json.challenges)) {
-          return json.challenges;
-        }
-      }
-    } catch (_) {}
-
-    return [];
+    const res = await authenticatedFetch('/api/db/challenges');
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json.error || 'Could not load saved challenges.');
+    }
+    if (!json.success || !Array.isArray(json.challenges)) {
+      throw new Error(json.error || 'The server returned an invalid challenge list.');
+    }
+    return json.challenges;
   },
 
   /**
