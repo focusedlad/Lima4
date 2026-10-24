@@ -181,9 +181,9 @@ export async function insertFocusLog(input: {
           sql`EXISTS (
             SELECT 1 FROM study_challenges c
             WHERE c.challenge_id = ${challengeParticipants.challengeId}
-              AND cp.user_uid = ${input.userUid}
+              AND challenge_participants.user_uid = ${input.userUid}
               AND c.status = 'active'
-              AND cp.status = 'accepted'
+              AND challenge_participants.status = 'accepted'
               AND c.start_date <= ${input.date}
               AND c.end_date >= ${input.date}
           )`
