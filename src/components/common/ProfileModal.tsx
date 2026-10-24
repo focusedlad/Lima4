@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   User,
@@ -14,8 +14,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { UserProfile } from '../../types';
+import { SupabaseService } from '../../services/supabase';
 import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
-import { EyeOff, Globe, Crown, Scale } from 'lucide-react';
+import { EyeOff, Globe, Crown, Scale, ImagePlus } from 'lucide-react';
+import { supabase } from '../../services/supabase';
 
 interface ProfileModalProps {
   currentUser: UserProfile;
@@ -23,6 +25,7 @@ interface ProfileModalProps {
   onClose: () => void;
   onUpdateProfile: (updated: UserProfile) => void | Promise<void>;
   onOpenTerms?: () => void;
+  onLogout?: () => void | Promise<void>;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -31,6 +34,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onClose,
   onUpdateProfile,
   onOpenTerms,
+  onLogout,
 }) => {
   const [name, setName] = useState(currentUser.name);
   const [selectedCountryCode, setSelectedCountryCode] = useState(currentUser.countryCode || 'GLOBAL');
@@ -45,9 +49,33 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [subject, setSubjectTag] = useState(currentUser.currentSubject);
   const [goal, setGoal] = useState(currentUser.currentGoal);
   const [avatar, setAvatar] = useState(currentUser.avatar);
+  const [bio, setBio] = useState(currentUser.bio || '');
+  const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
+  const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends' | 'private'>(currentUser.profileVisibility || 'public');
+  const [sessionVisibility, setSessionVisibility] = useState<'private' | 'friends' | 'public'>(currentUser.sessionVisibility || 'private');
+  const [isUploading, setIsUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setName(currentUser.name);
+    setSelectedCountryCode(currentUser.countryCode || 'GLOBAL');
+    setSelectedUniversity(currentUser.university || currentUser.universityOrLocation || 'Independent Scholar');
+    setCustomUniversity('');
+    setIsCustomUni(false);
+    setSelectedStudyField(currentUser.studyField || STUDY_FIELDS[0]);
+    setIsGhostMode(currentUser.isGhostMode || false);
+    setSubjectTag(currentUser.currentSubject || 'General Study');
+    setGoal(currentUser.currentGoal || '');
+    setAvatar(currentUser.avatar || '');
+    setBio(currentUser.bio || '');
+    setBannerUrl(currentUser.bannerUrl || '');
+    setProfileVisibility(currentUser.profileVisibility || 'public');
+    setSessionVisibility(currentUser.sessionVisibility || 'private');
+    setSaveError(null);
+  }, [isOpen, currentUser.id]);
 
   if (!isOpen) return null;
 
@@ -74,6 +102,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       currentSubject: subject.trim() || currentUser.currentSubject,
       currentGoal: goal.trim() || currentUser.currentGoal,
       avatar: avatar.trim() || currentUser.avatar,
+      bio: bio.trim().slice(0, 500),
+      bannerUrl: bannerUrl.trim(),
+      profileVisibility,
+      sessionVisibility: isGhostMode ? 'private' : sessionVisibility,
     };
     setIsSaving(true);
     setSaveError(null);
@@ -111,22 +143,50 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         </div>
 
                 <form onSubmit={handleSave} className="space-y-4 text-xs">
-            {/* Avatar Preview */}
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-100">
-              <img
-                src={avatar}
-                alt={name}
-                className="w-14 h-14 rounded-full object-cover ring-2 ring-emerald-400 ring-offset-2"
-              />
-              <div className="flex-1">
-                <label className="block text-[11px] font-semibold text-stone-600 mb-1">Avatar Image URL</label>
-                <input
-                  type="text"
-                  value={avatar}
-                  onChange={(e) => setAvatar(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
+            <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3">
+              <div className="relative overflow-hidden rounded-xl bg-stone-200 dark:bg-stone-800">
+                {bannerUrl ? <img src={bannerUrl} alt="Profile banner preview" className="h-24 w-full object-cover" /> : <div className="h-24 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-400" />}
+                <div className="absolute bottom-2 left-2 rounded-lg bg-black/55 px-2 py-1 text-[10px] font-bold text-white">PROFILE BANNER</div>
+              </div>
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 font-bold text-indigo-800 hover:bg-indigo-50">
+                <ImagePlus className="h-4 w-4" /> {isUploading ? 'Uploading image…' : 'Upload profile picture or banner'}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/avif" className="hidden" disabled={isUploading} onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) { setSaveError('Choose an image smaller than 5 MB.'); event.target.value = ''; return; }
+                  setIsUploading(true); setSaveError(null);
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user || user.id !== currentUser.id) throw new Error('Please sign in again before uploading profile images.');
+                    const target = window.confirm('Use this image as your profile banner? Choose Cancel to use it as your profile picture.');
+                    const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : file.type === 'image/avif' ? 'avif' : 'jpg';
+                    const path = user.id + '/' + (target ? 'banner-' : 'avatar-') + Date.now() + '.' + extension;
+                    const { error } = await supabase.storage.from('profile-media').upload(path, file, { upsert: false, contentType: file.type });
+                    if (error) throw error;
+                    const { data } = supabase.storage.from('profile-media').getPublicUrl(path);
+                    if (target) setBannerUrl(data.publicUrl); else setAvatar(data.publicUrl);
+                  } catch (error: any) {
+                    setSaveError(error?.message || 'Image upload failed. Please try again.');
+                  } finally { setIsUploading(false); event.target.value = ''; }
+                }} />
+              </label>
+              <div>
+                <label className="mb-1 block font-semibold text-stone-700">About you (visible on your profile)</label>
+                <textarea value={bio} maxLength={500} onChange={(e) => setBio(e.target.value)} placeholder="Tell other students a little about yourself…" rows={3} className="w-full resize-y rounded-xl border border-stone-200 bg-white p-2.5 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+                <p className="mt-1 text-right text-[10px] text-stone-500">{bio.length}/500</p>
+              </div>
+              <div>
+                <label className="mb-1 block font-semibold text-stone-700">Who can view your profile?</label>
+                <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value as 'public' | 'friends' | 'private')} className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-stone-900">
+                  <option value="public">Everyone</option><option value="friends">Friends only</option><option value="private">Only me</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block font-semibold text-stone-700">Who can see your saved study sessions?</label>
+                <select value={sessionVisibility} onChange={(e) => setSessionVisibility(e.target.value as 'private' | 'friends' | 'public')} className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-stone-900">
+                  <option value="private">Private — only me</option><option value="friends">Friends only</option><option value="public">Public — global activity</option>
+                </select>
+                <p className="mt-1 text-[10px] text-stone-500">Ghost Mode always keeps your sessions private.</p>
               </div>
             </div>
 
@@ -247,6 +307,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               />
             </div>
 
+            <div>
+              <label className="block font-semibold text-stone-700 mb-1">Share completed study sessions</label>
+              <select value={isGhostMode ? 'private' : sessionVisibility} disabled={isGhostMode} onChange={(e) => setSessionVisibility(e.target.value as 'private' | 'friends' | 'public')} className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 disabled:opacity-60">
+                <option value="private">Private — only me</option><option value="friends">Friends feed</option><option value="public">Global feed</option>
+              </select>
+              <p className="text-[10px] text-stone-500 mt-1">Ghost Mode always keeps your sessions private.</p>
+            </div>
+
             {/* Membership Tier Info */}
             <div className="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
@@ -302,6 +370,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </p>
             )}
             <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              {onLogout && currentUser.id !== 'unauthenticated' && (
+                <button type="button" onClick={async () => { await onLogout(); onClose(); }} className="mt-2 flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/30">
+                  <LogOut className="h-3.5 w-3.5" /> Sign out
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

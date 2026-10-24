@@ -27,6 +27,10 @@ export default async function handler(req: any, res: any) {
       name: String(body.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Studier').slice(0, 100),
       handle: typeof body.handle === 'string' ? body.handle.replace(/^@/, '').slice(0, 40) : undefined,
       avatar: typeof body.avatar === 'string' ? body.avatar.slice(0, 1000) : '',
+      bio: typeof body.bio === 'string' ? body.bio.slice(0, 500) : (existing?.bio || ''),
+      bannerUrl: typeof body.bannerUrl === 'string' ? body.bannerUrl.slice(0, 1000) : (existing?.bannerUrl || ''),
+      profileVisibility: ['public', 'friends', 'private'].includes(body.profileVisibility) ? body.profileVisibility : (existing?.profileVisibility || 'public'),
+      sessionVisibility: ['private', 'friends', 'public'].includes(body.sessionVisibility) ? body.sessionVisibility : (existing?.sessionVisibility || 'private'),
       university: typeof body.university === 'string' ? body.university.slice(0, 200) : '',
       studyField: typeof body.studyField === 'string' ? body.studyField.slice(0, 200) : '',
       countryCode: typeof body.countryCode === 'string' ? body.countryCode.slice(0, 8) : 'GLOBAL',
@@ -42,7 +46,7 @@ export default async function handler(req: any, res: any) {
       termsVersion: existing?.termsVersion || (typeof body.termsVersion === 'string' ? body.termsVersion.slice(0, 40) : undefined),
       xp: existing?.xp ?? 0,
       totalHoursStudied: existing?.totalHoursStudied ?? 0,
-      currentStreak: existing?.currentStreak ?? 1,
+      currentStreak: existing?.currentStreak ?? 0,
     });
     const registeredUserCount = await getRegisteredUserCount();
     return res.status(200).json({ success: true, user, isFirstUser: registeredUserCount === 1 });

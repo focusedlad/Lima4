@@ -78,7 +78,14 @@ export interface StudyChallengeItem {
   participantsCount: number;
   category: string;
   visibility?: 'public' | 'friends' | 'private';
+  requiresApproval?: boolean;
+  status?: 'waiting' | 'active' | 'completed' | 'cancelled';
+  startedAt?: string | null;
+  isCreator?: boolean;
   isJoined?: boolean;
+  myJoinStatus?: 'pending' | 'accepted' | 'rejected';
+  membershipStatus?: 'pending' | 'accepted' | 'rejected' | null;
+  pendingRequests?: Array<{ userUid: string; userName: string; userAvatar?: string }>;
   myProgressHours?: number;
 }
 
@@ -112,6 +119,9 @@ export interface UserSearchResult {
   name: string;
   handle: string;
   avatar: string;
+  bio?: string;
+  bannerUrl?: string;
+  profileVisibility?: 'public' | 'friends' | 'private';
   university?: string;
   studyField?: string;
   totalHoursStudied: number;
@@ -268,11 +278,24 @@ export const SupabaseService = {
    * Sign Out
    */
   async signOut(): Promise<void> {
-    try {
-      if (isSupabaseConfigured) {
-        await supabase.auth.signOut();
-      }
-    } catch (_) {}
+    if (!isSupabaseConfigured) throw new Error('Authentication is not configured.');
+    const { error } = await getActiveSupabaseClient().auth.signOut();
+    if (error) throw new Error(error.message || 'Could not sign out.');
+  },
+
+  async uploadProfileMedia(file: File, kind: 'avatar' | 'banner'): Promise<string> {
+    if (!isSupabaseConfigured) throw new Error('Profile image uploads are unavailable because Supabase is not configured.');
+    if (!file.type.startsWith('image/')) throw new Error('Choose an image file.');
+    if (file.size > 5 * 1024 * 1024) throw new Error('Images must be 5 MB or smaller.');
+    const client = getActiveSupabaseClient();
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.user) throw new Error('Sign in before uploading profile images.');
+    const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : file.type === 'image/avif' ? 'avif' : 'jpg';
+    const path = `${session.user.id}/${kind}-${Date.now()}.${extension}`;
+    const { error } = await client.storage.from('profile-media').upload(path, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
+    if (error) throw new Error(error.message || 'Image upload failed.');
+    const { data } = client.storage.from('profile-media').getPublicUrl(path);
+    return data.publicUrl;
   },
 
   /**
@@ -291,6 +314,10 @@ export const SupabaseService = {
           name: user.name,
           handle: user.handle,
           avatar: user.avatar,
+          bio: user.bio || '',
+          bannerUrl: user.bannerUrl || '',
+          profileVisibility: user.profileVisibility || 'public',
+          sessionVisibility: user.sessionVisibility || 'private',
           university: user.university || user.universityOrLocation,
           studyField: user.studyField,
           countryCode: user.countryCode,
@@ -368,6 +395,7 @@ export const SupabaseService = {
     period: 'today' | 'weekend' | '7_days' | '14_days' | '30_days';
     category: string;
     visibility?: 'public' | 'friends' | 'private';
+    requiresApproval?: boolean;
     creator: UserProfile;
   }): Promise<StudyChallengeItem> {
     const newChallenge: StudyChallengeItem = {
@@ -393,6 +421,7 @@ export const SupabaseService = {
         title: newChallenge.title, description: newChallenge.description,
         targetHours: newChallenge.targetHours, period: newChallenge.period, category: newChallenge.category,
         visibility: input.visibility || 'public',
+        requiresApproval: Boolean(input.requiresApproval),
       }),
     });
     const payload = await response.json().catch(() => ({}));
@@ -414,12 +443,24 @@ export const SupabaseService = {
     }
   },
 
+  async startChallenge(challengeId: string): Promise<void> {
+    const response = await authenticatedFetch('/api/db/challenges/' + encodeURIComponent(challengeId) + '/start', { method: 'POST', body: JSON.stringify({}) });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not start challenge.');
+  },
+
+  async decideChallengeRequest(challengeId: string, userUid: string, decision: 'accepted' | 'rejected'): Promise<void> {
+    const response = await authenticatedFetch('/api/db/challenges/' + encodeURIComponent(challengeId) + '/requests/' + encodeURIComponent(userUid), { method: 'POST', body: JSON.stringify({ decision }) });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not update the join request.');
+  },
+
   /**
    * Fetch Leaderboard for specific timeframe
    */
-  async fetchLeaderboard(timeframe: 'today' | 'week' | 'month' | 'all'): Promise<LeaderboardEntry[]> {
+  async fetchLeaderboard(timeframe: 'today' | 'week' | 'month' | 'all', scope: 'global' | 'friends' = 'global'): Promise<LeaderboardEntry[]> {
     try {
-      const res = await authenticatedFetch(`/api/db/leaderboard?timeframe=${timeframe}`);
+      const res = await authenticatedFetch(`/api/db/leaderboard?timeframe=${timeframe}&scope=${scope}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.leaderboard)) {
@@ -532,6 +573,7 @@ export const SupabaseService = {
     description: string;
     subjectTag?: string;
     type?: string;
+    visibility?: 'private' | 'friends' | 'public';
   }): Promise<MilestoneItem> {
     const userHandle = input.user.handle || `@${input.user.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     const newMilestone: MilestoneItem = {
@@ -557,7 +599,7 @@ export const SupabaseService = {
       method: 'POST',
       body: JSON.stringify({
         title: newMilestone.title, description: newMilestone.description,
-        subjectTag: newMilestone.subjectTag, type: newMilestone.type,
+        subjectTag: newMilestone.subjectTag, type: newMilestone.type, visibility: input.visibility || 'public',
       }),
     });
     const payload = await response.json().catch(() => ({}));

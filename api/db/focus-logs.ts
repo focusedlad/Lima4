@@ -1,5 +1,5 @@
 import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth.js';
-import { getFocusLogsByUser, insertFocusLog } from '../../src/db/queries.js';
+import { getFocusLogsByUser, getUserByUid, insertFocusLog } from '../../src/db/queries.js';
 
 export default async function handler(req: any, res: any) {
   const authUser = await getAuthenticatedSupabaseUser(req);
@@ -24,6 +24,8 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Valid duration, category and subject are required.' });
     }
     try {
+      const profile = await getUserByUid(authUser.id);
+      const visibility = profile?.isGhostMode ? 'private' : (['private', 'friends', 'public'].includes(profile?.sessionVisibility) ? profile.sessionVisibility : 'private');
       const log = await insertFocusLog({
         userUid: authUser.id,
         durationMinutes: Math.round(durationMinutes),
@@ -33,6 +35,7 @@ export default async function handler(req: any, res: any) {
         xpEarned: Math.min(5760, Math.round(durationMinutes * 4)),
         // Sessions use the server's current date to prevent retroactive challenge credit.
         date: new Date().toISOString().slice(0, 10),
+        visibility,
       });
       return res.status(201).json({ success: true, log });
     } catch (error) {

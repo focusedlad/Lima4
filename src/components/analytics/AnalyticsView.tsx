@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   BarChart3,
   Calendar,
@@ -28,33 +28,38 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   logs,
   onUpdateDeskPet,
 }) => {
-  const [selectedDay, setSelectedDay] = useState<DayActivity | null>(
-    heatmapDays.find((d) => d.dayNumber === 17) || heatmapDays[16] || heatmapDays[0]
-  );
+  const [selectedDay, setSelectedDay] = useState<DayActivity | null>(heatmapDays[heatmapDays.length - 1] || null);
+  useEffect(() => {
+    setSelectedDay((previous) => previous ? (heatmapDays.find((day) => day.date === previous.date) || heatmapDays[heatmapDays.length - 1] || null) : (heatmapDays[heatmapDays.length - 1] || null));
+  }, [heatmapDays]);
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const recentLogs = logs.filter((log) => new Date(log.date + 'T00:00:00').getTime() >= cutoff.getTime());
 
   // Compute Focus Macronutrients Split
   const totalDeepWorkHours = Math.round(
-    logs.filter((l) => l.category === 'deep_work').reduce((acc, l) => acc + l.durationMinutes, 0) /
+    recentLogs.filter((l) => l.category === 'deep_work').reduce((acc, l) => acc + l.durationMinutes, 0) /
       60 *
       10
-  ) / 10 + 48.5;
+  ) / 10;
 
   const totalRecallHours = Math.round(
-    logs.filter((l) => l.category === 'recall').reduce((acc, l) => acc + l.durationMinutes, 0) /
+    recentLogs.filter((l) => l.category === 'recall').reduce((acc, l) => acc + l.durationMinutes, 0) /
       60 *
       10
-  ) / 10 + 26.2;
+  ) / 10;
 
   const totalReviewHours = Math.round(
-    logs.filter((l) => l.category === 'review').reduce((acc, l) => acc + l.durationMinutes, 0) /
+    recentLogs.filter((l) => l.category === 'review').reduce((acc, l) => acc + l.durationMinutes, 0) /
       60 *
       10
-  ) / 10 + 18.8;
+  ) / 10;
 
   const totalMonthHours = Math.round((totalDeepWorkHours + totalRecallHours + totalReviewHours) * 10) / 10;
-  const deepPct = Math.round((totalDeepWorkHours / totalMonthHours) * 100);
-  const recallPct = Math.round((totalRecallHours / totalMonthHours) * 100);
-  const reviewPct = 100 - deepPct - recallPct;
+  const deepPct = totalMonthHours ? Math.round((totalDeepWorkHours / totalMonthHours) * 100) : 0;
+  const recallPct = totalMonthHours ? Math.round((totalRecallHours / totalMonthHours) * 100) : 0;
+  const reviewPct = totalMonthHours ? 100 - deepPct - recallPct : 0;
 
   // Pet Switcher handler
   const handleSwitchPetSpecies = (species: 'shiba' | 'capybara' | 'owl') => {
@@ -306,7 +311,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <Calendar className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-stone-900">31-Day Habit Heatmap (October 2026)</h2>
+              <h2 className="text-sm font-bold text-stone-900">Your Last 31 Days of Study</h2>
               <p className="text-xs text-stone-500">Visual intensity matrix color-coded by daily focus volume</p>
             </div>
           </div>
@@ -354,7 +359,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 className={`h-11 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${color} ${
                   isSelected ? 'ring-2 ring-stone-900 scale-105 shadow-xs' : 'hover:scale-102'
                 }`}
-                title={`Oct ${day.dayNumber}: ${day.hours}h`}
+                title={`${new Date(day.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}: ${day.hours}h`}
               >
                 <span className="text-[11px]">{day.dayNumber}</span>
                 <span className="text-[9px] opacity-80 font-mono">{day.hours}h</span>
@@ -369,7 +374,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
             <div>
               <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">
-                Inspecting: October {selectedDay.dayNumber}, 2026
+                Inspecting: {new Date(selectedDay.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
               <div className="text-sm font-bold text-stone-900 mt-0.5">
                 {selectedDay.hours} hours across {selectedDay.sessionsCount} focus sprints

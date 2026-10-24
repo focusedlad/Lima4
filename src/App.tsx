@@ -40,6 +40,7 @@ import {
   AdmissionRequest,
   FocusSessionLog,
   FocusCategory,
+  DayActivity,
   SubscriptionPlan,
   GlobalAnnouncement,
   EmployeeAccount,
@@ -70,7 +71,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal';
 import { FirebaseService } from './services/firebase';
-import { supabase } from './services/supabase';
+import { supabase, SupabaseService } from './services/supabase';
 import { FluidLiquidBackground } from './components/common/FluidLiquidBackground';
 import { ApiDatabase } from './services/apiDatabase';
 import { SettingsView } from './components/settings/SettingsView';
@@ -98,7 +99,7 @@ export default function App() {
   const [decks, setDecks] = useState<StudyDeck[]>(() => StorageService.getDecks());
   const [creators, setCreators] = useState<YouTubeCreator[]>(() => StorageService.getCreators());
   const [admissions, setAdmissions] = useState<AdmissionRequest[]>(() => StorageService.getAdmissions());
-  const [focusLogs, setFocusLogs] = useState<FocusSessionLog[]>(() => StorageService.getFocusLogs());
+  const [focusLogs, setFocusLogs] = useState<FocusSessionLog[]>([]);
   const [heatmapDays, setHeatmapDays] = useState(() => generate31DayHeatmap());
   const [firstUserNotice, setFirstUserNotice] = useState(false);
 
@@ -164,7 +165,7 @@ export default function App() {
     };
     void syncAuthenticatedProfile();
     return () => { cancelled = true; };
-  }, [profileLoaded, currentUser.id, currentUser.name, currentUser.handle, currentUser.email, currentUser.avatar, currentUser.university, currentUser.universityOrLocation, currentUser.studyField, currentUser.countryCode, currentUser.countryName, currentUser.currentSubject, currentUser.currentGoal, currentUser.isGhostMode, currentUser.subscriptionTier, currentUser.subscriptionStatus, currentUser.termsAccepted, currentUser.termsAcceptedAt, currentUser.termsVersion, currentUser.xp, currentUser.totalHoursStudied, currentUser.currentStreak]);
+  }, [profileLoaded, currentUser.id, currentUser.name, currentUser.handle, currentUser.email, currentUser.avatar, currentUser.university, currentUser.universityOrLocation, currentUser.studyField, currentUser.countryCode, currentUser.countryName, currentUser.currentSubject, currentUser.currentGoal, currentUser.isGhostMode, currentUser.bio, currentUser.bannerUrl, currentUser.profileVisibility, currentUser.sessionVisibility, currentUser.subscriptionTier, currentUser.subscriptionStatus, currentUser.termsAccepted, currentUser.termsAcceptedAt, currentUser.termsVersion, currentUser.xp, currentUser.totalHoursStudied, currentUser.currentStreak]);
 
   const toggleTheme = () => {
     setThemePreference((prev) => {
@@ -254,12 +255,16 @@ export default function App() {
     let cancelled = false;
     const applySession = async (session: any) => {
       if (!session?.user) {
+        setFocusLogs([]);
+        setHeatmapDays(generate31DayHeatmap());
         setProfileLoaded(false);
         setCurrentUser(INITIAL_USER);
         setIsAuthModalOpen(true);
         return;
       }
       setProfileLoaded(false);
+      setFocusLogs([]);
+      setHeatmapDays(generate31DayHeatmap());
       const authUser = session.user;
       const email = authUser.email || '';
       const metadataName = authUser.user_metadata?.full_name || authUser.user_metadata?.name;
@@ -298,6 +303,10 @@ export default function App() {
         name: saved.name || metadataName || email.split('@')[0] || 'New Studier',
         handle: saved.handle || (saved.name || metadataName || email.split('@')[0] || 'studier').toLowerCase().replace(/[^a-z0-9]/g, '_'),
         avatar: saved.avatar || INITIAL_USER.avatar,
+        bio: saved.bio || '',
+        bannerUrl: saved.bannerUrl || '',
+        profileVisibility: saved.profileVisibility || 'public',
+        sessionVisibility: saved.sessionVisibility || 'private',
         university: saved.university || INITIAL_USER.university,
         universityOrLocation: saved.university || INITIAL_USER.universityOrLocation,
         studyField: saved.studyField || INITIAL_USER.studyField,
@@ -314,7 +323,7 @@ export default function App() {
         xp: Number(saved.xp || 0),
         totalHoursStudied: Number(saved.totalHoursStudied || 0),
         currentStreak: Number(saved.currentStreak || 0),
-      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier' };
+      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier', bio: '', bannerUrl: '', profileVisibility: 'public', sessionVisibility: 'private', xp: 0, totalHoursStudied: 0, currentStreak: 0, deskPet: { ...INITIAL_USER.deskPet, level: 1, currentXp: 0, nextLevelXp: 250 } };
       setCurrentUser(base);
       setProfileLoaded(true);
       setIsAuthModalOpen(false);
@@ -348,6 +357,28 @@ export default function App() {
 
   useEffect(() => {
     StorageService.saveFocusLogs(focusLogs);
+  }, [focusLogs]);
+
+  useEffect(() => {
+    const totals = new Map<string, DayActivity>();
+    for (const day of generate31DayHeatmap()) totals.set(day.date, day);
+    for (const log of focusLogs) {
+      const day = totals.get(log.date);
+      if (!day) continue;
+      const hours = log.durationMinutes / 60;
+      day.hours += hours;
+      day.sessionsCount += 1;
+      if (log.category === 'deep_work') day.deepWorkHours += hours;
+      else if (log.category === 'recall') day.recallHours += hours;
+      else if (log.category === 'review') day.reviewHours += hours;
+    }
+    setHeatmapDays(Array.from(totals.values()).map((day) => ({
+      ...day,
+      hours: Math.round(day.hours * 10) / 10,
+      deepWorkHours: Math.round(day.deepWorkHours * 10) / 10,
+      recallHours: Math.round(day.recallHours * 10) / 10,
+      reviewHours: Math.round(day.reviewHours * 10) / 10,
+    })));
   }, [focusLogs]);
 
   // Dedicated Admin Portal Link routing & secret access  // Dedicated Admin Portal Link routing & secret access
@@ -481,13 +512,14 @@ export default function App() {
         console.warn('This focus session could not be synced to the server.');
         return;
       }
-      if (!updatedUser.isGhostMode) {
+      if (!updatedUser.isGhostMode && (updatedUser.sessionVisibility || 'private') !== 'private') {
         await SupabaseService.postMilestone({
           user: updatedUser,
           title: 'Completed ' + durationMinutes + 'm focus session',
           description: 'Focused on ' + subject + ' in a real study session.',
           subjectTag: subject,
           type: 'session_completed',
+          visibility: updatedUser.sessionVisibility || 'private',
         });
       }
     })().catch((error) => console.warn('Could not sync focus session:', error));
@@ -800,6 +832,7 @@ export default function App() {
               onSelectThemePreference={setThemePreference}
               isDarkMode={isDarkMode}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              onSignOut={async () => { await SupabaseService.signOut(); setFocusLogs([]); setCurrentUser(INITIAL_USER); setProfileLoaded(false); setIsAuthModalOpen(true); setCurrentTab('focus'); }}
             />
           </div>
         )}
@@ -895,6 +928,14 @@ export default function App() {
           setCurrentUser(updated);
         }}
         onOpenTerms={() => setIsTermsModalOpen(true)}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          setFocusLogs([]);
+          setHeatmapDays(generate31DayHeatmap());
+          setProfileLoaded(false);
+          setIsProfileModalOpen(false);
+          setIsAuthModalOpen(true);
+        }}
       />
 
       {/* Supabase Cloud Authentication Modal */}

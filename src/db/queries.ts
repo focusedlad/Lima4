@@ -8,6 +8,10 @@ export interface UserSyncInput {
   name: string;
   handle?: string;
   avatar?: string;
+  bio?: string;
+  bannerUrl?: string;
+  profileVisibility?: 'public' | 'friends' | 'private';
+  sessionVisibility?: 'private' | 'friends' | 'public';
   university?: string;
   studyField?: string;
   countryCode?: string;
@@ -36,6 +40,10 @@ export async function upsertUser(input: UserSyncInput) {
         name: input.name,
         handle: userHandle,
         avatar: input.avatar || '',
+        bio: input.bio || '',
+        bannerUrl: input.bannerUrl || '',
+        profileVisibility: input.profileVisibility || 'public',
+        sessionVisibility: input.sessionVisibility || 'private',
         university: input.university || '',
         studyField: input.studyField || '',
         countryCode: input.countryCode || 'GLOBAL',
@@ -50,7 +58,7 @@ export async function upsertUser(input: UserSyncInput) {
         termsVersion: input.termsVersion || null,
         xp: input.xp || 0,
         totalHoursStudied: input.totalHoursStudied || 0,
-        currentStreak: input.currentStreak || 1,
+        currentStreak: input.currentStreak ?? 0,
       })
       .onConflictDoUpdate({
         target: users.uid,
@@ -59,6 +67,10 @@ export async function upsertUser(input: UserSyncInput) {
           name: input.name,
           handle: userHandle,
           avatar: input.avatar || '',
+          bio: input.bio ?? '',
+          bannerUrl: input.bannerUrl ?? '',
+          profileVisibility: input.profileVisibility || 'public',
+          sessionVisibility: input.sessionVisibility || 'private',
           university: input.university || '',
           studyField: input.studyField || '',
           countryCode: input.countryCode || 'GLOBAL',
@@ -115,6 +127,7 @@ export async function insertFocusLog(input: {
   subject: string;
   xpEarned: number;
   date: string;
+  visibility?: 'private' | 'friends' | 'public';
 }) {
   try {
     // Save the session and update only challenges active on the session's date in one transaction.
@@ -128,6 +141,7 @@ export async function insertFocusLog(input: {
           subject: input.subject,
           xpEarned: input.xpEarned,
           date: input.date,
+          visibility: input.visibility || 'private',
         })
         .returning();
 
@@ -169,8 +183,13 @@ export async function insertFocusLog(input: {
           sql`EXISTS (
             SELECT 1 FROM study_challenges c
             WHERE c.challenge_id = ${challengeParticipants.challengeId}
+              AND challenge_participants.user_uid = ${input.userUid}
+              AND c.status = 'active'
+              AND challenge_participants.status = 'accepted'
               AND c.start_date <= ${input.date}
               AND c.end_date >= ${input.date}
+              AND c.status = 'active'
+              AND ${challengeParticipants.status} = 'accepted'
           )`
         ));
 
@@ -193,7 +212,8 @@ export async function insertFocusLog(input: {
         .innerJoin(users, eq(users.uid, input.userUid))
         .where(and(
           eq(challengeParticipants.userUid, input.userUid),
-          sql`study_challenges.start_date <= ${input.date} AND study_challenges.end_date >= ${input.date}`
+          eq(challengeParticipants.status, 'accepted'),
+          sql`study_challenges.status = 'active' AND study_challenges.start_date <= ${input.date} AND study_challenges.end_date >= ${input.date}`
         ));
 
       for (const challenge of completedChallenges) {
@@ -230,7 +250,7 @@ export async function getFocusLogsByUser(userUid: string) {
       .from(focusLogs)
       .where(eq(focusLogs.userUid, userUid))
       .orderBy(desc(focusLogs.createdAt))
-      .limit(50);
+      .limit(1000);
   } catch (error) {
     console.error('Database getFocusLogsByUser failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -250,27 +270,28 @@ export async function insertStudyChallenge(input: {
   endDate: string;
   category?: string;
   visibility?: 'public' | 'friends' | 'private';
+  requiresApproval?: boolean;
 }) {
   try {
     return await db.transaction(async (tx) => {
-      const [challenge] = await tx
-        .insert(studyChallenges)
-        .values({
-          challengeId: input.challengeId,
-          title: input.title,
-          description: input.description || '',
-          creatorUid: input.creatorUid,
-          creatorName: input.creatorName,
-          creatorAvatar: input.creatorAvatar || '',
-          targetHours: input.targetHours,
-          period: input.period,
-          startDate: input.startDate,
-          endDate: input.endDate,
-          category: input.category || 'General',
-          visibility: input.visibility || 'public',
-          participantsCount: 1,
-        })
-        .returning();
+      const [challenge] = await tx.insert(studyChallenges).values({
+        challengeId: input.challengeId,
+        title: input.title,
+        description: input.description || '',
+        creatorUid: input.creatorUid,
+        creatorName: input.creatorName,
+        creatorAvatar: input.creatorAvatar || '',
+        targetHours: input.targetHours,
+        period: input.period,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        category: input.category || 'General',
+        visibility: input.visibility || 'public',
+        requiresApproval: input.requiresApproval ?? false,
+        status: 'waiting',
+        startedAt: null,
+        participantsCount: 1,
+      }).returning();
 
       await tx.insert(challengeParticipants).values({
         challengeId: input.challengeId,
@@ -278,8 +299,9 @@ export async function insertStudyChallenge(input: {
         userName: input.creatorName,
         userAvatar: input.creatorAvatar || '',
         studiedMinutes: 0,
+        status: 'accepted',
+        decidedAt: new Date(),
       });
-
       return challenge;
     });
   } catch (error) {
@@ -290,10 +312,11 @@ export async function insertStudyChallenge(input: {
 
 export async function getJoinedChallengeProgress(userUid: string) {
   try {
-    return await db
-      .select({ challengeId: challengeParticipants.challengeId, studiedMinutes: challengeParticipants.studiedMinutes })
-      .from(challengeParticipants)
-      .where(eq(challengeParticipants.userUid, userUid));
+    return await db.select({
+      challengeId: challengeParticipants.challengeId,
+      studiedMinutes: challengeParticipants.studiedMinutes,
+      status: challengeParticipants.status,
+    }).from(challengeParticipants).where(eq(challengeParticipants.userUid, userUid));
   } catch (error) {
     console.error('Database getJoinedChallengeProgress failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -302,19 +325,26 @@ export async function getJoinedChallengeProgress(userUid: string) {
 
 export async function getAllStudyChallenges(userUid: string) {
   try {
-    return await db.select().from(studyChallenges).where(sql`(
-      visibility = 'public'
-      OR creator_uid = ${userUid}
-      OR (visibility = 'friends' AND EXISTS (
-        SELECT 1 FROM friendships f
-        WHERE (f.user_uid = ${userUid} AND f.friend_uid = study_challenges.creator_uid)
-           OR (f.friend_uid = ${userUid} AND f.user_uid = study_challenges.creator_uid)
-      ))
-      OR EXISTS (
-        SELECT 1 FROM challenge_participants cp
-        WHERE cp.challenge_id = study_challenges.challenge_id AND cp.user_uid = ${userUid}
+    return await db.select().from(studyChallenges).where(and(
+      sql`(
+        visibility = 'public'
+        OR creator_uid = ${userUid}
+        OR (visibility = 'friends' AND EXISTS (
+          SELECT 1 FROM friendships f
+          WHERE (f.user_uid = ${userUid} AND f.friend_uid = study_challenges.creator_uid)
+             OR (f.friend_uid = ${userUid} AND f.user_uid = study_challenges.creator_uid)
+        ))
+        OR EXISTS (
+          SELECT 1 FROM challenge_participants cp
+          WHERE cp.challenge_id = study_challenges.challenge_id AND cp.user_uid = ${userUid}
+        )
+      )`,
+      or(
+        eq(studyChallenges.status, 'waiting'),
+        eq(studyChallenges.status, 'active'),
+        eq(studyChallenges.creatorUid, userUid)
       )
-    )`).orderBy(desc(studyChallenges.createdAt)).limit(50);
+    )).orderBy(desc(studyChallenges.createdAt)).limit(50);
   } catch (error) {
     console.error('Database getAllStudyChallenges failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -328,32 +358,98 @@ export async function joinStudyChallenge(input: {
   userAvatar?: string;
 }) {
   try {
-    return await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(challengeParticipants)
-        .values({
-          challengeId: input.challengeId,
-          userUid: input.userUid,
-          userName: input.userName,
-          userAvatar: input.userAvatar || '',
-          studiedMinutes: 0,
-        })
-        .onConflictDoNothing({
-          target: [challengeParticipants.challengeId, challengeParticipants.userUid],
-        })
-        .returning({ id: challengeParticipants.id });
-
-      if (inserted.length > 0) {
-        await tx
-          .update(studyChallenges)
-          .set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` })
-          .where(eq(studyChallenges.challengeId, input.challengeId));
-      }
-
-      return { success: true, joined: inserted.length > 0 };
+    const [challenge] = await db.select().from(studyChallenges).where(eq(studyChallenges.challengeId, input.challengeId)).limit(1);
+    if (!challenge || !['waiting', 'active'].includes(challenge.status)) throw new Error('This challenge is not accepting participants.');
+    const existing = await db.select().from(challengeParticipants).where(and(
+      eq(challengeParticipants.challengeId, input.challengeId),
+      eq(challengeParticipants.userUid, input.userUid)
+    )).limit(1);
+    if (existing.length) {
+      if (existing[0].status === 'rejected') throw new Error('Your request to join this challenge was declined.');
+      return { success: true, joined: existing[0].status === 'accepted', status: existing[0].status };
+    }
+    const status = challenge.requiresApproval ? 'pending' : 'accepted';
+    await db.insert(challengeParticipants).values({
+      challengeId: input.challengeId,
+      userUid: input.userUid,
+      userName: input.userName,
+      userAvatar: input.userAvatar || '',
+      studiedMinutes: 0,
+      status,
+      requestedAt: new Date(),
+      decidedAt: status === 'accepted' ? new Date() : null,
     });
+    if (status === 'accepted') {
+      await db.update(studyChallenges).set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` }).where(eq(studyChallenges.challengeId, input.challengeId));
+    }
+    return { success: true, joined: status === 'accepted', status };
   } catch (error) {
     console.error('Database joinStudyChallenge failed:', error);
+    if (error instanceof Error && error.message !== 'Database operation failed') throw error;
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function startStudyChallenge(challengeId: string, creatorUid: string) {
+  try {
+    const [challenge] = await db.select().from(studyChallenges).where(and(
+      eq(studyChallenges.challengeId, challengeId),
+      eq(studyChallenges.creatorUid, creatorUid)
+    )).limit(1);
+    if (!challenge) throw new Error('Only the challenge creator can start this challenge.');
+    if (challenge.status !== 'waiting') throw new Error('Only waiting challenges can be started.');
+    const startDate = new Date().toISOString().slice(0, 10);
+    const days = challenge.period === 'today' ? 1 : challenge.period === 'weekend' ? 2 : challenge.period === '14_days' ? 14 : challenge.period === '30_days' ? 30 : 7;
+    const endDate = new Date(Date.now() + (days - 1) * 86400000).toISOString().slice(0, 10);
+    const [updated] = await db.update(studyChallenges).set({
+      status: 'active',
+      startedAt: new Date(),
+      startDate,
+      endDate,
+    }).where(eq(studyChallenges.challengeId, challengeId)).returning();
+    return updated;
+  } catch (error) {
+    console.error('Database startStudyChallenge failed:', error);
+    if (error instanceof Error && error.message !== 'Database operation failed') throw error;
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function decideChallengeParticipant(input: { challengeId: string; creatorUid: string; participantUid: string; decision: 'accepted' | 'rejected' }) {
+  try {
+    const [challenge] = await db.select().from(studyChallenges).where(and(
+      eq(studyChallenges.challengeId, input.challengeId),
+      eq(studyChallenges.creatorUid, input.creatorUid)
+    )).limit(1);
+    if (!challenge) throw new Error('Only the challenge creator can review join requests.');
+    const [participant] = await db.select().from(challengeParticipants).where(and(
+      eq(challengeParticipants.challengeId, input.challengeId),
+      eq(challengeParticipants.userUid, input.participantUid)
+    )).limit(1);
+    if (!participant || participant.status !== 'pending') throw new Error('No pending join request was found.');
+    await db.update(challengeParticipants).set({ status: input.decision, decidedAt: new Date() }).where(eq(challengeParticipants.id, participant.id));
+    if (input.decision === 'accepted') {
+      await db.update(studyChallenges).set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` }).where(eq(studyChallenges.challengeId, input.challengeId));
+    }
+    return { success: true, status: input.decision };
+  } catch (error) {
+    console.error('Database decideChallengeParticipant failed:', error);
+    if (error instanceof Error && error.message !== 'Database operation failed') throw error;
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getChallengeJoinRequests(challengeId: string, creatorUid: string) {
+  try {
+    const [challenge] = await db.select({ creatorUid: studyChallenges.creatorUid }).from(studyChallenges).where(eq(studyChallenges.challengeId, challengeId)).limit(1);
+    if (!challenge || challenge.creatorUid !== creatorUid) throw new Error('Only the challenge creator can view join requests.');
+    return await db.select().from(challengeParticipants).where(and(
+      eq(challengeParticipants.challengeId, challengeId),
+      eq(challengeParticipants.status, 'pending')
+    )).orderBy(desc(challengeParticipants.requestedAt)).limit(100);
+  } catch (error) {
+    console.error('Database getChallengeJoinRequests failed:', error);
+    if (error instanceof Error && error.message !== 'Database operation failed') throw error;
     throw new Error('Database operation failed', { cause: error });
   }
 }
@@ -363,7 +459,7 @@ export async function getChallengeLeaderboard(challengeId: string) {
     return await db
       .select()
       .from(challengeParticipants)
-      .where(eq(challengeParticipants.challengeId, challengeId))
+      .where(and(eq(challengeParticipants.challengeId, challengeId), eq(challengeParticipants.status, 'accepted')))
       .orderBy(desc(challengeParticipants.studiedMinutes))
       .limit(50);
   } catch (error) {
@@ -372,17 +468,8 @@ export async function getChallengeLeaderboard(challengeId: string) {
   }
 }
 
-export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all') {
+export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all', viewerUid?: string, scope: 'global' | 'friends' = 'global') {
   try {
-    if (timeframe === 'all') {
-      return await db
-        .select({ id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar, university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied, xp: users.xp, currentStreak: users.currentStreak })
-        .from(users)
-        .where(and(eq(users.isGhostMode, false), or(gt(users.totalHoursStudied, 0), gt(users.xp, 0))))
-        .orderBy(desc(users.totalHoursStudied), desc(users.xp))
-        .limit(50);
-    }
-
     const now = new Date();
     const start = new Date(now);
     if (timeframe === 'week') {
@@ -390,25 +477,53 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
       start.setDate(start.getDate() - day + 1);
     } else if (timeframe === 'month') {
       start.setDate(1);
+    } else if (timeframe === 'today') {
+      start.setHours(0, 0, 0, 0);
     }
     const startDate = start.toISOString().slice(0, 10);
-    const aggregates = await db
-      .select({ uid: focusLogs.userUid, minutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`, xp: sql<number>`COALESCE(SUM(${focusLogs.xpEarned}), 0)::int` })
-      .from(focusLogs)
-      .where(gte(focusLogs.date, startDate))
-      .groupBy(focusLogs.userUid);
+    let allowedUids: string[] | null = null;
+    let friendUids: string[] = [];
+    if (scope === 'friends') {
+      if (!viewerUid) return [];
+      const friends = await getFriendsByUser(viewerUid);
+      friendUids = [...new Set(friends.map((friend: any) => String(friend.friendUid)).filter(Boolean))];
+      allowedUids = [...new Set([viewerUid, ...friendUids])];
+    }
+    const filters = [];
+    if (timeframe !== 'all') filters.push(gte(focusLogs.date, startDate));
+    if (scope === 'global') {
+      filters.push(eq(focusLogs.visibility, 'public'));
+    } else if (allowedUids) {
+      filters.push(inArray(focusLogs.userUid, allowedUids));
+      filters.push(or(
+        eq(focusLogs.visibility, 'public'),
+        and(eq(focusLogs.visibility, 'friends'), inArray(focusLogs.userUid, allowedUids || ['__no_friends__']))
+      ));
+    }
+    const aggregates = await db.select({
+      uid: focusLogs.userUid,
+      minutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`,
+      xp: sql<number>`COALESCE(SUM(${focusLogs.xpEarned}), 0)::int`,
+    }).from(focusLogs).where(and(...filters)).groupBy(focusLogs.userUid);
     if (!aggregates.length) return [];
     const aggregateByUid = new Map(aggregates.map((row) => [row.uid, row]));
-    const members = await db
-      .select({ id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar, university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied, xp: users.xp, currentStreak: users.currentStreak })
-      .from(users)
-      .where(and(eq(users.isGhostMode, false), inArray(users.uid, aggregates.map((row) => row.uid))));
-    return members
-      .map((member) => {
-        const stats = aggregateByUid.get(member.uid);
-        return { ...member, totalHoursStudied: Math.round(((stats?.minutes || 0) / 60) * 100) / 100, xp: Number(stats?.xp || 0) };
-      })
-      .filter((member) => member.totalHoursStudied > 0 || member.xp > 0)
+    const memberUids = aggregates.map((row) => row.uid);
+    const memberFilters = [eq(users.isGhostMode, false), inArray(users.uid, memberUids)];
+    if (scope === 'global') memberFilters.push(eq(users.profileVisibility, 'public'));
+    if (scope === 'friends' && allowedUids) memberFilters.push(inArray(users.uid, allowedUids));
+    const members = await db.select({
+      id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar,
+      university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied,
+      xp: users.xp, currentStreak: users.currentStreak,
+    }).from(users).where(and(...memberFilters));
+    return members.map((member) => {
+      const stats = aggregateByUid.get(member.uid);
+      return {
+        ...member,
+        totalHoursStudied: Math.round(((stats?.minutes || 0) / 60) * 100) / 100,
+        xp: Number(stats?.xp || 0),
+      };
+    }).filter((member) => member.totalHoursStudied > 0)
       .sort((a, b) => b.totalHoursStudied - a.totalHoursStudied || b.xp - a.xp)
       .slice(0, 50);
   } catch (error) {
@@ -417,7 +532,6 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
   }
 }
 
-// Friendship Queries
 export async function addFriend(input: {
   userUid: string;
   friendUid: string;
@@ -506,7 +620,7 @@ export async function getFriendsByUser(userUid: string) {
   }
 }
 
-export async function searchUsersByQuery(query: string) {
+export async function searchUsersByQuery(query: string, viewerUid: string) {
   try {
     const clean = query.trim().replace(/^@/, '');
     if (!clean) return [];
@@ -517,6 +631,9 @@ export async function searchUsersByQuery(query: string) {
         name: users.name,
         handle: users.handle,
         avatar: users.avatar,
+        bio: users.bio,
+        bannerUrl: users.bannerUrl,
+        profileVisibility: users.profileVisibility,
         university: users.university,
         studyField: users.studyField,
         totalHoursStudied: users.totalHoursStudied,
@@ -527,6 +644,7 @@ export async function searchUsersByQuery(query: string) {
       .where(
         and(
           eq(users.isGhostMode, false),
+          sql`(${users.profileVisibility} = 'public' OR (${users.profileVisibility} = 'friends' AND EXISTS (SELECT 1 FROM friendships f WHERE (f.user_uid = ${viewerUid} AND f.friend_uid = ${users.uid}) OR (f.friend_uid = ${viewerUid} AND f.user_uid = ${users.uid}))))`,
           or(
             ilike(users.handle, `%${clean}%`),
             ilike(users.name, `%${clean}%`),
@@ -675,4 +793,60 @@ export async function cheerMilestoneInDb(milestoneId: string, userUid: string) {
     console.error('Database cheerMilestone failed:', error);
     throw new Error('Database operation failed', { cause: error });
   }
+}
+
+
+export async function getStudyChallengeById(challengeId: string) {
+  const [challenge] = await db.select().from(studyChallenges).where(eq(studyChallenges.challengeId, challengeId)).limit(1);
+  return challenge || null;
+}
+
+export async function startStudyChallenge(challengeId: string, creatorUid: string) {
+  return db.transaction(async (tx) => {
+    const [challenge] = await tx.select().from(studyChallenges)
+      .where(and(eq(studyChallenges.challengeId, challengeId), eq(studyChallenges.creatorUid, creatorUid)))
+      .limit(1);
+    if (!challenge) throw new Error('Only the challenge creator can start this challenge.');
+    if (challenge.status !== 'waiting') throw new Error('This challenge is not waiting to start.');
+    const now = new Date();
+    const [started] = await tx.update(studyChallenges)
+      .set({ status: 'active', startedAt: now, startDate: now.toISOString().slice(0, 10), endDate: new Date(now.getTime() + (challenge.period === 'today' ? 1 : challenge.period === 'weekend' ? 2 : challenge.period === '14_days' ? 14 : challenge.period === '30_days' ? 30 : 7) * 86400000).toISOString().slice(0, 10) })
+      .where(eq(studyChallenges.challengeId, challengeId)).returning();
+    return started;
+  });
+}
+
+export async function decideChallengeParticipant(challengeId: string, participantUid: string, creatorUid: string, decision: 'accepted' | 'rejected') {
+  return db.transaction(async (tx) => {
+    const [challenge] = await tx.select().from(studyChallenges)
+      .where(and(eq(studyChallenges.challengeId, challengeId), eq(studyChallenges.creatorUid, creatorUid)))
+      .limit(1);
+    if (!challenge) throw new Error('Only the challenge creator can manage join requests.');
+    const [participant] = await tx.select().from(challengeParticipants)
+      .where(and(eq(challengeParticipants.challengeId, challengeId), eq(challengeParticipants.userUid, participantUid)))
+      .limit(1);
+    if (!participant || participant.status !== 'pending') throw new Error('This join request is no longer pending.');
+    await tx.update(challengeParticipants).set({ status: decision, decidedAt: new Date() })
+      .where(eq(challengeParticipants.id, participant.id));
+    if (decision === 'accepted') {
+      await tx.update(studyChallenges).set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` })
+        .where(eq(studyChallenges.challengeId, challengeId));
+    }
+    return { success: true };
+  });
+}
+
+
+export async function getPendingChallengeRequestsForCreator(creatorUid: string) {
+  return db.select({
+    challengeId: challengeParticipants.challengeId,
+    userUid: challengeParticipants.userUid,
+    userName: challengeParticipants.userName,
+    userAvatar: challengeParticipants.userAvatar,
+    requestedAt: challengeParticipants.requestedAt,
+  }).from(challengeParticipants)
+    .innerJoin(studyChallenges, eq(challengeParticipants.challengeId, studyChallenges.challengeId))
+    .where(and(eq(studyChallenges.creatorUid, creatorUid), eq(challengeParticipants.status, 'pending')))
+    .orderBy(desc(challengeParticipants.requestedAt))
+    .limit(100);
 }

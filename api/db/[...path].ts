@@ -4,11 +4,16 @@ import {
   getAllStudyChallenges,
   getCheeredMilestoneIds,
   getChallengeLeaderboard,
+  getChallengeJoinRequests,
+  getStudyChallengeById,
+  startStudyChallenge,
+  decideChallengeParticipant,
   getFriendsByUser,
   getJoinedChallengeProgress,
   getLeaderboardByTimeframe,
   getMilestonesFeed,
   getUserByUid,
+  getPendingChallengeRequestsForCreator,
   insertMilestone,
   insertStudyChallenge,
   joinStudyChallenge,
@@ -28,14 +33,16 @@ export default async function handler(req: any, res: any) {
 
   try {
     if (parts.length === 1 && parts[0] === 'challenges' && method === 'GET') {
-      const [rows, membership] = await Promise.all([getAllStudyChallenges(authUser.id), getJoinedChallengeProgress(authUser.id)]);
-      const joined = new Map(membership.map((item: any) => [item.challengeId, item.studiedMinutes]));
+      const [rows, membership, pendingRequests] = await Promise.all([getAllStudyChallenges(authUser.id), getJoinedChallengeProgress(authUser.id), getPendingChallengeRequestsForCreator(authUser.id)]);
+      const joined = new Map(membership.map((item: any) => [item.challengeId, item]));
+      const requestsByChallenge = new Map<string, any[]>();
+      for (const request of pendingRequests) requestsByChallenge.set(request.challengeId, [...(requestsByChallenge.get(request.challengeId) || []), request]);
       const challenges = rows.map((row: any) => ({
         id: row.challengeId, challengeId: row.challengeId, title: row.title, description: row.description || '',
         creatorUid: row.creatorUid, creatorName: row.creatorName, creatorAvatar: row.creatorAvatar || '',
         targetHours: row.targetHours, period: row.period, startDate: row.startDate, endDate: row.endDate,
-        participantsCount: row.participantsCount, category: row.category, visibility: row.visibility, isJoined: joined.has(row.challengeId),
-        myProgressHours: Number(joined.get(row.challengeId) || 0) / 60,
+        participantsCount: row.participantsCount, category: row.category, visibility: row.visibility, requiresApproval: row.requiresApproval, status: row.status, startedAt: row.startedAt, isCreator: row.creatorUid === authUser.id, pendingRequests: requestsByChallenge.get(row.challengeId) || [], membershipStatus: joined.get(row.challengeId)?.status || null, isJoined: joined.get(row.challengeId)?.status === 'accepted',
+        myProgressHours: Number(joined.get(row.challengeId)?.studiedMinutes || 0) / 60,
       }));
       return res.status(200).json({ success: true, challenges });
     }
@@ -53,14 +60,15 @@ export default async function handler(req: any, res: any) {
       const endDate = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
       const challengeId = authUser.id + '_' + Date.now().toString(36);
       const visibility = ['public', 'friends', 'private'].includes(body.visibility) ? body.visibility : 'public';
+      const requiresApproval = body.requiresApproval === true;
       const row = await insertStudyChallenge({
         challengeId, title, description: typeof body.description === 'string' ? body.description.slice(0, 1000) : '',
         creatorUid: authUser.id, creatorName: profile?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Studier',
         creatorAvatar: profile?.avatar || '', targetHours: Math.round(targetHours), period, startDate, endDate,
         category: typeof body.category === 'string' ? body.category.slice(0, 80) : 'General',
-        visibility,
+        visibility, requiresApproval,
       });
-      return res.status(201).json({ success: true, challenge: { ...row, id: row.challengeId, isJoined: true, myProgressHours: 0 } });
+      return res.status(201).json({ success: true, challenge: { ...row, id: row.challengeId, isJoined: true, isCreator: true, membershipStatus: 'accepted', myProgressHours: 0 } });
     }
 
     if (parts.length === 2 && parts[0] === 'challenges' && parts[1] === 'join' && method === 'POST') {
@@ -70,12 +78,30 @@ export default async function handler(req: any, res: any) {
       if (!visibleChallenges.some((challenge: any) => challenge.challengeId === challengeId)) {
         return res.status(404).json({ error: 'Challenge not found.' });
       }
+      const challenge = await getStudyChallengeById(challengeId);
+      if (!challenge) return res.status(404).json({ error: 'Challenge not found.' });
+      if (challenge.creatorUid === authUser.id) return res.status(200).json({ success: true, status: 'accepted' });
+      if (challenge.status === 'completed' || challenge.status === 'cancelled') return res.status(409).json({ error: 'This challenge is no longer accepting participants.' });
       const profile = await getUserByUid(authUser.id);
+      const status = challenge.requiresApproval ? 'pending' : 'accepted';
       await joinStudyChallenge({
         challengeId, userUid: authUser.id,
         userName: profile?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Studier',
-        userAvatar: profile?.avatar || '',
+        userAvatar: profile?.avatar || '', status,
       });
+      return res.status(200).json({ success: true, status });
+    }
+
+    if (parts.length === 3 && parts[0] === 'challenges' && parts[2] === 'start' && method === 'POST') {
+      const started = await startStudyChallenge(parts[1], authUser.id);
+      return res.status(200).json({ success: true, challenge: started });
+    }
+
+    if (parts.length === 4 && parts[0] === 'challenges' && parts[2] === 'requests' && method === 'POST') {
+      const participantUid = parts[3];
+      const decision = body.decision === 'accepted' ? 'accepted' : body.decision === 'rejected' ? 'rejected' : null;
+      if (!decision) return res.status(400).json({ error: 'Choose accept or reject.' });
+      await decideChallengeParticipant(parts[1], participantUid, authUser.id, decision);
       return res.status(200).json({ success: true });
     }
 
@@ -92,7 +118,8 @@ export default async function handler(req: any, res: any) {
       const allowed = ['today', 'week', 'month', 'all'];
       const raw = String(req.query?.timeframe || 'week');
       const timeframe = (allowed.includes(raw) ? raw : 'week') as 'today' | 'week' | 'month' | 'all';
-      const rows = await getLeaderboardByTimeframe(timeframe);
+      const scope = String(req.query?.scope || 'global') === 'friends' ? 'friends' : 'global';
+      const rows = await getLeaderboardByTimeframe(timeframe, authUser.id, scope);
       return res.status(200).json({ success: true, leaderboard: rows });
     }
 
@@ -121,7 +148,7 @@ export default async function handler(req: any, res: any) {
 
     if (parts.length === 2 && parts[0] === 'users' && parts[1] === 'search' && method === 'GET') {
       const query = String(req.query?.q || '').slice(0, 80);
-      const users = await searchUsersByQuery(query);
+      const users = await searchUsersByQuery(query, authUser.id);
       return res.status(200).json({ success: true, users: users.filter((user: any) => user.uid !== authUser.id) });
     }
 

@@ -9,6 +9,10 @@ export const users = pgTable('users', {
   name: text('name').notNull(),
   handle: text('handle'), // unique username e.g. ian_dev
   avatar: text('avatar'),
+  bio: text('bio').default('').notNull(),
+  bannerUrl: text('banner_url').default('').notNull(),
+  profileVisibility: text('profile_visibility').default('public').notNull(),
+  sessionVisibility: text('session_visibility').default('private').notNull(),
   university: text('university'),
   studyField: text('study_field'),
   countryCode: text('country_code').default('GLOBAL').notNull(),
@@ -36,6 +40,7 @@ export const focusLogs = pgTable('focus_logs', {
   subject: text('subject').notNull(),
   xpEarned: integer('xp_earned').default(0).notNull(),
   date: text('date').notNull(), // YYYY-MM-DD
+  visibility: text('visibility').default('private').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -55,6 +60,9 @@ export const studyChallenges = pgTable('study_challenges', {
   participantsCount: integer('participants_count').default(1).notNull(),
   category: text('category').default('General').notNull(),
   visibility: text('visibility').default('public').notNull(),
+  requiresApproval: boolean('requires_approval').default(false).notNull(),
+  status: text('status').default('active').notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -66,6 +74,9 @@ export const challengeParticipants = pgTable('challenge_participants', {
   userName: text('user_name').notNull(),
   userAvatar: text('user_avatar'),
   studiedMinutes: integer('studied_minutes').default(0).notNull(),
+  status: text('status').default('accepted').notNull(),
+  requestedAt: timestamp('requested_at', { withTimezone: true }).defaultNow().notNull(),
+  decidedAt: timestamp('decided_at', { withTimezone: true }),
   joinedAt: timestamp('joined_at').defaultNow(),
 });
 

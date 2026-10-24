@@ -54,6 +54,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
   const [isFriendsListOpen, setIsFriendsListOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<UserSearchResult | null>(null);
   const [isSearching, setIsSearching] = useState<boolean>(false);
 
   // Post Milestone Form State
@@ -377,9 +378,7 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-xs text-stone-900 dark:text-white truncate">
-                            {user.name}
-                          </span>
+                          <button type="button" onClick={() => setSelectedProfile(user)} className="text-left font-bold text-xs text-stone-900 dark:text-white truncate hover:text-indigo-600">{user.name}</button>
                           <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
                             {user.handle}
                           </span>
@@ -650,6 +649,30 @@ export const GlobalActivityFeed: React.FC<GlobalActivityFeedProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Public student profile viewer */}
+      {selectedProfile && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/70 p-4 backdrop-blur-sm" onClick={() => setSelectedProfile(null)}>
+          <section role="dialog" aria-modal="true" aria-label={selectedProfile.name + ' profile'} onClick={(event) => event.stopPropagation()} className="w-full max-w-md overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-2xl dark:border-stone-700 dark:bg-[#0B1020]">
+            <div className="relative h-32 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-400">
+              {selectedProfile.bannerUrl && <img src={selectedProfile.bannerUrl} alt="" className="h-full w-full object-cover" />}
+              <button type="button" onClick={() => setSelectedProfile(null)} className="absolute right-3 top-3 rounded-xl bg-black/40 p-2 text-white" aria-label="Close profile"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="px-5 pb-5">
+              <img src={selectedProfile.avatar} alt={selectedProfile.name} className="-mt-10 h-20 w-20 rounded-2xl border-4 border-white bg-white object-cover shadow-md dark:border-[#0B1020]" />
+              <h2 className="mt-3 text-xl font-extrabold text-stone-900 dark:text-white">{selectedProfile.name}</h2>
+              <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-300">@{selectedProfile.handle}</p>
+              <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">{selectedProfile.university || 'Independent Scholar'}{selectedProfile.studyField ? ' · ' + selectedProfile.studyField : ''}</p>
+              <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-6 text-stone-700 dark:text-stone-200">{selectedProfile.bio || 'This student has not added a bio yet.'}</p>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-stone-50 p-3 dark:bg-stone-800"><p className="text-xs text-stone-500">Total study time</p><p className="mt-1 text-lg font-extrabold text-stone-900 dark:text-white">{selectedProfile.totalHoursStudied}h</p></div>
+                <div className="rounded-2xl bg-stone-50 p-3 dark:bg-stone-800"><p className="text-xs text-stone-500">Current streak</p><p className="mt-1 text-lg font-extrabold text-stone-900 dark:text-white">{selectedProfile.currentStreak} days</p></div>
+              </div>
+              <button type="button" onClick={() => setSelectedProfile(null)} className="mt-5 w-full rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-stone-950">Close profile</button>
+            </div>
+          </section>
         </div>
       )}
 
