@@ -458,9 +458,9 @@ export const SupabaseService = {
   /**
    * Fetch Leaderboard for specific timeframe
    */
-  async fetchLeaderboard(timeframe: 'today' | 'week' | 'month' | 'all'): Promise<LeaderboardEntry[]> {
+  async fetchLeaderboard(timeframe: 'today' | 'week' | 'month' | 'all', scope: 'global' | 'friends' = 'global'): Promise<LeaderboardEntry[]> {
     try {
-      const res = await authenticatedFetch(`/api/db/leaderboard?timeframe=${timeframe}`);
+      const res = await authenticatedFetch(`/api/db/leaderboard?timeframe=${timeframe}&scope=${scope}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && Array.isArray(json.leaderboard)) {
