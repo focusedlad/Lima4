@@ -82,13 +82,9 @@ export interface StudyChallengeItem {
   status?: 'waiting' | 'active' | 'completed' | 'cancelled';
   startedAt?: string | null;
   isCreator?: boolean;
-  membershipStatus?: 'pending' | 'accepted' | 'rejected' | null;
-  pendingRequests?: Array<{ userUid: string; userName: string; userAvatar?: string }>;
   isJoined?: boolean;
   myJoinStatus?: 'pending' | 'accepted' | 'rejected';
-  requiresApproval?: boolean;
-  status?: 'waiting' | 'active' | 'completed' | 'cancelled';
-  isCreator?: boolean;
+  pendingRequests?: Array<{ userUid: string; userName: string; userAvatar?: string }>;
   myProgressHours?: number;
 }
 
@@ -422,8 +418,8 @@ export const SupabaseService = {
       body: JSON.stringify({
         title: newChallenge.title, description: newChallenge.description,
         targetHours: newChallenge.targetHours, period: newChallenge.period, category: newChallenge.category,
-        visibility: input.visibility || 'public', requiresApproval: Boolean(input.requiresApproval),
-        requiresApproval: Boolean(input.requiresApproval), requiresApproval: input.requiresApproval === true,
+        visibility: input.visibility || 'public',
+        requiresApproval: Boolean(input.requiresApproval),
       }),
     });
     const payload = await response.json().catch(() => ({}));
