@@ -77,6 +77,20 @@ import { SettingsView } from './components/settings/SettingsView';
 
 
 export default function App() {
+  // Quiet, brief haptic feedback for taps where the browser/device supports it.
+  // iOS Safari does not expose navigator.vibrate; the guard keeps unsupported devices silent.
+  useEffect(() => {
+    const handleTapFeedback = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element) || !target.closest('button,[role="button"]')) return;
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(8);
+      }
+    };
+    document.addEventListener('pointerdown', handleTapFeedback, true);
+    return () => document.removeEventListener('pointerdown', handleTapFeedback, true);
+  }, []);
+
   // Application Data States
   const [currentUser, setCurrentUser] = useState<UserProfile>(() => INITIAL_USER);
   const [profileLoaded, setProfileLoaded] = useState(false);

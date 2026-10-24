@@ -29,8 +29,10 @@ export default async function handler(req: any, res: any) {
         durationMinutes: Math.round(durationMinutes),
         category: category.slice(0, 80),
         subject: subject.slice(0, 200),
-        xpEarned: Math.max(0, Math.min(100000, Number(body.xpEarned) || 0)),
-        date: typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date) && body.date <= new Date().toISOString().slice(0, 10) ? body.date : new Date().toISOString().slice(0, 10),
+        // XP is derived server-side from accepted duration, not trusted from client input.
+        xpEarned: Math.min(5760, Math.round(durationMinutes * 4)),
+        // Sessions use the server's current date to prevent retroactive challenge credit.
+        date: new Date().toISOString().slice(0, 10),
       });
       return res.status(201).json({ success: true, log });
     } catch (error) {
