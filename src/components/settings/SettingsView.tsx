@@ -28,12 +28,6 @@ import { UserProfile } from '../../types';
 import { audioSynth } from '../../services/audioSynth';
 import { ApiDatabase } from '../../services/apiDatabase';
 import { PWAInstallButton } from '../common/PWAInstallButton';
-import {
-  getCustomSupabaseConfig,
-  setCustomSupabaseConfig,
-  clearCustomSupabaseConfig,
-  isSupabaseConfigured,
-} from '../../services/supabase';
 
 interface SettingsViewProps {
   currentUser: UserProfile;
@@ -72,24 +66,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // UI state
   const [isSaved, setIsSaved] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
-
-  // Custom Supabase Connection State
-  const [customSupabaseUrl, setCustomSupabaseUrl] = useState(() => getCustomSupabaseConfig()?.url || '');
-  const [customSupabaseKey, setCustomSupabaseKey] = useState(() => getCustomSupabaseConfig()?.anonKey || '');
-  const [supabaseMsg, setSupabaseMsg] = useState<string | null>(null);
-
-  const handleSaveSupabaseConfig = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customSupabaseUrl.trim() || !customSupabaseKey.trim()) {
-      clearCustomSupabaseConfig();
-      setSupabaseMsg('Reset to built-in local database');
-      setTimeout(() => setSupabaseMsg(null), 3000);
-      return;
-    }
-    setCustomSupabaseConfig(customSupabaseUrl.trim(), customSupabaseKey.trim());
-    setSupabaseMsg('Connected! Live Supabase credentials saved.');
-    setTimeout(() => setSupabaseMsg(null), 3000);
-  };
 
   // Sample curated avatar collection
   const AVATAR_OPTIONS = [
