@@ -316,10 +316,7 @@ export async function getJoinedChallengeProgress(userUid: string) {
       challengeId: challengeParticipants.challengeId,
       studiedMinutes: challengeParticipants.studiedMinutes,
       status: challengeParticipants.status,
-    }).from(challengeParticipants).where(and(
-      eq(challengeParticipants.userUid, userUid),
-      eq(challengeParticipants.status, 'accepted')
-    ));
+    }).from(challengeParticipants).where(eq(challengeParticipants.userUid, userUid));
   } catch (error) {
     console.error('Database getJoinedChallengeProgress failed:', error);
     throw new Error('Database operation failed', { cause: error });
