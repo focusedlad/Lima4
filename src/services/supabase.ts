@@ -77,6 +77,7 @@ export interface StudyChallengeItem {
   endDate: string;
   participantsCount: number;
   category: string;
+  visibility?: 'public' | 'friends' | 'private';
   isJoined?: boolean;
   myProgressHours?: number;
 }
@@ -366,6 +367,7 @@ export const SupabaseService = {
     targetHours: number;
     period: 'today' | 'weekend' | '7_days' | '14_days' | '30_days';
     category: string;
+    visibility?: 'public' | 'friends' | 'private';
     creator: UserProfile;
   }): Promise<StudyChallengeItem> {
     const newChallenge: StudyChallengeItem = {
@@ -390,6 +392,7 @@ export const SupabaseService = {
       body: JSON.stringify({
         title: newChallenge.title, description: newChallenge.description,
         targetHours: newChallenge.targetHours, period: newChallenge.period, category: newChallenge.category,
+        visibility: input.visibility || 'public',
       }),
     });
     const payload = await response.json().catch(() => ({}));
