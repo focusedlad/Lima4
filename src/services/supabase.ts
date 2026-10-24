@@ -118,6 +118,9 @@ export interface UserSearchResult {
   name: string;
   handle: string;
   avatar: string;
+  bio?: string;
+  bannerUrl?: string;
+  profileVisibility?: 'public' | 'friends' | 'private';
   university?: string;
   studyField?: string;
   totalHoursStudied: number;
