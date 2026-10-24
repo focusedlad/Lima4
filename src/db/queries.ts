@@ -461,7 +461,7 @@ export async function getChallengeLeaderboard(challengeId: string) {
   }
 }
 
-export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all') {
+export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all', viewerUid?: string, scope: 'global' | 'friends' = 'global') {
   try {
     const now = new Date();
     const start = new Date(now);
@@ -477,36 +477,48 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
       start.setFullYear(2000, 0, 1);
     }
     const startDate = start.toISOString().slice(0, 10);
-    const aggregates = await db
-      .select({
-        uid: focusLogs.userUid,
-        minutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`,
-        xp: sql<number>`COALESCE(SUM(${focusLogs.xpEarned}), 0)::int`,
-      })
-      .from(focusLogs)
-      .where(and(gte(focusLogs.date, startDate), eq(focusLogs.visibility, 'public')))
-      .groupBy(focusLogs.userUid);
+    let allowedUids: string[] | null = null;
+    let friendUids: string[] = [];
+    if (scope === 'friends') {
+      if (!viewerUid) return [];
+      const friends = await getFriendsByUser(viewerUid);
+      friendUids = [...new Set(friends.map((friend: any) => String(friend.friendUid)).filter(Boolean))];
+      allowedUids = [...new Set([viewerUid, ...friendUids])];
+    }
+    const filters = [];
+    if (timeframe !== 'all') filters.push(gte(focusLogs.date, startDate));
+    if (scope === 'global') {
+      filters.push(eq(focusLogs.visibility, 'public'));
+    } else if (allowedUids) {
+      filters.push(inArray(focusLogs.userUid, allowedUids));
+      filters.push(or(
+        eq(focusLogs.visibility, 'public'),
+        and(eq(focusLogs.visibility, 'friends'), inArray(focusLogs.userUid, friendUids.length ? friendUids : ['__no_friends__']))
+      ));
+    }
+    const aggregates = await db.select({
+      uid: focusLogs.userUid,
+      minutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`,
+      xp: sql<number>`COALESCE(SUM(${focusLogs.xpEarned}), 0)::int`,
+    }).from(focusLogs).where(and(...filters)).groupBy(focusLogs.userUid);
     if (!aggregates.length) return [];
     const aggregateByUid = new Map(aggregates.map((row) => [row.uid, row]));
-    const members = await db
-      .select({
-        id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar,
-        university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied,
-        xp: users.xp, currentStreak: users.currentStreak,
-      })
-      .from(users)
-      .where(and(eq(users.isGhostMode, false), inArray(users.uid, aggregates.map((row) => row.uid))));
-    return members
-      .filter((member) => member.uid && member.uid.length > 0)
-      .map((member) => {
-        const stats = aggregateByUid.get(member.uid);
-        return {
-          ...member,
-          totalHoursStudied: Math.round(((stats?.minutes || 0) / 60) * 100) / 100,
-          xp: Number(stats?.xp || 0),
-        };
-      })
-      .filter((member) => member.totalHoursStudied > 0)
+    const memberUids = aggregates.map((row) => row.uid);
+    const memberFilters = [eq(users.isGhostMode, false), inArray(users.uid, memberUids)];
+    if (scope === 'friends' && allowedUids) memberFilters.push(inArray(users.uid, allowedUids));
+    const members = await db.select({
+      id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar,
+      university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied,
+      xp: users.xp, currentStreak: users.currentStreak,
+    }).from(users).where(and(...memberFilters));
+    return members.map((member) => {
+      const stats = aggregateByUid.get(member.uid);
+      return {
+        ...member,
+        totalHoursStudied: Math.round(((stats?.minutes || 0) / 60) * 100) / 100,
+        xp: Number(stats?.xp || 0),
+      };
+    }).filter((member) => member.totalHoursStudied > 0)
       .sort((a, b) => b.totalHoursStudied - a.totalHoursStudied || b.xp - a.xp)
       .slice(0, 50);
   } catch (error) {
@@ -515,7 +527,6 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
   }
 }
 
-// Friendship Queries
 export async function addFriend(input: {
   userUid: string;
   friendUid: string;
