@@ -3,11 +3,20 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022"],
-    "types": ["node"],
+    "lib": [
+      "ES2022"
+    ],
+    "types": [
+      "node"
+    ],
     "skipLibCheck": true,
     "allowJs": true,
-    "strict": false
+    "strict": false,
+    "typeRoots": [
+      "../node_modules/@types"
+    ]
   },
-  "include": ["./**/*.ts"]
+  "include": [
+    "./**/*.ts"
+  ]
 }
