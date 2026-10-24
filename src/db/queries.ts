@@ -131,6 +131,36 @@ export async function insertFocusLog(input: {
         })
         .returning();
 
+      // Recompute durable profile totals from server-accepted focus logs; never trust client totals.
+      const [totals] = await tx
+        .select({
+          totalMinutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`,
+          totalXp: sql<number>`COALESCE(SUM(${focusLogs.xpEarned}), 0)::int`,
+        })
+        .from(focusLogs)
+        .where(eq(focusLogs.userUid, input.userUid));
+      const recentDates = await tx
+        .select({ date: focusLogs.date })
+        .from(focusLogs)
+        .where(eq(focusLogs.userUid, input.userUid))
+        .groupBy(focusLogs.date)
+        .orderBy(desc(focusLogs.date))
+        .limit(400);
+      let expectedDate = input.date;
+      let currentStreak = 0;
+      for (const row of recentDates) {
+        if (row.date !== expectedDate) break;
+        currentStreak += 1;
+        const previousDay = new Date(`${expectedDate}T00:00:00.000Z`);
+        previousDay.setUTCDate(previousDay.getUTCDate() - 1);
+        expectedDate = previousDay.toISOString().slice(0, 10);
+      }
+      await tx.update(users).set({
+        totalHoursStudied: Math.floor(Number(totals?.totalMinutes || 0) / 60),
+        xp: Number(totals?.totalXp || 0),
+        currentStreak: Math.max(currentStreak, 1),
+      }).where(eq(users.uid, input.userUid));
+
       await tx
         .update(challengeParticipants)
         .set({ studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}` })
