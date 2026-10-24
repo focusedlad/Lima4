@@ -146,7 +146,7 @@ export default async function handler(req: any, res: any) {
 
     if (parts.length === 2 && parts[0] === 'users' && parts[1] === 'search' && method === 'GET') {
       const query = String(req.query?.q || '').slice(0, 80);
-      const users = await searchUsersByQuery(query);
+      const users = await searchUsersByQuery(query, authUser.id);
       return res.status(200).json({ success: true, users: users.filter((user: any) => user.uid !== authUser.id) });
     }
 
