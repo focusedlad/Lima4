@@ -928,6 +928,14 @@ export default function App() {
           setCurrentUser(updated);
         }}
         onOpenTerms={() => setIsTermsModalOpen(true)}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          setFocusLogs([]);
+          setHeatmapDays(generate31DayHeatmap());
+          setProfileLoaded(false);
+          setIsProfileModalOpen(false);
+          setIsAuthModalOpen(true);
+        }}
       />
 
       {/* Supabase Cloud Authentication Modal */}
