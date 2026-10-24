@@ -118,7 +118,8 @@ export default async function handler(req: any, res: any) {
       const allowed = ['today', 'week', 'month', 'all'];
       const raw = String(req.query?.timeframe || 'week');
       const timeframe = (allowed.includes(raw) ? raw : 'week') as 'today' | 'week' | 'month' | 'all';
-      const rows = await getLeaderboardByTimeframe(timeframe);
+      const scope = String(req.query?.scope || 'global') === 'friends' ? 'friends' : 'global';
+      const rows = await getLeaderboardByTimeframe(timeframe, authUser.id, scope);
       return res.status(200).json({ success: true, leaderboard: rows });
     }
 
