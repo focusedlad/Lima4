@@ -392,3 +392,43 @@ html.dark [class~="bg-pink-700"] { background-color: var(--lima-maroon) !importa
 html.dark [class~="hover:bg-pink-600"]:hover,
 html.dark [class~="hover:bg-pink-700"]:hover { background-color: var(--lima-maroon-hover) !important; }
 
+
+
+/* iOS edge-to-edge viewport and status-bar surface.
+   Keep the page background continuous behind the status bar/Dynamic Island.
+   App content must still use safe-area insets so controls never sit under them. */
+html {
+  min-height: 100%;
+  background: #F8FAFC;
+  background: var(--cream-bg, #F8FAFC);
+}
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #F8FAFC;
+  background: var(--cream-bg, #F8FAFC);
+}
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: inherit;
+}
+html.dark,
+html.dark body,
+html.dark #root {
+  background: #05070B;
+}
+@supports (padding-top: env(safe-area-inset-top)) {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+  }
+}
+/* Keep the browser chrome and app canvas visually matched on iOS. */
+@media (display-mode: standalone) {
+  html, body, #root {
+    overscroll-behavior-y: none;
+  }
+}
