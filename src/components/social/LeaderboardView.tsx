@@ -20,20 +20,22 @@ interface LeaderboardViewProps {
 
 export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ currentUser }) => {
   const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'all'>('week');
+  const [rankingScope, setRankingScope] = useState<'global' | 'friends'>('global');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cheeredIds, setCheeredIds] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    loadLeaderboard(timeframe);
-  }, [timeframe]);
+    loadLeaderboard(timeframe, rankingScope);
+  }, [timeframe, rankingScope]);
 
-  const loadLeaderboard = async (tf: 'today' | 'week' | 'month' | 'all') => {
+  const loadLeaderboard = async (tf: 'today' | 'week' | 'month' | 'all', scope: 'global' | 'friends' = rankingScope) => {
     setIsLoading(true);
-    const data = await SupabaseService.fetchLeaderboard(tf);
-    setLeaderboard(data);
-    setIsLoading(false);
+    try {
+      const data = await SupabaseService.fetchLeaderboard(tf, scope);
+      setLeaderboard(data);
+    } finally { setIsLoading(false); }
   };
 
   const handleCheer = (entry: LeaderboardEntry) => {
@@ -73,7 +75,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ currentUser })
           </div>
 
           <button
-            onClick={() => loadLeaderboard(timeframe)}
+            onClick={() => loadLeaderboard(timeframe, rankingScope)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/80 dark:bg-stone-900/80 hover:bg-white text-stone-700 dark:text-stone-200 border border-indigo-200/60 dark:border-stone-800 text-xs font-bold transition-colors shrink-0"
             title="Refresh leaderboard"
           >
@@ -82,8 +84,13 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ currentUser })
           </button>
         </div>
 
-        {/* Timeframe Filter Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mt-5 pt-4 border-t border-indigo-200/60 dark:border-stone-800">
+        {/* Ranking Scope and Timeframe Filters */}
+        <div className="mt-5 border-t border-indigo-200/60 pt-4 dark:border-stone-800">
+          <div className="mb-3 inline-flex flex-wrap gap-1 rounded-2xl border border-indigo-100 bg-white/70 p-1 text-xs dark:border-stone-800 dark:bg-stone-900/70">
+            <button onClick={() => setRankingScope('global')} className={`rounded-xl px-3.5 py-1.5 font-bold transition-all ${rankingScope === 'global' ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-950' : 'text-stone-600 dark:text-stone-300'}`}>Global rankings</button>
+            <button onClick={() => setRankingScope('friends')} className={`rounded-xl px-3.5 py-1.5 font-bold transition-all ${rankingScope === 'friends' ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-950' : 'text-stone-600 dark:text-stone-300'}`}>Friends rankings</button>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-1.5 p-1 bg-white/70 dark:bg-stone-900/70 rounded-2xl border border-indigo-100 dark:border-stone-800 text-xs">
             <button
               onClick={() => setTimeframe('today')}
@@ -137,6 +144,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({ currentUser })
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 pr-3 py-1.5 rounded-xl bg-white/90 dark:bg-stone-900/90 border border-indigo-200/80 dark:border-stone-800 text-xs text-stone-900 dark:text-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 w-48 sm:w-56"
             />
+          </div>
           </div>
         </div>
       </div>
