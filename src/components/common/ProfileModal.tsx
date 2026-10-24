@@ -25,6 +25,7 @@ interface ProfileModalProps {
   onClose: () => void;
   onUpdateProfile: (updated: UserProfile) => void | Promise<void>;
   onOpenTerms?: () => void;
+  onLogout?: () => void | Promise<void>;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -33,6 +34,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onClose,
   onUpdateProfile,
   onOpenTerms,
+  onLogout,
 }) => {
   const [name, setName] = useState(currentUser.name);
   const [selectedCountryCode, setSelectedCountryCode] = useState(currentUser.countryCode || 'GLOBAL');
@@ -349,6 +351,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </p>
             )}
             <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              {onLogout && currentUser.id !== 'unauthenticated' && (
+                <button type="button" onClick={async () => { await onLogout(); onClose(); }} className="mt-2 flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/30">
+                  <LogOut className="h-3.5 w-3.5" /> Sign out
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
