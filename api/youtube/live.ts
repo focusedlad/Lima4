@@ -1,4 +1,4 @@
-import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth';
+import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Cache-Control', 'no-store');
