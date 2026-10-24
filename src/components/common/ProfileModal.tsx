@@ -85,7 +85,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       bio: bio.trim().slice(0, 500),
       bannerUrl: bannerUrl.trim(),
       profileVisibility,
-      sessionVisibility,
       sessionVisibility: isGhostMode ? 'private' : sessionVisibility,
     };
     setIsSaving(true);
