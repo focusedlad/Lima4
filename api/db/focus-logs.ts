@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
         category: category.slice(0, 80),
         subject: subject.slice(0, 200),
         // XP is derived server-side from accepted duration, not trusted from client input.
-        xpEarned: Math.min(1440, Math.round(durationMinutes)),
+        xpEarned: Math.min(5760, Math.round(durationMinutes * 4)),
         // Sessions use the server's current date to prevent retroactive challenge credit.
         date: new Date().toISOString().slice(0, 10),
       });
