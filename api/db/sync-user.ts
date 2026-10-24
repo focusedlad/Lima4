@@ -47,7 +47,7 @@ export default async function handler(req: any, res: any) {
       termsVersion: existing?.termsVersion || (typeof body.termsVersion === 'string' ? body.termsVersion.slice(0, 40) : undefined),
       xp: existing?.xp ?? 0,
       totalHoursStudied: existing?.totalHoursStudied ?? 0,
-      currentStreak: existing?.currentStreak ?? 1,
+      currentStreak: existing?.currentStreak ?? 0,
     });
     const registeredUserCount = await getRegisteredUserCount();
     return res.status(200).json({ success: true, user, isFirstUser: registeredUserCount === 1 });
