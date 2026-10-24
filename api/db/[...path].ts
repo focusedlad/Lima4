@@ -12,6 +12,7 @@ import {
   getLeaderboardByTimeframe,
   getMilestonesFeed,
   getUserByUid,
+  getPendingChallengeRequestsForCreator,
   insertMilestone,
   insertStudyChallenge,
   joinStudyChallenge,
@@ -31,13 +32,15 @@ export default async function handler(req: any, res: any) {
 
   try {
     if (parts.length === 1 && parts[0] === 'challenges' && method === 'GET') {
-      const [rows, membership] = await Promise.all([getAllStudyChallenges(authUser.id), getJoinedChallengeProgress(authUser.id)]);
+      const [rows, membership, pendingRequests] = await Promise.all([getAllStudyChallenges(authUser.id), getJoinedChallengeProgress(authUser.id), getPendingChallengeRequestsForCreator(authUser.id)]);
       const joined = new Map(membership.map((item: any) => [item.challengeId, item]));
+      const requestsByChallenge = new Map<string, any[]>();
+      for (const request of pendingRequests) requestsByChallenge.set(request.challengeId, [...(requestsByChallenge.get(request.challengeId) || []), request]);
       const challenges = rows.map((row: any) => ({
         id: row.challengeId, challengeId: row.challengeId, title: row.title, description: row.description || '',
         creatorUid: row.creatorUid, creatorName: row.creatorName, creatorAvatar: row.creatorAvatar || '',
         targetHours: row.targetHours, period: row.period, startDate: row.startDate, endDate: row.endDate,
-        participantsCount: row.participantsCount, category: row.category, visibility: row.visibility, requiresApproval: row.requiresApproval, status: row.status, startedAt: row.startedAt, isCreator: row.creatorUid === authUser.id, membershipStatus: joined.get(row.challengeId)?.status || null, isJoined: joined.get(row.challengeId)?.status === 'accepted',
+        participantsCount: row.participantsCount, category: row.category, visibility: row.visibility, requiresApproval: row.requiresApproval, status: row.status, startedAt: row.startedAt, isCreator: row.creatorUid === authUser.id, pendingRequests: requestsByChallenge.get(row.challengeId) || [], membershipStatus: joined.get(row.challengeId)?.status || null, isJoined: joined.get(row.challengeId)?.status === 'accepted',
         myProgressHours: Number(joined.get(row.challengeId)?.studiedMinutes || 0) / 60,
       }));
       return res.status(200).json({ success: true, challenges });
