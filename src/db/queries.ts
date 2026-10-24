@@ -598,6 +598,7 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
     if (friendsOnly) {
       const visibleUids = [...new Set([...(userUid ? [userUid] : []), ...friendUids])];
       if (!visibleUids.length) return [];
+      const publicOwnerUids = ghostUids.length ? notInArray(milestones.userUid, ghostUids) : undefined;
       return await db
         .select()
         .from(milestones)
@@ -605,8 +606,8 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
           inArray(milestones.userUid, visibleUids),
           or(
             ...(userUid ? [eq(milestones.userUid, userUid)] : []),
-            eq(milestones.visibility, 'public'),
-            eq(milestones.visibility, 'friends')
+            and(eq(milestones.visibility, 'public'), ...(publicOwnerUids ? [publicOwnerUids] : [])),
+            and(eq(milestones.visibility, 'friends'), ...(publicOwnerUids ? [publicOwnerUids] : []))
           )
         ))
         .orderBy(desc(milestones.createdAt))
@@ -623,7 +624,11 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
         ...(publicOwnerUids ? [publicOwnerUids] : [])
       ),
       ...(userUid && friendUids.length
-        ? [and(eq(milestones.visibility, 'friends'), inArray(milestones.userUid, friendUids))]
+        ? [and(
+            eq(milestones.visibility, 'friends'),
+            inArray(milestones.userUid, friendUids),
+            ...(publicOwnerUids ? [publicOwnerUids] : [])
+          )]
         : [])
     ].filter(Boolean) as any[];
 
