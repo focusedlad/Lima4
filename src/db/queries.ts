@@ -479,9 +479,6 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
       start.setDate(1);
     } else if (timeframe === 'today') {
       start.setHours(0, 0, 0, 0);
-    } else {
-      start.setTime(0);
-      start.setFullYear(2000, 0, 1);
     }
     const startDate = start.toISOString().slice(0, 10);
     let allowedUids: string[] | null = null;
@@ -500,7 +497,7 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
       filters.push(inArray(focusLogs.userUid, allowedUids));
       filters.push(or(
         eq(focusLogs.visibility, 'public'),
-        and(eq(focusLogs.visibility, 'friends'), inArray(focusLogs.userUid, friendUids.length ? friendUids : ['__no_friends__']))
+        and(eq(focusLogs.visibility, 'friends'), inArray(focusLogs.userUid, allowedUids || ['__no_friends__']))
       ));
     }
     const aggregates = await db.select({
@@ -512,6 +509,7 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
     const aggregateByUid = new Map(aggregates.map((row) => [row.uid, row]));
     const memberUids = aggregates.map((row) => row.uid);
     const memberFilters = [eq(users.isGhostMode, false), inArray(users.uid, memberUids)];
+    if (scope === 'global') memberFilters.push(eq(users.profileVisibility, 'public'));
     if (scope === 'friends' && allowedUids) memberFilters.push(inArray(users.uid, allowedUids));
     const members = await db.select({
       id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar,
