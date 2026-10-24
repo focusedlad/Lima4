@@ -277,11 +277,9 @@ export const SupabaseService = {
    * Sign Out
    */
   async signOut(): Promise<void> {
-    try {
-      if (isSupabaseConfigured) {
-        await supabase.auth.signOut();
-      }
-    } catch (_) {}
+    if (!isSupabaseConfigured) throw new Error('Authentication is not configured.');
+    const { error } = await getActiveSupabaseClient().auth.signOut();
+    if (error) throw new Error(error.message || 'Could not sign out.');
   },
 
   async uploadProfileMedia(file: File, kind: 'avatar' | 'banner'): Promise<string> {
