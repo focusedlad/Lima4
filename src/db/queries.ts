@@ -460,9 +460,10 @@ export async function removeFriend(userUid: string, friendUid: string) {
   try {
     await db
       .delete(friendships)
-      .where(
-        sql`${friendships.userUid} = ${userUid} AND ${friendships.friendUid} = ${friendUid}`
-      );
+      .where(or(
+        and(eq(friendships.userUid, userUid), eq(friendships.friendUid, friendUid)),
+        and(eq(friendships.userUid, friendUid), eq(friendships.friendUid, userUid))
+      ));
     return { success: true };
   } catch (error) {
     console.error('Database removeFriend failed:', error);
