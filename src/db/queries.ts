@@ -8,6 +8,9 @@ export interface UserSyncInput {
   name: string;
   handle?: string;
   avatar?: string;
+  bio?: string;
+  bannerUrl?: string;
+  profileVisibility?: 'public' | 'friends' | 'private';
   university?: string;
   studyField?: string;
   countryCode?: string;
@@ -36,6 +39,9 @@ export async function upsertUser(input: UserSyncInput) {
         name: input.name,
         handle: userHandle,
         avatar: input.avatar || '',
+        bio: input.bio || '',
+        bannerUrl: input.bannerUrl || '',
+        profileVisibility: input.profileVisibility || 'public',
         university: input.university || '',
         studyField: input.studyField || '',
         countryCode: input.countryCode || 'GLOBAL',
@@ -59,6 +65,9 @@ export async function upsertUser(input: UserSyncInput) {
           name: input.name,
           handle: userHandle,
           avatar: input.avatar || '',
+          bio: input.bio ?? '',
+          bannerUrl: input.bannerUrl ?? '',
+          profileVisibility: input.profileVisibility || 'public',
           university: input.university || '',
           studyField: input.studyField || '',
           countryCode: input.countryCode || 'GLOBAL',
