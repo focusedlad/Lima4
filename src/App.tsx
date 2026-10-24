@@ -70,7 +70,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal';
 import { FirebaseService } from './services/firebase';
-import { supabase } from './services/supabase';
+import { supabase, SupabaseService } from './services/supabase';
 import { FluidLiquidBackground } from './components/common/FluidLiquidBackground';
 import { ApiDatabase } from './services/apiDatabase';
 import { SettingsView } from './components/settings/SettingsView';
