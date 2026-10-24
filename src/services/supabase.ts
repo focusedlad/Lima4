@@ -309,6 +309,7 @@ export const SupabaseService = {
           bio: user.bio || '',
           bannerUrl: user.bannerUrl || '',
           profileVisibility: user.profileVisibility || 'public',
+          sessionVisibility: user.sessionVisibility || 'private',
           university: user.university || user.universityOrLocation,
           studyField: user.studyField,
           countryCode: user.countryCode,
