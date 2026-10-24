@@ -58,7 +58,7 @@ export async function upsertUser(input: UserSyncInput) {
         termsVersion: input.termsVersion || null,
         xp: input.xp || 0,
         totalHoursStudied: input.totalHoursStudied || 0,
-        currentStreak: input.currentStreak || 1,
+        currentStreak: input.currentStreak ?? 0,
       })
       .onConflictDoUpdate({
         target: users.uid,
