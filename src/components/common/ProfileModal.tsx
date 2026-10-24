@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   User,
@@ -57,6 +57,25 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setName(currentUser.name);
+    setSelectedCountryCode(currentUser.countryCode || 'GLOBAL');
+    setSelectedUniversity(currentUser.university || currentUser.universityOrLocation || 'Independent Scholar');
+    setCustomUniversity('');
+    setIsCustomUni(false);
+    setSelectedStudyField(currentUser.studyField || STUDY_FIELDS[0]);
+    setIsGhostMode(currentUser.isGhostMode || false);
+    setSubjectTag(currentUser.currentSubject || 'General Study');
+    setGoal(currentUser.currentGoal || '');
+    setAvatar(currentUser.avatar || '');
+    setBio(currentUser.bio || '');
+    setBannerUrl(currentUser.bannerUrl || '');
+    setProfileVisibility(currentUser.profileVisibility || 'public');
+    setSessionVisibility(currentUser.sessionVisibility || 'private');
+    setSaveError(null);
+  }, [isOpen, currentUser.id]);
 
   if (!isOpen) return null;
 
