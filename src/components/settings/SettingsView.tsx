@@ -42,6 +42,7 @@ interface SettingsViewProps {
   onSelectThemePreference: (pref: 'system' | 'dark' | 'light') => void;
   isDarkMode: boolean;
   onOpenAuthModal?: () => void;
+  onSignOut?: () => Promise<void> | void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -51,6 +52,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSelectThemePreference,
   isDarkMode,
   onOpenAuthModal,
+  onSignOut,
 }) => {
   // Form State for editing account details
   const [name, setName] = useState(currentUser.name);
@@ -491,6 +493,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     placeholder="e.g. 100 hours of Deep Work this month"
                     className="w-full px-3.5 py-2.5 rounded-2xl bg-[#FDFBF7] dark:bg-[#1A1819] border border-pink-100 dark:border-pink-900 text-xs font-semibold text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all"
                   />
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 dark:border-rose-900/60 dark:bg-rose-950/20">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div><p className="text-xs font-extrabold text-stone-900 dark:text-white">Sign out of Lima4</p><p className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">Your saved study history stays with your account.</p></div>
+                  <button type="button" onClick={() => { if (onSignOut) void onSignOut(); }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900 dark:bg-stone-900 dark:text-rose-300"><LogOut className="h-4 w-4" />Sign out</button>
                 </div>
               </div>
 
