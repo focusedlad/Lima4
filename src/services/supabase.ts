@@ -84,6 +84,7 @@ export interface StudyChallengeItem {
   isCreator?: boolean;
   isJoined?: boolean;
   myJoinStatus?: 'pending' | 'accepted' | 'rejected';
+  membershipStatus?: 'pending' | 'accepted' | 'rejected' | null;
   pendingRequests?: Array<{ userUid: string; userName: string; userAvatar?: string }>;
   myProgressHours?: number;
 }
