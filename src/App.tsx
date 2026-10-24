@@ -40,6 +40,7 @@ import {
   AdmissionRequest,
   FocusSessionLog,
   FocusCategory,
+  DayActivity,
   SubscriptionPlan,
   GlobalAnnouncement,
   EmployeeAccount,
