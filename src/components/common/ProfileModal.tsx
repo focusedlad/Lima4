@@ -50,6 +50,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [bio, setBio] = useState(currentUser.bio || '');
   const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends' | 'private'>(currentUser.profileVisibility || 'public');
+  const [sessionVisibility, setSessionVisibility] = useState<'private' | 'friends' | 'public'>(currentUser.sessionVisibility || 'private');
   const [isUploading, setIsUploading] = useState(false);
   const [bio, setBio] = useState(currentUser.bio || '');
   const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
@@ -87,6 +88,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       bio: bio.trim().slice(0, 500),
       bannerUrl: bannerUrl.trim(),
       profileVisibility,
+      sessionVisibility: isGhostMode ? 'private' : sessionVisibility,
       bio: bio.trim().slice(0, 500),
       bannerUrl: bannerUrl.trim(),
       profileVisibility,
@@ -324,6 +326,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value as 'public' | 'friends' | 'private')} className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900">
                 <option value="public">Everyone</option><option value="friends">Friends only</option><option value="private">Only me</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-stone-700 mb-1">Share completed study sessions</label>
+              <select value={isGhostMode ? 'private' : sessionVisibility} disabled={isGhostMode} onChange={(e) => setSessionVisibility(e.target.value as 'private' | 'friends' | 'public')} className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 disabled:opacity-60">
+                <option value="private">Private — only me</option><option value="friends">Friends feed</option><option value="public">Global feed</option>
+              </select>
+              <p className="text-[10px] text-stone-500 mt-1">Ghost Mode always keeps your sessions private.</p>
             </div>
 
             {/* Membership Tier Info */}
