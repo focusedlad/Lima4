@@ -18,6 +18,7 @@ export const ApiDatabase = {
           bio: user.bio || '',
           bannerUrl: user.bannerUrl || '',
           profileVisibility: user.profileVisibility || 'public',
+          sessionVisibility: user.sessionVisibility || 'private',
           bio: user.bio || '',
           bannerUrl: user.bannerUrl || '',
           profileVisibility: user.profileVisibility || 'public',
