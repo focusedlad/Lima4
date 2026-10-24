@@ -31,6 +31,7 @@ export default async function handler(req: any, res: any) {
       bannerUrl: typeof body.bannerUrl === 'string' ? body.bannerUrl.slice(0, 1000) : (existing?.bannerUrl || ''),
       profileVisibility: ['public', 'friends', 'private'].includes(body.profileVisibility) ? body.profileVisibility : (existing?.profileVisibility || 'public'),
       sessionVisibility: ['private', 'friends', 'public'].includes(body.sessionVisibility) ? body.sessionVisibility : (existing?.sessionVisibility || 'private'),
+      sessionVisibility: ['private', 'friends', 'public'].includes(body.sessionVisibility) ? body.sessionVisibility : (existing?.sessionVisibility || 'private'),
       university: typeof body.university === 'string' ? body.university.slice(0, 200) : '',
       studyField: typeof body.studyField === 'string' ? body.studyField.slice(0, 200) : '',
       countryCode: typeof body.countryCode === 'string' ? body.countryCode.slice(0, 8) : 'GLOBAL',
