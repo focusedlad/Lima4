@@ -181,6 +181,9 @@ export async function insertFocusLog(input: {
           sql`EXISTS (
             SELECT 1 FROM study_challenges c
             WHERE c.challenge_id = ${challengeParticipants.challengeId}
+              AND cp.user_uid = ${input.userUid}
+              AND c.status = 'active'
+              AND cp.status = 'accepted'
               AND c.start_date <= ${input.date}
               AND c.end_date >= ${input.date}
           )`
@@ -205,7 +208,8 @@ export async function insertFocusLog(input: {
         .innerJoin(users, eq(users.uid, input.userUid))
         .where(and(
           eq(challengeParticipants.userUid, input.userUid),
-          sql`study_challenges.start_date <= ${input.date} AND study_challenges.end_date >= ${input.date}`
+          eq(challengeParticipants.status, 'accepted'),
+          sql`study_challenges.status = 'active' AND study_challenges.start_date <= ${input.date} AND study_challenges.end_date >= ${input.date}`
         ));
 
       for (const challenge of completedChallenges) {
@@ -262,6 +266,7 @@ export async function insertStudyChallenge(input: {
   endDate: string;
   category?: string;
   visibility?: 'public' | 'friends' | 'private';
+  requiresApproval?: boolean;
 }) {
   try {
     return await db.transaction(async (tx) => {
@@ -280,6 +285,9 @@ export async function insertStudyChallenge(input: {
           endDate: input.endDate,
           category: input.category || 'General',
           visibility: input.visibility || 'public',
+          requiresApproval: input.requiresApproval ?? false,
+          status: 'waiting',
+          startedAt: null,
           participantsCount: 1,
         })
         .returning();
@@ -290,6 +298,8 @@ export async function insertStudyChallenge(input: {
         userName: input.creatorName,
         userAvatar: input.creatorAvatar || '',
         studiedMinutes: 0,
+        status: 'accepted',
+        decidedAt: new Date(),
       });
 
       return challenge;
@@ -305,7 +315,7 @@ export async function getJoinedChallengeProgress(userUid: string) {
     return await db
       .select({ challengeId: challengeParticipants.challengeId, studiedMinutes: challengeParticipants.studiedMinutes })
       .from(challengeParticipants)
-      .where(eq(challengeParticipants.userUid, userUid));
+      .where(and(eq(challengeParticipants.userUid, userUid), eq(challengeParticipants.status, 'accepted')));
   } catch (error) {
     console.error('Database getJoinedChallengeProgress failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -338,6 +348,7 @@ export async function joinStudyChallenge(input: {
   userUid: string;
   userName: string;
   userAvatar?: string;
+  status?: 'pending' | 'accepted';
 }) {
   try {
     return await db.transaction(async (tx) => {
@@ -349,13 +360,15 @@ export async function joinStudyChallenge(input: {
           userName: input.userName,
           userAvatar: input.userAvatar || '',
           studiedMinutes: 0,
+          status: input.status || 'accepted',
+          decidedAt: input.status === 'accepted' ? new Date() : null,
         })
         .onConflictDoNothing({
           target: [challengeParticipants.challengeId, challengeParticipants.userUid],
         })
         .returning({ id: challengeParticipants.id });
 
-      if (inserted.length > 0) {
+      if (inserted.length > 0 && (input.status || 'accepted') === 'accepted') {
         await tx
           .update(studyChallenges)
           .set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` })
@@ -687,4 +700,45 @@ export async function cheerMilestoneInDb(milestoneId: string, userUid: string) {
     console.error('Database cheerMilestone failed:', error);
     throw new Error('Database operation failed', { cause: error });
   }
+}
+
+
+export async function getStudyChallengeById(challengeId: string) {
+  const [challenge] = await db.select().from(studyChallenges).where(eq(studyChallenges.challengeId, challengeId)).limit(1);
+  return challenge || null;
+}
+
+export async function startStudyChallenge(challengeId: string, creatorUid: string) {
+  return db.transaction(async (tx) => {
+    const [challenge] = await tx.select().from(studyChallenges)
+      .where(and(eq(studyChallenges.challengeId, challengeId), eq(studyChallenges.creatorUid, creatorUid)))
+      .limit(1);
+    if (!challenge) throw new Error('Only the challenge creator can start this challenge.');
+    if (challenge.status !== 'waiting') throw new Error('This challenge is not waiting to start.');
+    const now = new Date();
+    const [started] = await tx.update(studyChallenges)
+      .set({ status: 'active', startedAt: now, startDate: now.toISOString().slice(0, 10) })
+      .where(eq(studyChallenges.challengeId, challengeId)).returning();
+    return started;
+  });
+}
+
+export async function decideChallengeParticipant(challengeId: string, participantUid: string, creatorUid: string, decision: 'accepted' | 'rejected') {
+  return db.transaction(async (tx) => {
+    const [challenge] = await tx.select().from(studyChallenges)
+      .where(and(eq(studyChallenges.challengeId, challengeId), eq(studyChallenges.creatorUid, creatorUid)))
+      .limit(1);
+    if (!challenge) throw new Error('Only the challenge creator can manage join requests.');
+    const [participant] = await tx.select().from(challengeParticipants)
+      .where(and(eq(challengeParticipants.challengeId, challengeId), eq(challengeParticipants.userUid, participantUid)))
+      .limit(1);
+    if (!participant || participant.status !== 'pending') throw new Error('This join request is no longer pending.');
+    await tx.update(challengeParticipants).set({ status: decision, decidedAt: new Date() })
+      .where(eq(challengeParticipants.id, participant.id));
+    if (decision === 'accepted') {
+      await tx.update(studyChallenges).set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` })
+        .where(eq(studyChallenges.challengeId, challengeId));
+    }
+    return { success: true };
+  });
 }
