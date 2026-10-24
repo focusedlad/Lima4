@@ -472,11 +472,33 @@ export async function removeFriend(userUid: string, friendUid: string) {
 
 export async function getFriendsByUser(userUid: string) {
   try {
-    return await db
-      .select()
-      .from(friendships)
-      .where(eq(friendships.userUid, userUid))
-      .orderBy(desc(friendships.createdAt));
+    const [outgoing, incoming] = await Promise.all([
+      db.select().from(friendships).where(eq(friendships.userUid, userUid)).orderBy(desc(friendships.createdAt)),
+      db.select({
+        id: friendships.id,
+        friendUid: friendships.userUid,
+        friendName: users.name,
+        friendHandle: users.handle,
+        friendAvatar: users.avatar,
+        friendUniversity: users.university,
+        createdAt: friendships.createdAt,
+      })
+        .from(friendships)
+        .innerJoin(users, eq(users.uid, friendships.userUid))
+        .where(eq(friendships.friendUid, userUid))
+        .orderBy(desc(friendships.createdAt)),
+    ]);
+    const normalizedIncoming = incoming.map((friend) => ({
+      ...friend,
+      userUid,
+    }));
+    const unique = new Map<string, any>();
+    for (const friend of [...outgoing, ...normalizedIncoming]) {
+      if (friend.friendUid !== userUid) unique.set(friend.friendUid, friend);
+    }
+    return [...unique.values()].sort((a, b) =>
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
   } catch (error) {
     console.error('Database getFriendsByUser failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -565,9 +587,12 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
     const ghostRows = await db.select({ uid: users.uid }).from(users).where(eq(users.isGhostMode, true));
     const ghostUids = ghostRows.map((row) => row.uid);
     const friendRows = userUid
-      ? await db.select({ friendUid: friendships.friendUid }).from(friendships).where(eq(friendships.userUid, userUid))
+      ? await db.select({ userUid: friendships.userUid, friendUid: friendships.friendUid })
+          .from(friendships)
+          .where(or(eq(friendships.userUid, userUid), eq(friendships.friendUid, userUid)))
       : [];
-    const friendUids = [...new Set(friendRows.map((f) => f.friendUid))].filter((uid) => uid !== userUid);
+    const friendUids = [...new Set(friendRows.map((f) => f.userUid === userUid ? f.friendUid : f.userUid))]
+      .filter((uid) => uid !== userUid);
 
     if (friendsOnly) {
       const visibleUids = [...new Set([...(userUid ? [userUid] : []), ...friendUids])];
