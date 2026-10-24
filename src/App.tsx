@@ -164,7 +164,7 @@ export default function App() {
     };
     void syncAuthenticatedProfile();
     return () => { cancelled = true; };
-  }, [profileLoaded, currentUser.id, currentUser.name, currentUser.handle, currentUser.email, currentUser.avatar, currentUser.university, currentUser.universityOrLocation, currentUser.studyField, currentUser.countryCode, currentUser.countryName, currentUser.currentSubject, currentUser.currentGoal, currentUser.isGhostMode, currentUser.subscriptionTier, currentUser.subscriptionStatus, currentUser.termsAccepted, currentUser.termsAcceptedAt, currentUser.termsVersion, currentUser.xp, currentUser.totalHoursStudied, currentUser.currentStreak]);
+  }, [profileLoaded, currentUser.id, currentUser.name, currentUser.handle, currentUser.email, currentUser.avatar, currentUser.university, currentUser.universityOrLocation, currentUser.studyField, currentUser.countryCode, currentUser.countryName, currentUser.currentSubject, currentUser.currentGoal, currentUser.isGhostMode, currentUser.bio, currentUser.bannerUrl, currentUser.profileVisibility, currentUser.sessionVisibility, currentUser.subscriptionTier, currentUser.subscriptionStatus, currentUser.termsAccepted, currentUser.termsAcceptedAt, currentUser.termsVersion, currentUser.xp, currentUser.totalHoursStudied, currentUser.currentStreak]);
 
   const toggleTheme = () => {
     setThemePreference((prev) => {
@@ -298,6 +298,10 @@ export default function App() {
         name: saved.name || metadataName || email.split('@')[0] || 'New Studier',
         handle: saved.handle || (saved.name || metadataName || email.split('@')[0] || 'studier').toLowerCase().replace(/[^a-z0-9]/g, '_'),
         avatar: saved.avatar || INITIAL_USER.avatar,
+        bio: saved.bio || '',
+        bannerUrl: saved.bannerUrl || '',
+        profileVisibility: saved.profileVisibility || 'public',
+        sessionVisibility: saved.sessionVisibility || 'private',
         university: saved.university || INITIAL_USER.university,
         universityOrLocation: saved.university || INITIAL_USER.universityOrLocation,
         studyField: saved.studyField || INITIAL_USER.studyField,
@@ -314,7 +318,7 @@ export default function App() {
         xp: Number(saved.xp || 0),
         totalHoursStudied: Number(saved.totalHoursStudied || 0),
         currentStreak: Number(saved.currentStreak || 0),
-      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier' };
+      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier', bio: '', bannerUrl: '', profileVisibility: 'public', sessionVisibility: 'private', xp: 0, totalHoursStudied: 0, currentStreak: 0, deskPet: { ...INITIAL_USER.deskPet, level: 1, currentXp: 0, nextLevelXp: 250 } };
       setCurrentUser(base);
       setProfileLoaded(true);
       setIsAuthModalOpen(false);
