@@ -317,7 +317,7 @@ export async function insertStudyChallenge(input: {
 export async function getJoinedChallengeProgress(userUid: string) {
   try {
     return await db
-      .select({ challengeId: challengeParticipants.challengeId, studiedMinutes: challengeParticipants.studiedMinutes })
+      .select({ challengeId: challengeParticipants.challengeId, studiedMinutes: challengeParticipants.studiedMinutes, status: challengeParticipants.status })
       .from(challengeParticipants)
       .where(and(eq(challengeParticipants.userUid, userUid), eq(challengeParticipants.status, 'accepted')));
   } catch (error) {
@@ -745,4 +745,19 @@ export async function decideChallengeParticipant(challengeId: string, participan
     }
     return { success: true };
   });
+}
+
+
+export async function getPendingChallengeRequestsForCreator(creatorUid: string) {
+  return db.select({
+    challengeId: challengeParticipants.challengeId,
+    userUid: challengeParticipants.userUid,
+    userName: challengeParticipants.userName,
+    userAvatar: challengeParticipants.userAvatar,
+    requestedAt: challengeParticipants.requestedAt,
+  }).from(challengeParticipants)
+    .innerJoin(studyChallenges, eq(challengeParticipants.challengeId, studyChallenges.challengeId))
+    .where(and(eq(studyChallenges.creatorUid, creatorUid), eq(challengeParticipants.status, 'pending')))
+    .orderBy(desc(challengeParticipants.requestedAt))
+    .limit(100);
 }
