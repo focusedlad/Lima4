@@ -151,6 +151,7 @@ export async function insertFocusLog(input: {
           title: studyChallenges.title,
           targetHours: studyChallenges.targetHours,
           category: studyChallenges.category,
+          visibility: studyChallenges.visibility,
           studiedMinutes: challengeParticipants.studiedMinutes,
           userName: users.name,
           userHandle: users.handle,
@@ -180,7 +181,7 @@ export async function insertFocusLog(input: {
           subjectTag: challenge.category || 'Study Challenge',
           streakDays: 1,
           xpEarned: 50,
-          visibility: 'public',
+          visibility: challenge.visibility,
         }).onConflictDoNothing();
       }
 
