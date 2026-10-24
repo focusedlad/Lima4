@@ -804,6 +804,7 @@ export default function App() {
               onSelectThemePreference={setThemePreference}
               isDarkMode={isDarkMode}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              onSignOut={async () => { await SupabaseService.signOut(); setFocusLogs([]); setCurrentUser(INITIAL_USER); setProfileLoaded(false); setIsAuthModalOpen(true); setCurrentTab('focus'); }}
             />
           </div>
         )}
