@@ -51,6 +51,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends' | 'private'>(currentUser.profileVisibility || 'public');
   const [sessionVisibility, setSessionVisibility] = useState<'private' | 'friends' | 'public'>(currentUser.sessionVisibility || 'private');
+  const [sessionVisibility, setSessionVisibility] = useState<'private' | 'friends' | 'public'>(currentUser.sessionVisibility || 'private');
   const [isUploading, setIsUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -84,6 +85,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       bio: bio.trim().slice(0, 500),
       bannerUrl: bannerUrl.trim(),
       profileVisibility,
+      sessionVisibility,
       sessionVisibility: isGhostMode ? 'private' : sessionVisibility,
     };
     setIsSaving(true);
@@ -159,6 +161,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value as 'public' | 'friends' | 'private')} className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-stone-900">
                   <option value="public">Everyone</option><option value="friends">Friends only</option><option value="private">Only me</option>
                 </select>
+              </div>
+              <div>
+                <label className="mb-1 block font-semibold text-stone-700">Who can see your saved study sessions?</label>
+                <select value={sessionVisibility} onChange={(e) => setSessionVisibility(e.target.value as 'private' | 'friends' | 'public')} className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-stone-900">
+                  <option value="private">Private — only me</option><option value="friends">Friends only</option><option value="public">Public — global activity</option>
+                </select>
+                <p className="mt-1 text-[10px] text-stone-500">Ghost Mode always keeps your sessions private.</p>
               </div>
             </div>
 
