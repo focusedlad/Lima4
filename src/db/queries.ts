@@ -250,7 +250,7 @@ export async function getFocusLogsByUser(userUid: string) {
       .from(focusLogs)
       .where(eq(focusLogs.userUid, userUid))
       .orderBy(desc(focusLogs.createdAt))
-      .limit(50);
+      .limit(1000);
   } catch (error) {
     console.error('Database getFocusLogsByUser failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -452,7 +452,7 @@ export async function getChallengeLeaderboard(challengeId: string) {
     return await db
       .select()
       .from(challengeParticipants)
-      .where(eq(challengeParticipants.challengeId, challengeId))
+      .where(and(eq(challengeParticipants.challengeId, challengeId), eq(challengeParticipants.status, 'accepted')))
       .orderBy(desc(challengeParticipants.studiedMinutes))
       .limit(50);
   } catch (error) {
@@ -794,7 +794,7 @@ export async function startStudyChallenge(challengeId: string, creatorUid: strin
     if (challenge.status !== 'waiting') throw new Error('This challenge is not waiting to start.');
     const now = new Date();
     const [started] = await tx.update(studyChallenges)
-      .set({ status: 'active', startedAt: now, startDate: now.toISOString().slice(0, 10) })
+      .set({ status: 'active', startedAt: now, startDate: now.toISOString().slice(0, 10), endDate: new Date(now.getTime() + (challenge.period === 'today' ? 1 : challenge.period === 'weekend' ? 2 : challenge.period === '14_days' ? 14 : challenge.period === '30_days' ? 30 : 7) * 86400000).toISOString().slice(0, 10) })
       .where(eq(studyChallenges.challengeId, challengeId)).returning();
     return started;
   });
