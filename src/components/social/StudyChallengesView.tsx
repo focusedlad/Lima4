@@ -35,6 +35,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
   const [newTargetHours, setNewTargetHours] = useState<number>(30);
   const [newPeriod, setNewPeriod] = useState<'today' | 'weekend' | '7_days' | '14_days' | '30_days'>('7_days');
   const [newCategory, setNewCategory] = useState<string>('Deep Work');
+  const [newVisibility, setNewVisibility] = useState<'public' | 'friends' | 'private'>('public');
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -70,7 +71,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
     try {
       const created = await SupabaseService.createChallenge({
         title: newTitle.trim(), description: newDescription.trim(), targetHours: Number(newTargetHours),
-        period: newPeriod, category: newCategory, creator: currentUser,
+        period: newPeriod, category: newCategory, visibility: newVisibility, creator: currentUser,
       });
       setChallenges((previous) => [created, ...previous]);
       setIsCreateModalOpen(false);
@@ -179,9 +180,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
             >
               <div>
                 <div className="flex items-start justify-between gap-3 mb-2.5">
-                  <span className="px-2.5 py-1 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 font-bold text-[10px] uppercase tracking-wider">
-                    {challenge.category}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5"><span className="px-2.5 py-1 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 font-bold text-[10px] uppercase tracking-wider">{challenge.category}</span><span className="px-2 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 font-bold text-[9px] uppercase tracking-wide">{challenge.visibility || 'public'}</span></div>
                   <div className="flex items-center gap-1.5 text-xs text-stone-500 font-semibold">
                     <Users className="w-3.5 h-3.5" />
                     <span>{challenge.participantsCount} participants</span>
@@ -373,6 +372,15 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   onChange={(e) => setNewCategory(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs"
                 />
+              </div>
+
+              <div>
+                <label className="block font-bold text-stone-700 dark:text-stone-300 mb-1">Who can see this challenge?</label>
+                <select value={newVisibility} onChange={(e) => setNewVisibility(e.target.value as 'public' | 'friends' | 'private')} className="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-xs">
+                  <option value="public">Public — everyone can discover it</option>
+                  <option value="friends">Friends — only you and your friends</option>
+                  <option value="private">Private — only you and invited/joined participants</option>
+                </select>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">
