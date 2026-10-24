@@ -4,6 +4,7 @@ import {
   getAllStudyChallenges,
   getCheeredMilestoneIds,
   getChallengeLeaderboard,
+  getChallengeJoinRequests,
   getStudyChallengeById,
   startStudyChallenge,
   decideChallengeParticipant,
