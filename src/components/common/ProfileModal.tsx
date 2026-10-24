@@ -51,7 +51,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends' | 'private'>(currentUser.profileVisibility || 'public');
   const [sessionVisibility, setSessionVisibility] = useState<'private' | 'friends' | 'public'>(currentUser.sessionVisibility || 'private');
-  const [sessionVisibility, setSessionVisibility] = useState<'private' | 'friends' | 'public'>(currentUser.sessionVisibility || 'private');
   const [isUploading, setIsUploading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
