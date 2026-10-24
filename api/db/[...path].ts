@@ -2,7 +2,6 @@ import {
   addFriend,
   cheerMilestoneInDb,
   getAllStudyChallenges,
-  getStudyChallengeById,
   getCheeredMilestoneIds,
   getChallengeLeaderboard,
   getFriendsByUser,
@@ -15,8 +14,8 @@ import {
   joinStudyChallenge,
   removeFriend,
   searchUsersByQuery,
-} from '../../src/db/queries';
-import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth';
+} from '../../src/db/queries.js';
+import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth.js';
 
 export default async function handler(req: any, res: any) {
   const authUser = await getAuthenticatedSupabaseUser(req);
@@ -29,23 +28,13 @@ export default async function handler(req: any, res: any) {
 
   try {
     if (parts.length === 1 && parts[0] === 'challenges' && method === 'GET') {
-      const [rows, membership, myFriends] = await Promise.all([
-        getAllStudyChallenges(),
-        getJoinedChallengeProgress(authUser.id),
-        getFriendsByUser(authUser.id),
-      ]);
+      const [rows, membership] = await Promise.all([getAllStudyChallenges(authUser.id), getJoinedChallengeProgress(authUser.id)]);
       const joined = new Map(membership.map((item: any) => [item.challengeId, item.studiedMinutes]));
-      const myFriendUids = new Set(myFriends.map((friend: any) => friend.friendUid));
-      const visibleRows = await Promise.all(rows.map(async (row: any) => {
-        if (row.creatorUid === authUser.id || joined.has(row.challengeId) || myFriendUids.has(row.creatorUid)) return row;
-        const creatorFriends = await getFriendsByUser(row.creatorUid);
-        return creatorFriends.some((friend: any) => friend.friendUid === authUser.id) ? row : null;
-      }));
-      const challenges = visibleRows.filter(Boolean).map((row: any) => ({
+      const challenges = rows.map((row: any) => ({
         id: row.challengeId, challengeId: row.challengeId, title: row.title, description: row.description || '',
         creatorUid: row.creatorUid, creatorName: row.creatorName, creatorAvatar: row.creatorAvatar || '',
         targetHours: row.targetHours, period: row.period, startDate: row.startDate, endDate: row.endDate,
-        participantsCount: row.participantsCount, category: row.category, isJoined: joined.has(row.challengeId),
+        participantsCount: row.participantsCount, category: row.category, visibility: row.visibility, isJoined: joined.has(row.challengeId),
         myProgressHours: Number(joined.get(row.challengeId) || 0) / 60,
       }));
       return res.status(200).json({ success: true, challenges });
@@ -63,11 +52,13 @@ export default async function handler(req: any, res: any) {
       const days = period === 'today' ? 1 : period === 'weekend' ? 2 : period === '14_days' ? 14 : period === '30_days' ? 30 : 7;
       const endDate = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
       const challengeId = authUser.id + '_' + Date.now().toString(36);
+      const visibility = ['public', 'friends', 'private'].includes(body.visibility) ? body.visibility : 'public';
       const row = await insertStudyChallenge({
         challengeId, title, description: typeof body.description === 'string' ? body.description.slice(0, 1000) : '',
         creatorUid: authUser.id, creatorName: profile?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Studier',
         creatorAvatar: profile?.avatar || '', targetHours: Math.round(targetHours), period, startDate, endDate,
         category: typeof body.category === 'string' ? body.category.slice(0, 80) : 'General',
+        visibility,
       });
       return res.status(201).json({ success: true, challenge: { ...row, id: row.challengeId, isJoined: true, myProgressHours: 0 } });
     }
@@ -75,16 +66,9 @@ export default async function handler(req: any, res: any) {
     if (parts.length === 2 && parts[0] === 'challenges' && parts[1] === 'join' && method === 'POST') {
       const challengeId = typeof body.challengeId === 'string' ? body.challengeId : '';
       if (!challengeId) return res.status(400).json({ error: 'Challenge ID is required.' });
-      const challenge = await getStudyChallengeById(challengeId);
-      if (!challenge) return res.status(404).json({ error: 'This challenge no longer exists.' });
-      if (challenge.creatorUid !== authUser.id) {
-        const [myFriends, creatorFriends] = await Promise.all([
-          getFriendsByUser(authUser.id),
-          getFriendsByUser(challenge.creatorUid),
-        ]);
-        const isFriend = myFriends.some((friend: any) => friend.friendUid === challenge.creatorUid)
-          || creatorFriends.some((friend: any) => friend.friendUid === authUser.id);
-        if (!isFriend) return res.status(403).json({ error: 'Only friends of the challenge creator can join this challenge.' });
+      const visibleChallenges = await getAllStudyChallenges(authUser.id);
+      if (!visibleChallenges.some((challenge: any) => challenge.challengeId === challengeId)) {
+        return res.status(404).json({ error: 'Challenge not found.' });
       }
       const profile = await getUserByUid(authUser.id);
       await joinStudyChallenge({
@@ -96,6 +80,10 @@ export default async function handler(req: any, res: any) {
     }
 
     if (parts.length === 3 && parts[0] === 'challenges' && parts[2] === 'leaderboard' && method === 'GET') {
+      const visibleChallenges = await getAllStudyChallenges(authUser.id);
+      if (!visibleChallenges.some((challenge: any) => challenge.challengeId === parts[1])) {
+        return res.status(404).json({ error: 'Challenge not found.' });
+      }
       const rows = await getChallengeLeaderboard(parts[1]);
       return res.status(200).json({ success: true, leaderboard: rows });
     }
@@ -165,6 +153,7 @@ export default async function handler(req: any, res: any) {
         type: ['session_completed', 'streak_milestone', 'challenge_completed'].includes(body.type) ? body.type : 'session_completed',
         title, description, subjectTag: typeof body.subjectTag === 'string' ? body.subjectTag.slice(0, 80) : '',
         streakDays: Number(profile?.currentStreak || 0), xpEarned: 0,
+        visibility: ['public', 'friends', 'private'].includes(body.visibility) ? body.visibility : 'public',
       });
       return res.status(201).json({ success: true, milestone: { ...row, id: row.milestoneId, createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : '' } });
     }

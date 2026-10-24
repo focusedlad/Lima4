@@ -1,5 +1,5 @@
-import { db } from './index';
-import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones, milestoneCheers } from './schema';
+import { db } from './index.js';
+import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones, milestoneCheers } from './schema.js';
 import { eq, desc, sql, or, and, gt, gte, ilike, inArray, notInArray } from 'drizzle-orm';
 
 export interface UserSyncInput {
@@ -117,63 +117,75 @@ export async function insertFocusLog(input: {
   date: string;
 }) {
   try {
-    const result = await db
-      .insert(focusLogs)
-      .values({
-        userUid: input.userUid,
-        durationMinutes: input.durationMinutes,
-        category: input.category,
-        subject: input.subject,
-        xpEarned: input.xpEarned,
-        date: input.date,
-      })
-      .returning();
+    // Save the session and update only challenges active on the session's date in one transaction.
+    return await db.transaction(async (tx) => {
+      const [result] = await tx
+        .insert(focusLogs)
+        .values({
+          userUid: input.userUid,
+          durationMinutes: input.durationMinutes,
+          category: input.category,
+          subject: input.subject,
+          xpEarned: input.xpEarned,
+          date: input.date,
+        })
+        .returning();
 
-    // Progress belongs to each challenge the authenticated user has joined.
-    await db
-      .update(challengeParticipants)
-      .set({ studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}` })
-      .where(eq(challengeParticipants.userUid, input.userUid));
+      await tx
+        .update(challengeParticipants)
+        .set({ studiedMinutes: sql`${challengeParticipants.studiedMinutes} + ${input.durationMinutes}` })
+        .where(and(
+          eq(challengeParticipants.userUid, input.userUid),
+          sql`EXISTS (
+            SELECT 1 FROM study_challenges c
+            WHERE c.challenge_id = ${challengeParticipants.challengeId}
+              AND c.start_date <= ${input.date}
+              AND c.end_date >= ${input.date}
+          )`
+        ));
 
-    // Publish a global activity milestone exactly once when a participant reaches a challenge goal.
-    const completedChallenges = await db
-      .select({
-        challengeId: studyChallenges.challengeId,
-        title: studyChallenges.title,
-        targetHours: studyChallenges.targetHours,
-        category: studyChallenges.category,
-        studiedMinutes: challengeParticipants.studiedMinutes,
-        userName: users.name,
-        userHandle: users.handle,
-        userAvatar: users.avatar,
-        university: users.university,
-      })
-      .from(challengeParticipants)
-      .innerJoin(studyChallenges, eq(challengeParticipants.challengeId, studyChallenges.challengeId))
-      .innerJoin(users, eq(users.uid, input.userUid))
-      .where(eq(challengeParticipants.userUid, input.userUid));
+      // Publish completion milestones transactionally, once per challenge and user.
+      const completedChallenges = await tx
+        .select({
+          challengeId: studyChallenges.challengeId,
+          title: studyChallenges.title,
+          targetHours: studyChallenges.targetHours,
+          category: studyChallenges.category,
+          studiedMinutes: challengeParticipants.studiedMinutes,
+          userName: users.name,
+          userHandle: users.handle,
+          userAvatar: users.avatar,
+          university: users.university,
+        })
+        .from(challengeParticipants)
+        .innerJoin(studyChallenges, eq(challengeParticipants.challengeId, studyChallenges.challengeId))
+        .innerJoin(users, eq(users.uid, input.userUid))
+        .where(and(
+          eq(challengeParticipants.userUid, input.userUid),
+          sql`study_challenges.start_date <= ${input.date} AND study_challenges.end_date >= ${input.date}`
+        ));
 
-    for (const challenge of completedChallenges) {
-      if (challenge.studiedMinutes < challenge.targetHours * 60) continue;
-      await db.insert(milestones).values({
-        milestoneId: `challenge_${challenge.challengeId}_${input.userUid}_completed`,
-        userUid: input.userUid,
-        userName: challenge.userName || 'Studier',
-        userHandle: challenge.userHandle || '',
-        userAvatar: challenge.userAvatar || '',
-        university: challenge.university || '',
-        type: 'challenge_completed',
-        title: `Challenge completed: ${challenge.title}`,
-        description: `Completed the ${challenge.title} study challenge.`,
-        subjectTag: challenge.category || 'Study Challenge',
-        streakDays: 1,
-        xpEarned: 50,
-      }).onConflictDoNothing();
-    }
+      for (const challenge of completedChallenges) {
+        if (challenge.studiedMinutes < challenge.targetHours * 60) continue;
+        await tx.insert(milestones).values({
+          milestoneId: `challenge_${challenge.challengeId}_${input.userUid}_completed`,
+          userUid: input.userUid,
+          userName: challenge.userName || 'Studier',
+          userHandle: challenge.userHandle || '',
+          userAvatar: challenge.userAvatar || '',
+          university: challenge.university || '',
+          type: 'challenge_completed',
+          title: `Challenge completed: ${challenge.title}`,
+          description: `Completed the ${challenge.title} study challenge.`,
+          subjectTag: challenge.category || 'Study Challenge',
+          streakDays: 1,
+          xpEarned: 50,
+          visibility: 'public',
+        }).onConflictDoNothing();
+      }
 
-    // User totals are synchronized from the authenticated profile endpoint; do not increment twice.
-
-    return result[0];
+      return result;
+    });
   } catch (error) {
     console.error('Database insertFocusLog failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -206,36 +218,39 @@ export async function insertStudyChallenge(input: {
   startDate: string;
   endDate: string;
   category?: string;
+  visibility?: 'public' | 'friends' | 'private';
 }) {
   try {
-    const result = await db
-      .insert(studyChallenges)
-      .values({
+    return await db.transaction(async (tx) => {
+      const [challenge] = await tx
+        .insert(studyChallenges)
+        .values({
+          challengeId: input.challengeId,
+          title: input.title,
+          description: input.description || '',
+          creatorUid: input.creatorUid,
+          creatorName: input.creatorName,
+          creatorAvatar: input.creatorAvatar || '',
+          targetHours: input.targetHours,
+          period: input.period,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          category: input.category || 'General',
+          visibility: input.visibility || 'public',
+          participantsCount: 1,
+        })
+        .returning();
+
+      await tx.insert(challengeParticipants).values({
         challengeId: input.challengeId,
-        title: input.title,
-        description: input.description || '',
-        creatorUid: input.creatorUid,
-        creatorName: input.creatorName,
-        creatorAvatar: input.creatorAvatar || '',
-        targetHours: input.targetHours,
-        period: input.period,
-        startDate: input.startDate,
-        endDate: input.endDate,
-        category: input.category || 'General',
-        participantsCount: 1,
-      })
-      .returning();
+        userUid: input.creatorUid,
+        userName: input.creatorName,
+        userAvatar: input.creatorAvatar || '',
+        studiedMinutes: 0,
+      });
 
-    // Auto add creator as participant
-    await db.insert(challengeParticipants).values({
-      challengeId: input.challengeId,
-      userUid: input.creatorUid,
-      userName: input.creatorName,
-      userAvatar: input.creatorAvatar || '',
-      studiedMinutes: 0,
+      return challenge;
     });
-
-    return result[0];
   } catch (error) {
     console.error('Database insertStudyChallenge failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -254,21 +269,23 @@ export async function getJoinedChallengeProgress(userUid: string) {
   }
 }
 
-export async function getAllStudyChallenges() {
+export async function getAllStudyChallenges(userUid: string) {
   try {
-    return await db.select().from(studyChallenges).orderBy(desc(studyChallenges.createdAt)).limit(50);
+    return await db.select().from(studyChallenges).where(sql`(
+      visibility = 'public'
+      OR creator_uid = ${userUid}
+      OR (visibility = 'friends' AND EXISTS (
+        SELECT 1 FROM friendships f
+        WHERE (f.user_uid = ${userUid} AND f.friend_uid = study_challenges.creator_uid)
+           OR (f.friend_uid = ${userUid} AND f.user_uid = study_challenges.creator_uid)
+      ))
+      OR EXISTS (
+        SELECT 1 FROM challenge_participants cp
+        WHERE cp.challenge_id = study_challenges.challenge_id AND cp.user_uid = ${userUid}
+      )
+    )`).orderBy(desc(studyChallenges.createdAt)).limit(50);
   } catch (error) {
     console.error('Database getAllStudyChallenges failed:', error);
-    throw new Error('Database operation failed', { cause: error });
-  }
-}
-
-export async function getStudyChallengeById(challengeId: string) {
-  try {
-    const rows = await db.select().from(studyChallenges).where(eq(studyChallenges.challengeId, challengeId)).limit(1);
-    return rows[0] || null;
-  } catch (error) {
-    console.error('Database getStudyChallengeById failed:', error);
     throw new Error('Database operation failed', { cause: error });
   }
 }
@@ -280,33 +297,30 @@ export async function joinStudyChallenge(input: {
   userAvatar?: string;
 }) {
   try {
-    // Check if already joined
-    const existing = await db
-      .select()
-      .from(challengeParticipants)
-      .where(
-        sql`${challengeParticipants.challengeId} = ${input.challengeId} AND ${challengeParticipants.userUid} = ${input.userUid}`
-      )
-      .limit(1);
-
-    if (existing.length === 0) {
-      await db.insert(challengeParticipants).values({
-        challengeId: input.challengeId,
-        userUid: input.userUid,
-        userName: input.userName,
-        userAvatar: input.userAvatar || '',
-        studiedMinutes: 0,
-      });
-
-      await db
-        .update(studyChallenges)
-        .set({
-          participantsCount: sql`${studyChallenges.participantsCount} + 1`,
+    return await db.transaction(async (tx) => {
+      const inserted = await tx
+        .insert(challengeParticipants)
+        .values({
+          challengeId: input.challengeId,
+          userUid: input.userUid,
+          userName: input.userName,
+          userAvatar: input.userAvatar || '',
+          studiedMinutes: 0,
         })
-        .where(eq(studyChallenges.challengeId, input.challengeId));
-    }
+        .onConflictDoNothing({
+          target: [challengeParticipants.challengeId, challengeParticipants.userUid],
+        })
+        .returning({ id: challengeParticipants.id });
 
-    return { success: true };
+      if (inserted.length > 0) {
+        await tx
+          .update(studyChallenges)
+          .set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` })
+          .where(eq(studyChallenges.challengeId, input.challengeId));
+      }
+
+      return { success: true, joined: inserted.length > 0 };
+    });
   } catch (error) {
     console.error('Database joinStudyChallenge failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -487,6 +501,7 @@ export async function insertMilestone(input: {
   subjectTag?: string;
   streakDays?: number;
   xpEarned?: number;
+  visibility?: 'public' | 'friends' | 'private';
 }) {
   try {
     const result = await db
@@ -503,7 +518,8 @@ export async function insertMilestone(input: {
         description: input.description,
         subjectTag: input.subjectTag || '',
         streakDays: input.streakDays || 1,
-        xpEarned: input.xpEarned || 50,
+        xpEarned: input.xpEarned ?? 50,
+        visibility: input.visibility || 'public',
       })
       .returning();
     return result[0];
@@ -517,25 +533,50 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
   try {
     const ghostRows = await db.select({ uid: users.uid }).from(users).where(eq(users.isGhostMode, true));
     const ghostUids = ghostRows.map((row) => row.uid);
-    if (friendsOnly && userUid) {
-      const friendRows = await db
-        .select({ friendUid: friendships.friendUid })
-        .from(friendships)
-        .where(eq(friendships.userUid, userUid));
-      const friendUids = [...new Set([...friendRows.map((f) => f.friendUid), userUid])].filter((uid) => !ghostUids.includes(uid));
-      if (!friendUids.length) return [];
+    const friendRows = userUid
+      ? await db.select({ friendUid: friendships.friendUid }).from(friendships).where(eq(friendships.userUid, userUid))
+      : [];
+    const friendUids = [...new Set(friendRows.map((f) => f.friendUid))].filter((uid) => uid !== userUid);
+
+    if (friendsOnly) {
+      const visibleUids = [...new Set([...(userUid ? [userUid] : []), ...friendUids])];
+      if (!visibleUids.length) return [];
       return await db
         .select()
         .from(milestones)
-        .where(inArray(milestones.userUid, friendUids))
+        .where(and(
+          inArray(milestones.userUid, visibleUids),
+          or(
+            ...(userUid ? [eq(milestones.userUid, userUid)] : []),
+            eq(milestones.visibility, 'public'),
+            eq(milestones.visibility, 'friends')
+          )
+        ))
         .orderBy(desc(milestones.createdAt))
         .limit(50);
     }
-    const query = db.select().from(milestones);
-    if (ghostUids.length) {
-      return await db.select().from(milestones).where(notInArray(milestones.userUid, ghostUids)).orderBy(desc(milestones.createdAt)).limit(50);
-    }
-    return await query.orderBy(desc(milestones.createdAt)).limit(50);
+
+    const publicOwnerUids = ghostUids.length
+      ? notInArray(milestones.userUid, ghostUids)
+      : undefined;
+    const visibleConditions = [
+      ...(userUid ? [eq(milestones.userUid, userUid)] : []),
+      and(
+        eq(milestones.visibility, 'public'),
+        ...(publicOwnerUids ? [publicOwnerUids] : [])
+      ),
+      ...(userUid && friendUids.length
+        ? [and(eq(milestones.visibility, 'friends'), inArray(milestones.userUid, friendUids))]
+        : [])
+    ].filter(Boolean) as any[];
+
+    if (!visibleConditions.length) return [];
+    return await db
+      .select()
+      .from(milestones)
+      .where(or(...visibleConditions))
+      .orderBy(desc(milestones.createdAt))
+      .limit(50);
   } catch (error) {
     console.error('Database getMilestonesFeed failed:', error);
     throw new Error('Database operation failed', { cause: error });
