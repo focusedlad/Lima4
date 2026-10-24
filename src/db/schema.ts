@@ -12,6 +12,7 @@ export const users = pgTable('users', {
   bio: text('bio').default('').notNull(),
   bannerUrl: text('banner_url').default('').notNull(),
   profileVisibility: text('profile_visibility').default('public').notNull(),
+  sessionVisibility: text('session_visibility').default('private').notNull(),
   university: text('university'),
   studyField: text('study_field'),
   countryCode: text('country_code').default('GLOBAL').notNull(),
