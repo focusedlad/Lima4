@@ -1,5 +1,5 @@
-import { db } from './index';
-import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones, milestoneCheers } from './schema';
+import { db } from './index.js';
+import { users, focusLogs, studyChallenges, challengeParticipants, friendships, milestones, milestoneCheers } from './schema.js';
 import { eq, desc, sql, or, and, gt, gte, ilike, inArray, notInArray } from 'drizzle-orm';
 
 export interface UserSyncInput {

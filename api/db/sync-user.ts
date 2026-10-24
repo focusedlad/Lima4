@@ -1,5 +1,5 @@
-import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth';
-import { getRegisteredUserCount, getUserByUid, upsertUser } from '../../src/db/queries';
+import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth.js';
+import { getRegisteredUserCount, getUserByUid, upsertUser } from '../../src/db/queries.js';
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'GET' && req.method !== 'POST') {
