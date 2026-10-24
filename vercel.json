@@ -8,5 +8,6 @@
       "source": "/((?!api/.*).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "installCommand": "npm install --package-lock=false"
 }
