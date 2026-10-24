@@ -127,6 +127,7 @@ export async function insertFocusLog(input: {
   subject: string;
   xpEarned: number;
   date: string;
+  visibility?: 'private' | 'friends' | 'public';
 }) {
   try {
     // Save the session and update only challenges active on the session's date in one transaction.
@@ -140,6 +141,7 @@ export async function insertFocusLog(input: {
           subject: input.subject,
           xpEarned: input.xpEarned,
           date: input.date,
+          visibility: input.visibility || 'private',
         })
         .returning();
 
@@ -186,6 +188,8 @@ export async function insertFocusLog(input: {
               AND challenge_participants.status = 'accepted'
               AND c.start_date <= ${input.date}
               AND c.end_date >= ${input.date}
+              AND c.status = 'active'
+              AND ${challengeParticipants.status} = 'accepted'
           )`
         ));
 
