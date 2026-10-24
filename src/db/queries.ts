@@ -274,27 +274,24 @@ export async function insertStudyChallenge(input: {
 }) {
   try {
     return await db.transaction(async (tx) => {
-      const [challenge] = await tx
-        .insert(studyChallenges)
-        .values({
-          challengeId: input.challengeId,
-          title: input.title,
-          description: input.description || '',
-          creatorUid: input.creatorUid,
-          creatorName: input.creatorName,
-          creatorAvatar: input.creatorAvatar || '',
-          targetHours: input.targetHours,
-          period: input.period,
-          startDate: input.startDate,
-          endDate: input.endDate,
-          category: input.category || 'General',
-          visibility: input.visibility || 'public',
-          requiresApproval: input.requiresApproval ?? false,
-          status: 'waiting',
-          startedAt: null,
-          participantsCount: 1,
-        })
-        .returning();
+      const [challenge] = await tx.insert(studyChallenges).values({
+        challengeId: input.challengeId,
+        title: input.title,
+        description: input.description || '',
+        creatorUid: input.creatorUid,
+        creatorName: input.creatorName,
+        creatorAvatar: input.creatorAvatar || '',
+        targetHours: input.targetHours,
+        period: input.period,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        category: input.category || 'General',
+        visibility: input.visibility || 'public',
+        requiresApproval: input.requiresApproval ?? false,
+        status: 'waiting',
+        startedAt: null,
+        participantsCount: 1,
+      }).returning();
 
       await tx.insert(challengeParticipants).values({
         challengeId: input.challengeId,
@@ -305,7 +302,6 @@ export async function insertStudyChallenge(input: {
         status: 'accepted',
         decidedAt: new Date(),
       });
-
       return challenge;
     });
   } catch (error) {
@@ -316,10 +312,14 @@ export async function insertStudyChallenge(input: {
 
 export async function getJoinedChallengeProgress(userUid: string) {
   try {
-    return await db
-      .select({ challengeId: challengeParticipants.challengeId, studiedMinutes: challengeParticipants.studiedMinutes, status: challengeParticipants.status })
-      .from(challengeParticipants)
-      .where(and(eq(challengeParticipants.userUid, userUid), eq(challengeParticipants.status, 'accepted')));
+    return await db.select({
+      challengeId: challengeParticipants.challengeId,
+      studiedMinutes: challengeParticipants.studiedMinutes,
+      status: challengeParticipants.status,
+    }).from(challengeParticipants).where(and(
+      eq(challengeParticipants.userUid, userUid),
+      eq(challengeParticipants.status, 'accepted')
+    ));
   } catch (error) {
     console.error('Database getJoinedChallengeProgress failed:', error);
     throw new Error('Database operation failed', { cause: error });
@@ -352,37 +352,100 @@ export async function joinStudyChallenge(input: {
   userUid: string;
   userName: string;
   userAvatar?: string;
-  status?: 'pending' | 'accepted';
 }) {
   try {
-    return await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(challengeParticipants)
-        .values({
-          challengeId: input.challengeId,
-          userUid: input.userUid,
-          userName: input.userName,
-          userAvatar: input.userAvatar || '',
-          studiedMinutes: 0,
-          status: input.status || 'accepted',
-          decidedAt: input.status === 'accepted' ? new Date() : null,
-        })
-        .onConflictDoNothing({
-          target: [challengeParticipants.challengeId, challengeParticipants.userUid],
-        })
-        .returning({ id: challengeParticipants.id });
-
-      if (inserted.length > 0 && (input.status || 'accepted') === 'accepted') {
-        await tx
-          .update(studyChallenges)
-          .set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` })
-          .where(eq(studyChallenges.challengeId, input.challengeId));
-      }
-
-      return { success: true, joined: inserted.length > 0 };
+    const [challenge] = await db.select().from(studyChallenges).where(eq(studyChallenges.challengeId, input.challengeId)).limit(1);
+    if (!challenge || !['waiting', 'active'].includes(challenge.status)) throw new Error('This challenge is not accepting participants.');
+    const existing = await db.select().from(challengeParticipants).where(and(
+      eq(challengeParticipants.challengeId, input.challengeId),
+      eq(challengeParticipants.userUid, input.userUid)
+    )).limit(1);
+    if (existing.length) {
+      if (existing[0].status === 'rejected') throw new Error('Your request to join this challenge was declined.');
+      return { success: true, joined: existing[0].status === 'accepted', status: existing[0].status };
+    }
+    const status = challenge.requiresApproval ? 'pending' : 'accepted';
+    await db.insert(challengeParticipants).values({
+      challengeId: input.challengeId,
+      userUid: input.userUid,
+      userName: input.userName,
+      userAvatar: input.userAvatar || '',
+      studiedMinutes: 0,
+      status,
+      requestedAt: new Date(),
+      decidedAt: status === 'accepted' ? new Date() : null,
     });
+    if (status === 'accepted') {
+      await db.update(studyChallenges).set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` }).where(eq(studyChallenges.challengeId, input.challengeId));
+    }
+    return { success: true, joined: status === 'accepted', status };
   } catch (error) {
     console.error('Database joinStudyChallenge failed:', error);
+    if (error instanceof Error && error.message !== 'Database operation failed') throw error;
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function startStudyChallenge(challengeId: string, creatorUid: string) {
+  try {
+    const [challenge] = await db.select().from(studyChallenges).where(and(
+      eq(studyChallenges.challengeId, challengeId),
+      eq(studyChallenges.creatorUid, creatorUid)
+    )).limit(1);
+    if (!challenge) throw new Error('Only the challenge creator can start this challenge.');
+    if (challenge.status !== 'waiting') throw new Error('Only waiting challenges can be started.');
+    const startDate = new Date().toISOString().slice(0, 10);
+    const days = challenge.period === 'today' ? 1 : challenge.period === 'weekend' ? 2 : challenge.period === '14_days' ? 14 : challenge.period === '30_days' ? 30 : 7;
+    const endDate = new Date(Date.now() + (days - 1) * 86400000).toISOString().slice(0, 10);
+    const [updated] = await db.update(studyChallenges).set({
+      status: 'active',
+      startedAt: new Date(),
+      startDate,
+      endDate,
+    }).where(eq(studyChallenges.challengeId, challengeId)).returning();
+    return updated;
+  } catch (error) {
+    console.error('Database startStudyChallenge failed:', error);
+    if (error instanceof Error && error.message !== 'Database operation failed') throw error;
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function decideChallengeParticipant(input: { challengeId: string; creatorUid: string; participantUid: string; decision: 'accepted' | 'rejected' }) {
+  try {
+    const [challenge] = await db.select().from(studyChallenges).where(and(
+      eq(studyChallenges.challengeId, input.challengeId),
+      eq(studyChallenges.creatorUid, input.creatorUid)
+    )).limit(1);
+    if (!challenge) throw new Error('Only the challenge creator can review join requests.');
+    const [participant] = await db.select().from(challengeParticipants).where(and(
+      eq(challengeParticipants.challengeId, input.challengeId),
+      eq(challengeParticipants.userUid, input.participantUid)
+    )).limit(1);
+    if (!participant || participant.status !== 'pending') throw new Error('No pending join request was found.');
+    await db.update(challengeParticipants).set({ status: input.decision, decidedAt: new Date() }).where(eq(challengeParticipants.id, participant.id));
+    if (input.decision === 'accepted') {
+      await db.update(studyChallenges).set({ participantsCount: sql`${studyChallenges.participantsCount} + 1` }).where(eq(studyChallenges.challengeId, input.challengeId));
+    }
+    return { success: true, status: input.decision };
+  } catch (error) {
+    console.error('Database decideChallengeParticipant failed:', error);
+    if (error instanceof Error && error.message !== 'Database operation failed') throw error;
+    throw new Error('Database operation failed', { cause: error });
+  }
+}
+
+export async function getChallengeJoinRequests(challengeId: string, creatorUid: string) {
+  try {
+    const [challenge] = await db.select({ creatorUid: studyChallenges.creatorUid }).from(studyChallenges).where(eq(studyChallenges.challengeId, challengeId)).limit(1);
+    if (!challenge || challenge.creatorUid !== creatorUid) throw new Error('Only the challenge creator can view join requests.');
+    return await db.select().from(challengeParticipants).where(and(
+      eq(challengeParticipants.challengeId, challengeId),
+      eq(challengeParticipants.status, 'pending')
+    )).orderBy(desc(challengeParticipants.requestedAt)).limit(100);
+  } catch (error) {
+    console.error('Database getChallengeJoinRequests failed:', error);
+    if (error instanceof Error && error.message !== 'Database operation failed') throw error;
     throw new Error('Database operation failed', { cause: error });
   }
 }
