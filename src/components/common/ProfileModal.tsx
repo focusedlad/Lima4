@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { UserProfile } from '../../types';
+import { SupabaseService } from '../../services/supabase';
 import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
 import { EyeOff, Globe, Crown, Scale } from 'lucide-react';
 
@@ -45,6 +46,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [subject, setSubjectTag] = useState(currentUser.currentSubject);
   const [goal, setGoal] = useState(currentUser.currentGoal);
   const [avatar, setAvatar] = useState(currentUser.avatar);
+  const [bio, setBio] = useState(currentUser.bio || '');
+  const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
+  const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends' | 'private'>(currentUser.profileVisibility || 'public');
+  const [isUploading, setIsUploading] = useState<'avatar' | 'banner' | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -74,6 +79,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       currentSubject: subject.trim() || currentUser.currentSubject,
       currentGoal: goal.trim() || currentUser.currentGoal,
       avatar: avatar.trim() || currentUser.avatar,
+      bio: bio.trim().slice(0, 500),
+      bannerUrl: bannerUrl.trim(),
+      profileVisibility,
     };
     setIsSaving(true);
     setSaveError(null);
@@ -111,22 +119,33 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         </div>
 
                 <form onSubmit={handleSave} className="space-y-4 text-xs">
-            {/* Avatar Preview */}
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-100">
-              <img
-                src={avatar}
-                alt={name}
-                className="w-14 h-14 rounded-full object-cover ring-2 ring-emerald-400 ring-offset-2"
-              />
-              <div className="flex-1">
-                <label className="block text-[11px] font-semibold text-stone-600 mb-1">Avatar Image URL</label>
-                <input
-                  type="text"
-                  value={avatar}
-                  onChange={(e) => setAvatar(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full p-2 rounded-xl bg-white border border-stone-200 text-stone-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
+            {/* Profile photo and banner */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-100">
+                <img src={avatar} alt={name} className="w-14 h-14 rounded-full object-cover ring-2 ring-emerald-400 ring-offset-2" />
+                <div className="flex-1 min-w-0">
+                  <label className="block text-[11px] font-semibold text-stone-600 mb-1">Profile picture</label>
+                  <input type="file" accept="image/png,image/jpeg,image/webp,image/avif" disabled={!!isUploading} onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setIsUploading('avatar'); setSaveError(null);
+                    try { setAvatar(await SupabaseService.uploadProfileMedia(file, 'avatar')); }
+                    catch (error: any) { setSaveError(error?.message || 'Profile picture upload failed.'); }
+                    finally { setIsUploading(null); e.target.value = ''; }
+                  }} className="w-full text-[10px] text-stone-600" />
+                  <p className="text-[10px] text-stone-500 mt-1">{isUploading === 'avatar' ? 'Uploading picture…' : 'PNG, JPG, WEBP or AVIF · up to 5 MB'}</p>
+                </div>
+              </div>
+              <div className="p-3 rounded-2xl bg-stone-50 border border-stone-100">
+                <label className="block text-[11px] font-semibold text-stone-600 mb-1">Profile banner</label>
+                {bannerUrl && <img src={bannerUrl} alt="Profile banner preview" className="w-full h-20 rounded-xl object-cover mb-2" />}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/avif" disabled={!!isUploading} onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setIsUploading('banner'); setSaveError(null);
+                  try { setBannerUrl(await SupabaseService.uploadProfileMedia(file, 'banner')); }
+                  catch (error: any) { setSaveError(error?.message || 'Banner upload failed.'); }
+                  finally { setIsUploading(null); e.target.value = ''; }
+                }} className="w-full text-[10px] text-stone-600" />
+                <p className="text-[10px] text-stone-500 mt-1">{isUploading === 'banner' ? 'Uploading banner…' : 'Optional wide image · up to 5 MB'}</p>
               </div>
             </div>
 
@@ -245,6 +264,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 placeholder="What are you currently conquering?"
                 className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200 resize-none"
               />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-stone-700 mb-1">Public bio</label>
+              <textarea rows={3} maxLength={500} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell other students a little about yourself…" className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200 resize-y" />
+              <p className="text-[10px] text-stone-500 mt-1">{bio.length}/500 characters</p>
+            </div>
+            <div>
+              <label className="block font-semibold text-stone-700 mb-1">Who can view your profile?</label>
+              <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value as 'public' | 'friends' | 'private')} className="w-full p-2.5 rounded-xl bg-stone-50 border border-stone-200 text-stone-900">
+                <option value="public">Everyone</option><option value="friends">Friends only</option><option value="private">Only me</option>
+              </select>
             </div>
 
             {/* Membership Tier Info */}
