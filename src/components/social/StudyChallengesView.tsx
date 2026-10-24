@@ -36,6 +36,7 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
   const [newPeriod, setNewPeriod] = useState<'today' | 'weekend' | '7_days' | '14_days' | '30_days'>('7_days');
   const [newCategory, setNewCategory] = useState<string>('Deep Work');
   const [newVisibility, setNewVisibility] = useState<'public' | 'friends' | 'private'>('public');
+  const [newRequiresApproval, setNewRequiresApproval] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -71,12 +72,13 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
     try {
       const created = await SupabaseService.createChallenge({
         title: newTitle.trim(), description: newDescription.trim(), targetHours: Number(newTargetHours),
-        period: newPeriod, category: newCategory, visibility: newVisibility, creator: currentUser,
+        period: newPeriod, category: newCategory, visibility: newVisibility, requiresApproval: newRequiresApproval, creator: currentUser,
       });
       setChallenges((previous) => [created, ...previous]);
       setIsCreateModalOpen(false);
       setNewTitle('');
       setNewDescription('');
+      setNewRequiresApproval(false);
     } catch (error: any) {
       setActionError(error?.message || 'The challenge could not be created. Please try again.');
     } finally {
@@ -194,6 +196,11 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   {challenge.description || 'Join this study sprint and track your hours with competitors.'}
                 </p>
 
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] font-bold">
+                  <span className={`rounded-lg px-2 py-1 ${challenge.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{challenge.status === 'active' ? 'LIVE' : challenge.status === 'completed' ? 'COMPLETED' : challenge.status === 'cancelled' ? 'CANCELLED' : 'WAITING FOR CREATOR'}</span>
+                  <span className="rounded-lg bg-stone-100 px-2 py-1 text-stone-600 dark:bg-stone-800 dark:text-stone-300">{challenge.requiresApproval ? 'Creator approval required' : 'Open entry'}</span>
+                </div>
+
                 {/* Target Metric Card */}
                 <div className="p-3 rounded-2xl bg-stone-50 dark:bg-stone-800/60 border border-stone-100 dark:border-stone-800 mb-4 flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
@@ -237,8 +244,36 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                  {challenge.isCreator && challenge.status === 'waiting' && (
+                    <button onClick={async () => { try { setActionError(null); await SupabaseService.startChallenge(challenge.id); await loadChallenges(); } catch (error: any) { setActionError(error?.message || 'Could not start this challenge.'); } }} className="rounded-xl bg-emerald-600 px-3 py-1.5 font-bold text-white">Start challenge</button>
+                  )}
+                  {challenge.isCreator && (challenge.pendingRequests || []).map((request) => (
+                    <span key={request.userUid} className="inline-flex items-center gap-1 rounded-xl bg-amber-50 px-2 py-1 text-[10px] text-amber-900">
+                      {request.userName}
+                      <button aria-label={`Accept ${request.userName}`} onClick={async () => { try { await SupabaseService.decideChallengeRequest(challenge.id, request.userUid, 'accepted'); await loadChallenges(); } catch (error: any) { setActionError(error?.message || 'Could not accept request.'); } }} className="rounded bg-emerald-600 px-1.5 py-1 text-white">Accept</button>
+                      <button aria-label={`Reject ${request.userName}`} onClick={async () => { try { await SupabaseService.decideChallengeRequest(challenge.id, request.userUid, 'rejected'); await loadChallenges(); } catch (error: any) { setActionError(error?.message || 'Could not reject request.'); } }} className="rounded bg-rose-600 px-1.5 py-1 text-white">Decline</button>
+                    </span>
+                  ))}
                   {challenge.isJoined ? (
+                    <span className={`flex items-center gap-1 rounded-xl px-3 py-1.5 font-bold text-xs ${challenge.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                      <Check className="h-3.5 w-3.5" />
+                      <span>{challenge.status === 'active' ? 'Joined' : 'Waiting to start'}</span>
+                    </span>
+                  ) : challenge.membershipStatus === 'pending' ? (
+                    <span className="rounded-xl bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">Request pending</span>
+                  ) : challenge.membershipStatus === 'rejected' ? (
+                    <span className="rounded-xl bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-800">Request declined</span>
+                  ) : (
+                    <button
+                      onClick={() => handleJoin(challenge)}
+                      className="rounded-xl bg-indigo-400 px-3.5 py-1.5 text-xs font-bold text-stone-950 transition-colors hover:bg-indigo-300"
+                    >
+                      {challenge.requiresApproval ? 'Request to join' : 'Join challenge'}
+                    </button>
+                  )}
+
+                  {onSelectChallengeLeaderboard && (
                     <span className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
                       <Check className="w-3.5 h-3.5" />
                       <span>Active</span>
@@ -382,6 +417,11 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   <option value="private">Private — only you and invited/joined participants</option>
                 </select>
               </div>
+
+              <label className="flex items-start gap-2 rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 text-stone-700 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200">
+                <input type="checkbox" checked={newRequiresApproval} onChange={(e) => setNewRequiresApproval(e.target.checked)} className="mt-0.5" />
+                <span><strong>Require creator approval</strong><span className="block mt-0.5 text-[10px] font-normal">Students request entry. You approve them before they can participate.</span></span>
+              </label>
 
               <div className="pt-2 flex items-center justify-end gap-2">
                 <button
