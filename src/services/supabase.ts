@@ -275,6 +275,21 @@ export const SupabaseService = {
     } catch (_) {}
   },
 
+  async uploadProfileMedia(file: File, kind: 'avatar' | 'banner'): Promise<string> {
+    if (!isSupabaseConfigured) throw new Error('Profile image uploads are unavailable because Supabase is not configured.');
+    if (!file.type.startsWith('image/')) throw new Error('Choose an image file.');
+    if (file.size > 5 * 1024 * 1024) throw new Error('Images must be 5 MB or smaller.');
+    const client = getActiveSupabaseClient();
+    const { data: { session } } = await client.auth.getSession();
+    if (!session?.user) throw new Error('Sign in before uploading profile images.');
+    const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : file.type === 'image/avif' ? 'avif' : 'jpg';
+    const path = `${session.user.id}/${kind}-${Date.now()}.${extension}`;
+    const { error } = await client.storage.from('profile-media').upload(path, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
+    if (error) throw new Error(error.message || 'Image upload failed.');
+    const { data } = client.storage.from('profile-media').getPublicUrl(path);
+    return data.publicUrl;
+  },
+
   /**
    * Sync User Profile with PostgreSQL backend
    */
