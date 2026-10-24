@@ -573,6 +573,7 @@ export const SupabaseService = {
     description: string;
     subjectTag?: string;
     type?: string;
+    visibility?: 'private' | 'friends' | 'public';
   }): Promise<MilestoneItem> {
     const userHandle = input.user.handle || `@${input.user.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     const newMilestone: MilestoneItem = {
@@ -598,7 +599,7 @@ export const SupabaseService = {
       method: 'POST',
       body: JSON.stringify({
         title: newMilestone.title, description: newMilestone.description,
-        subjectTag: newMilestone.subjectTag, type: newMilestone.type,
+        subjectTag: newMilestone.subjectTag, type: newMilestone.type, visibility: input.visibility || 'public',
       }),
     });
     const payload = await response.json().catch(() => ({}));
