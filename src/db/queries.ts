@@ -595,7 +595,7 @@ export async function getFriendsByUser(userUid: string) {
   }
 }
 
-export async function searchUsersByQuery(query: string) {
+export async function searchUsersByQuery(query: string, viewerUid: string) {
   try {
     const clean = query.trim().replace(/^@/, '');
     if (!clean) return [];
@@ -606,6 +606,9 @@ export async function searchUsersByQuery(query: string) {
         name: users.name,
         handle: users.handle,
         avatar: users.avatar,
+        bio: users.bio,
+        bannerUrl: users.bannerUrl,
+        profileVisibility: users.profileVisibility,
         university: users.university,
         studyField: users.studyField,
         totalHoursStudied: users.totalHoursStudied,
@@ -616,6 +619,7 @@ export async function searchUsersByQuery(query: string) {
       .where(
         and(
           eq(users.isGhostMode, false),
+          sql`(${users.profileVisibility} = 'public' OR (${users.profileVisibility} = 'friends' AND EXISTS (SELECT 1 FROM friendships f WHERE (f.user_uid = ${viewerUid} AND f.friend_uid = ${users.uid}) OR (f.friend_uid = ${viewerUid} AND f.user_uid = ${users.uid}))))`,
           or(
             ilike(users.handle, `%${clean}%`),
             ilike(users.name, `%${clean}%`),
