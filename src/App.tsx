@@ -98,7 +98,7 @@ export default function App() {
   const [decks, setDecks] = useState<StudyDeck[]>(() => StorageService.getDecks());
   const [creators, setCreators] = useState<YouTubeCreator[]>(() => StorageService.getCreators());
   const [admissions, setAdmissions] = useState<AdmissionRequest[]>(() => StorageService.getAdmissions());
-  const [focusLogs, setFocusLogs] = useState<FocusSessionLog[]>(() => StorageService.getFocusLogs());
+  const [focusLogs, setFocusLogs] = useState<FocusSessionLog[]>([]);
   const [heatmapDays, setHeatmapDays] = useState(() => generate31DayHeatmap());
   const [firstUserNotice, setFirstUserNotice] = useState(false);
 
@@ -254,12 +254,16 @@ export default function App() {
     let cancelled = false;
     const applySession = async (session: any) => {
       if (!session?.user) {
+        setFocusLogs([]);
+        setHeatmapDays(generate31DayHeatmap());
         setProfileLoaded(false);
         setCurrentUser(INITIAL_USER);
         setIsAuthModalOpen(true);
         return;
       }
       setProfileLoaded(false);
+      setFocusLogs([]);
+      setHeatmapDays(generate31DayHeatmap());
       const authUser = session.user;
       const email = authUser.email || '';
       const metadataName = authUser.user_metadata?.full_name || authUser.user_metadata?.name;
@@ -352,6 +356,28 @@ export default function App() {
 
   useEffect(() => {
     StorageService.saveFocusLogs(focusLogs);
+  }, [focusLogs]);
+
+  useEffect(() => {
+    const totals = new Map<string, DayActivity>();
+    for (const day of generate31DayHeatmap()) totals.set(day.date, day);
+    for (const log of focusLogs) {
+      const day = totals.get(log.date);
+      if (!day) continue;
+      const hours = log.durationMinutes / 60;
+      day.hours += hours;
+      day.sessionsCount += 1;
+      if (log.category === 'deep_work') day.deepWorkHours += hours;
+      else if (log.category === 'recall') day.recallHours += hours;
+      else if (log.category === 'review') day.reviewHours += hours;
+    }
+    setHeatmapDays(Array.from(totals.values()).map((day) => ({
+      ...day,
+      hours: Math.round(day.hours * 10) / 10,
+      deepWorkHours: Math.round(day.deepWorkHours * 10) / 10,
+      recallHours: Math.round(day.recallHours * 10) / 10,
+      reviewHours: Math.round(day.reviewHours * 10) / 10,
+    })));
   }, [focusLogs]);
 
   // Dedicated Admin Portal Link routing & secret access  // Dedicated Admin Portal Link routing & secret access
