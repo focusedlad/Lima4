@@ -78,6 +78,12 @@ export interface StudyChallengeItem {
   participantsCount: number;
   category: string;
   visibility?: 'public' | 'friends' | 'private';
+  requiresApproval?: boolean;
+  status?: 'waiting' | 'active' | 'completed' | 'cancelled';
+  startedAt?: string | null;
+  isCreator?: boolean;
+  membershipStatus?: 'pending' | 'accepted' | 'rejected' | null;
+  pendingRequests?: Array<{ userUid: string; userName: string; userAvatar?: string }>;
   isJoined?: boolean;
   myProgressHours?: number;
 }
@@ -387,6 +393,7 @@ export const SupabaseService = {
     period: 'today' | 'weekend' | '7_days' | '14_days' | '30_days';
     category: string;
     visibility?: 'public' | 'friends' | 'private';
+    requiresApproval?: boolean;
     creator: UserProfile;
   }): Promise<StudyChallengeItem> {
     const newChallenge: StudyChallengeItem = {
@@ -411,7 +418,7 @@ export const SupabaseService = {
       body: JSON.stringify({
         title: newChallenge.title, description: newChallenge.description,
         targetHours: newChallenge.targetHours, period: newChallenge.period, category: newChallenge.category,
-        visibility: input.visibility || 'public',
+        visibility: input.visibility || 'public', requiresApproval: input.requiresApproval === true,
       }),
     });
     const payload = await response.json().catch(() => ({}));
@@ -431,6 +438,18 @@ export const SupabaseService = {
       const payload = await response.json().catch(() => ({}));
       throw new Error(payload.error || 'Could not join this challenge.');
     }
+  },
+
+  async startChallenge(challengeId: string): Promise<void> {
+    const response = await authenticatedFetch('/api/db/challenges/' + encodeURIComponent(challengeId) + '/start', { method: 'POST', body: JSON.stringify({}) });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not start challenge.');
+  },
+
+  async decideChallengeRequest(challengeId: string, userUid: string, decision: 'accepted' | 'rejected'): Promise<void> {
+    const response = await authenticatedFetch('/api/db/challenges/' + encodeURIComponent(challengeId) + '/requests/' + encodeURIComponent(userUid), { method: 'POST', body: JSON.stringify({ decision }) });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Could not update the join request.');
   },
 
   /**
