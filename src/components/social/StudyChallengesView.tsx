@@ -265,35 +265,13 @@ export const StudyChallengesView: React.FC<StudyChallengesViewProps> = ({
                   ) : challenge.membershipStatus === 'rejected' ? (
                     <span className="rounded-xl bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-800">Request declined</span>
                   ) : (
-                    <button
-                      onClick={() => handleJoin(challenge)}
-                      className="rounded-xl bg-indigo-400 px-3.5 py-1.5 text-xs font-bold text-stone-950 transition-colors hover:bg-indigo-300"
-                    >
+                    <button onClick={() => handleJoin(challenge)} className="rounded-xl bg-indigo-400 px-3.5 py-1.5 text-xs font-bold text-stone-950 transition-colors hover:bg-indigo-300">
                       {challenge.requiresApproval ? 'Request to join' : 'Join challenge'}
                     </button>
                   )}
-
                   {onSelectChallengeLeaderboard && (
-                    <span className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Active</span>
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleJoin(challenge)}
-                      className="px-3.5 py-1.5 rounded-xl bg-indigo-400 hover:bg-indigo-300 text-stone-950 font-bold text-xs transition-colors"
-                    >
-                      Join Challenge
-                    </button>
-                  )}
-
-                  {onSelectChallengeLeaderboard && (
-                    <button
-                      onClick={() => onSelectChallengeLeaderboard(challenge)}
-                      className="p-1.5 rounded-xl text-stone-400 hover:text-stone-900 dark:hover:text-white transition-colors"
-                      title="View challenge leaderboard"
-                    >
-                      <ArrowRight className="w-4 h-4" />
+                    <button onClick={() => onSelectChallengeLeaderboard(challenge)} className="rounded-xl p-1.5 text-stone-400 transition-colors hover:text-stone-900 dark:hover:text-white" title="View challenge leaderboard">
+                      <ArrowRight className="h-4 w-4" />
                     </button>
                   )}
                 </div>
