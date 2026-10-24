@@ -512,13 +512,14 @@ export default function App() {
         console.warn('This focus session could not be synced to the server.');
         return;
       }
-      if (!updatedUser.isGhostMode) {
+      if (!updatedUser.isGhostMode && (updatedUser.sessionVisibility || 'private') !== 'private') {
         await SupabaseService.postMilestone({
           user: updatedUser,
           title: 'Completed ' + durationMinutes + 'm focus session',
           description: 'Focused on ' + subject + ' in a real study session.',
           subjectTag: subject,
           type: 'session_completed',
+          visibility: updatedUser.sessionVisibility || 'private',
         });
       }
     })().catch((error) => console.warn('Could not sync focus session:', error));
