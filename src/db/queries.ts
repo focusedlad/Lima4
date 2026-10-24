@@ -11,6 +11,7 @@ export interface UserSyncInput {
   bio?: string;
   bannerUrl?: string;
   profileVisibility?: 'public' | 'friends' | 'private';
+  sessionVisibility?: 'private' | 'friends' | 'public';
   university?: string;
   studyField?: string;
   countryCode?: string;
@@ -42,6 +43,7 @@ export async function upsertUser(input: UserSyncInput) {
         bio: input.bio || '',
         bannerUrl: input.bannerUrl || '',
         profileVisibility: input.profileVisibility || 'public',
+        sessionVisibility: input.sessionVisibility || 'private',
         university: input.university || '',
         studyField: input.studyField || '',
         countryCode: input.countryCode || 'GLOBAL',
@@ -68,6 +70,7 @@ export async function upsertUser(input: UserSyncInput) {
           bio: input.bio ?? '',
           bannerUrl: input.bannerUrl ?? '',
           profileVisibility: input.profileVisibility || 'public',
+          sessionVisibility: input.sessionVisibility || 'private',
           university: input.university || '',
           studyField: input.studyField || '',
           countryCode: input.countryCode || 'GLOBAL',
