@@ -57,9 +57,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   ) / 10;
 
   const totalMonthHours = Math.round((totalDeepWorkHours + totalRecallHours + totalReviewHours) * 10) / 10;
-  const deepPct = Math.round((totalDeepWorkHours / totalMonthHours) * 100);
-  const recallPct = Math.round((totalRecallHours / totalMonthHours) * 100);
-  const reviewPct = 100 - deepPct - recallPct;
+  const deepPct = totalMonthHours ? Math.round((totalDeepWorkHours / totalMonthHours) * 100) : 0;
+  const recallPct = totalMonthHours ? Math.round((totalRecallHours / totalMonthHours) * 100) : 0;
+  const reviewPct = totalMonthHours ? 100 - deepPct - recallPct : 0;
 
   // Pet Switcher handler
   const handleSwitchPetSpecies = (species: 'shiba' | 'capybara' | 'owl') => {
