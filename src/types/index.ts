@@ -20,6 +20,7 @@ export interface UserProfile {
   bio?: string;
   bannerUrl?: string;
   profileVisibility?: 'public' | 'friends' | 'private';
+  sessionVisibility?: 'private' | 'friends' | 'public';
   universityOrLocation: string;
   countryCode?: string;
   countryName?: string;
