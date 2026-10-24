@@ -16,7 +16,8 @@ import {
 import { UserProfile } from '../../types';
 import { SupabaseService } from '../../services/supabase';
 import { COUNTRIES_CATALOG, STUDY_FIELDS } from '../../services/universityCatalog';
-import { EyeOff, Globe, Crown, Scale } from 'lucide-react';
+import { EyeOff, Globe, Crown, Scale, ImagePlus } from 'lucide-react';
+import { supabase } from '../../services/supabase';
 
 interface ProfileModalProps {
   currentUser: UserProfile;
@@ -46,6 +47,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [subject, setSubjectTag] = useState(currentUser.currentSubject);
   const [goal, setGoal] = useState(currentUser.currentGoal);
   const [avatar, setAvatar] = useState(currentUser.avatar);
+  const [bio, setBio] = useState(currentUser.bio || '');
+  const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
+  const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends' | 'private'>(currentUser.profileVisibility || 'public');
+  const [isUploading, setIsUploading] = useState(false);
   const [bio, setBio] = useState(currentUser.bio || '');
   const [bannerUrl, setBannerUrl] = useState(currentUser.bannerUrl || '');
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'friends' | 'private'>(currentUser.profileVisibility || 'public');
@@ -79,6 +84,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       currentSubject: subject.trim() || currentUser.currentSubject,
       currentGoal: goal.trim() || currentUser.currentGoal,
       avatar: avatar.trim() || currentUser.avatar,
+      bio: bio.trim().slice(0, 500),
+      bannerUrl: bannerUrl.trim(),
+      profileVisibility,
       bio: bio.trim().slice(0, 500),
       bannerUrl: bannerUrl.trim(),
       profileVisibility,
@@ -146,6 +154,46 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   finally { setIsUploading(null); e.target.value = ''; }
                 }} className="w-full text-[10px] text-stone-600" />
                 <p className="text-[10px] text-stone-500 mt-1">{isUploading === 'banner' ? 'Uploading banner…' : 'Optional wide image · up to 5 MB'}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3">
+              <div className="relative overflow-hidden rounded-xl bg-stone-200 dark:bg-stone-800">
+                {bannerUrl ? <img src={bannerUrl} alt="Profile banner preview" className="h-24 w-full object-cover" /> : <div className="h-24 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-400" />}
+                <div className="absolute bottom-2 left-2 rounded-lg bg-black/55 px-2 py-1 text-[10px] font-bold text-white">PROFILE BANNER</div>
+              </div>
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 font-bold text-indigo-800 hover:bg-indigo-50">
+                <ImagePlus className="h-4 w-4" /> {isUploading ? 'Uploading image…' : 'Upload profile picture or banner'}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/avif" className="hidden" disabled={isUploading} onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) { setSaveError('Choose an image smaller than 5 MB.'); event.target.value = ''; return; }
+                  setIsUploading(true); setSaveError(null);
+                  try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user || user.id !== currentUser.id) throw new Error('Please sign in again before uploading profile images.');
+                    const target = window.confirm('Use this image as your profile banner? Choose Cancel to use it as your profile picture.');
+                    const extension = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+                    const path = user.id + '/' + (target ? 'banner-' : 'avatar-') + Date.now() + '.' + extension;
+                    const { error } = await supabase.storage.from('profile-media').upload(path, file, { upsert: false, contentType: file.type });
+                    if (error) throw error;
+                    const { data } = supabase.storage.from('profile-media').getPublicUrl(path);
+                    if (target) setBannerUrl(data.publicUrl); else setAvatar(data.publicUrl);
+                  } catch (error: any) {
+                    setSaveError(error?.message || 'Image upload failed. Please try again.');
+                  } finally { setIsUploading(false); event.target.value = ''; }
+                }} />
+              </label>
+              <div>
+                <label className="mb-1 block font-semibold text-stone-700">About you (visible on your profile)</label>
+                <textarea value={bio} maxLength={500} onChange={(e) => setBio(e.target.value)} placeholder="Tell other students a little about yourself…" rows={3} className="w-full resize-y rounded-xl border border-stone-200 bg-white p-2.5 text-stone-900 focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+                <p className="mt-1 text-right text-[10px] text-stone-500">{bio.length}/500</p>
+              </div>
+              <div>
+                <label className="mb-1 block font-semibold text-stone-700">Who can view your profile?</label>
+                <select value={profileVisibility} onChange={(e) => setProfileVisibility(e.target.value as 'public' | 'friends' | 'private')} className="w-full rounded-xl border border-stone-200 bg-white p-2.5 text-stone-900">
+                  <option value="public">Everyone</option><option value="friends">Friends only</option><option value="private">Only me</option>
+                </select>
               </div>
             </div>
 
