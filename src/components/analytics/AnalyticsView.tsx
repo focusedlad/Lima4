@@ -359,7 +359,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 className={`h-11 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${color} ${
                   isSelected ? 'ring-2 ring-stone-900 scale-105 shadow-xs' : 'hover:scale-102'
                 }`}
-                title={`Oct ${day.dayNumber}: ${day.hours}h`}
+                title={`${new Date(day.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}: ${day.hours}h`}
               >
                 <span className="text-[11px]">{day.dayNumber}</span>
                 <span className="text-[9px] opacity-80 font-mono">{day.hours}h</span>
