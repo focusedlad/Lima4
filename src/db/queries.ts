@@ -463,15 +463,6 @@ export async function getChallengeLeaderboard(challengeId: string) {
 
 export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'month' | 'all') {
   try {
-    if (timeframe === 'all') {
-      return await db
-        .select({ id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar, university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied, xp: users.xp, currentStreak: users.currentStreak })
-        .from(users)
-        .where(and(eq(users.isGhostMode, false), or(gt(users.totalHoursStudied, 0), gt(users.xp, 0))))
-        .orderBy(desc(users.totalHoursStudied), desc(users.xp))
-        .limit(50);
-    }
-
     const now = new Date();
     const start = new Date(now);
     if (timeframe === 'week') {
@@ -479,25 +470,43 @@ export async function getLeaderboardByTimeframe(timeframe: 'today' | 'week' | 'm
       start.setDate(start.getDate() - day + 1);
     } else if (timeframe === 'month') {
       start.setDate(1);
+    } else if (timeframe === 'today') {
+      start.setHours(0, 0, 0, 0);
+    } else {
+      start.setTime(0);
+      start.setFullYear(2000, 0, 1);
     }
     const startDate = start.toISOString().slice(0, 10);
     const aggregates = await db
-      .select({ uid: focusLogs.userUid, minutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`, xp: sql<number>`COALESCE(SUM(${focusLogs.xpEarned}), 0)::int` })
+      .select({
+        uid: focusLogs.userUid,
+        minutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`,
+        xp: sql<number>`COALESCE(SUM(${focusLogs.xpEarned}), 0)::int`,
+      })
       .from(focusLogs)
-      .where(gte(focusLogs.date, startDate))
+      .where(and(gte(focusLogs.date, startDate), eq(focusLogs.visibility, 'public')))
       .groupBy(focusLogs.userUid);
     if (!aggregates.length) return [];
     const aggregateByUid = new Map(aggregates.map((row) => [row.uid, row]));
     const members = await db
-      .select({ id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar, university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied, xp: users.xp, currentStreak: users.currentStreak })
+      .select({
+        id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar,
+        university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied,
+        xp: users.xp, currentStreak: users.currentStreak,
+      })
       .from(users)
       .where(and(eq(users.isGhostMode, false), inArray(users.uid, aggregates.map((row) => row.uid))));
     return members
+      .filter((member) => member.uid && member.uid.length > 0)
       .map((member) => {
         const stats = aggregateByUid.get(member.uid);
-        return { ...member, totalHoursStudied: Math.round(((stats?.minutes || 0) / 60) * 100) / 100, xp: Number(stats?.xp || 0) };
+        return {
+          ...member,
+          totalHoursStudied: Math.round(((stats?.minutes || 0) / 60) * 100) / 100,
+          xp: Number(stats?.xp || 0),
+        };
       })
-      .filter((member) => member.totalHoursStudied > 0 || member.xp > 0)
+      .filter((member) => member.totalHoursStudied > 0)
       .sort((a, b) => b.totalHoursStudied - a.totalHoursStudied || b.xp - a.xp)
       .slice(0, 50);
   } catch (error) {
