@@ -71,11 +71,24 @@ function makeAvatar(person: RoomPerson, scene: THREE.Scene, target: THREE.Vector
   }
   // neck and cosy top
   cylinder(group,.09,.11,.18,skin,[0,1.18,0]);
+  const outfitStyle = cfg.outfitStyle || 'jumper';
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(.22,.43,4,8),mat(outfit));
   torso.position.set(0,.91,0); torso.castShadow=true; group.add(torso);
+  if (outfitStyle === 'hoodie') {
+    sphere(group,.17,outfit,[0,1.2,-.15],[1,.92,.62]);
+    box(group,[.025,.23,.018],'#d7d3c9',[0,.91,.22]);
+    sphere(group,.025,'#e7dfd1',[-.07,1.02,.21]); sphere(group,.025,'#e7dfd1',[.07,1.02,.21]);
+  } else if (outfitStyle === 'jacket') {
+    box(group,[.095,.42,.035],'#f0e8db',[-.105,.94,.207]); box(group,[.095,.42,.035],'#f0e8db',[.105,.94,.207]);
+    for(let i=0;i<3;i++) sphere(group,.018,'#d6b56d',[.015,.82+i*.11,.235]);
+  } else if (outfitStyle === 'jumper') {
+    cylinder(group,.145,.15,.075,outfit,[0,1.15,.02]);
+    for(const side of [-1,1]) cylinder(group,.078,.08,.075,outfit,[side*.25,.76,.02],[0,0,side*.15]);
+  }
   if (cfg.accessory === 'scarf') box(group,[.12,.31,.07],'#d8ad62',[.02,1.1,.19]);
   if (cfg.accessory === 'headphones') { const band=new THREE.Mesh(new THREE.TorusGeometry(.255,.035,7,20,Math.PI),mat('#252b31')); band.position.set(0,1.56,0); band.rotation.z=Math.PI; group.add(band); sphere(group,.055,'#252b31',[-.25,1.52,0]); sphere(group,.055,'#252b31',[.25,1.52,0]); }
-  const pants = '#33414c', shoe = '#f0e8db';
+  if (cfg.accessory === 'watch') { box(group,[.13,.045,.065],'#caa75d',[-.31,.83,.12]); box(group,[.075,.035,.055],'#26333b',[-.31,.86,.155]); }
+  const pants = '#33414c', shoe = cfg.shoeColor || '#f0e8db';
   // legs: seated thighs extend towards the desk; lower legs and shoes hang naturally.
   for (const side of [-1,1]) {
     const hipX=side*.105;
