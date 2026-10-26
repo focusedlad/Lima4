@@ -72,7 +72,6 @@ import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal';
 import { FirebaseService } from './services/firebase';
 import { supabase, SupabaseService } from './services/supabase';
-import { FluidLiquidBackground } from './components/common/FluidLiquidBackground';
 import { ApiDatabase } from './services/apiDatabase';
 import { SettingsView } from './components/settings/SettingsView';
 
@@ -584,8 +583,6 @@ export default function App() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#F8FAFC] dark:bg-[#05070B] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-indigo-200 dark:selection:bg-indigo-900 transition-colors duration-200 relative">
-      {/* Fluid Liquid Motion Interactive Background */}
-      <FluidLiquidBackground />
       {/* Top Global Header Bar */}
       <header className="sticky top-0 z-40 bg-[#F8FAFC]/90 dark:bg-[#05070B]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden md:pl-[100px]">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
