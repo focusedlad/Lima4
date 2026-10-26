@@ -59,6 +59,7 @@ export const ApiDatabase = {
           subject: log.subject,
           xpEarned: log.xpEarned,
           date: log.date,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         }),
       });
       if (!res.ok) return null;
