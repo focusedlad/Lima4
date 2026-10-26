@@ -583,7 +583,8 @@ export async function getSuggestedUsers(viewerUid: string) {
       eq(users.isGhostMode, false), notInArray(users.uid, [viewerUid]),
       or(eq(users.profileVisibility, 'public'),
         and(eq(users.profileVisibility, 'friends'),
-          sql`EXISTS (SELECT 1 FROM friendships f WHERE f.user_uid = ${viewerUid} AND f.friend_uid = ${users.uid}) AND EXISTS (SELECT 1 FROM friendships f2 WHERE f2.user_uid = ${users.uid} AND f2.friend_uid = ${viewerUid})`))
+          sql`EXISTS (SELECT 1 FROM friendships f WHERE f.user_uid = ${viewerUid} AND f.friend_uid = ${users.uid}) AND EXISTS (SELECT 1 FROM friendships f2 WHERE f2.user_uid = ${users.uid} AND f2.friend_uid = ${viewerUid})`)),
+      sql`NOT EXISTS (SELECT 1 FROM friendships f WHERE (f.user_uid = ${viewerUid} AND f.friend_uid = ${users.uid}) OR (f.user_uid = ${users.uid} AND f.friend_uid = ${viewerUid}))`
     )).orderBy(desc(users.createdAt)).limit(12);
   } catch (error) {
     console.error('Database getSuggestedUsers failed:', error);
