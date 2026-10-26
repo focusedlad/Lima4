@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   User,
   AtSign,
@@ -27,6 +27,7 @@ import {
 import { UserProfile } from '../../types';
 import { audioSynth } from '../../services/audioSynth';
 import { ApiDatabase } from '../../services/apiDatabase';
+import { supabase } from '../../services/supabase';
 import { PWAInstallButton } from '../common/PWAInstallButton';
 
 interface SettingsViewProps {
@@ -55,7 +56,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [university, setUniversity] = useState(currentUser.university || currentUser.universityOrLocation || '');
   const [studyField, setStudyField] = useState(currentUser.studyField || '');
   const [currentGoal, setCurrentGoal] = useState(currentUser.currentGoal || '');
-  const [avatar, setAvatar] = useState(currentUser.avatar);
+  const [avatar, setAvatar] = useState(currentUser.avatar || '');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Focus Preferences State
   const [defaultWorkMin, setDefaultWorkMin] = useState<number>(25);
@@ -66,16 +70,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // UI state
   const [isSaved, setIsSaved] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
-
-  // Sample curated avatar collection
-  const AVATAR_OPTIONS = [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&auto=format&fit=crop&q=80',
-  ];
 
   const handleSaveAccount = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,11 +121,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl ring-4 ring-pink-200 dark:ring-pink-900 overflow-hidden shadow-sm shrink-0 relative bg-pink-100">
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-full h-full object-cover"
-              />
+              {currentUser.avatar ? <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-xl font-black text-stone-500">{(currentUser.name[0] || '?').toUpperCase()}</span>}
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -340,32 +330,40 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             <form onSubmit={handleSaveAccount} className="space-y-5">
-              {/* Avatar Selector */}
-              <div>
-                <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-2">
-                  Choose Profile Picture
-                </label>
-                <div className="flex items-center gap-3 overflow-x-auto pb-2">
-                  {AVATAR_OPTIONS.map((url, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setAvatar(url)}
-                      className={`relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 transition-transform ${
-                        avatar === url
-                          ? 'ring-3 ring-pink-500 scale-105 shadow-md'
-                          : 'opacity-70 hover:opacity-100'
-                      }`}
-                    >
-                      <img src={url} alt="Option" className="w-full h-full object-cover" />
-                      {avatar === url && (
-                        <div className="absolute inset-0 bg-pink-500/20 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-white drop-shadow" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
+              {/* Personal profile photo: upload your own image instead of selecting stock photos. */}
+              <div className="rounded-2xl border border-pink-100 bg-[#FDFBF7] p-4 dark:border-pink-900/60 dark:bg-[#1A1819]">
+                <label className="mb-3 block text-xs font-bold text-stone-700 dark:text-stone-300">Your profile picture</label>
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-800">
+                    {avatar ? <img src={avatar} alt="Your profile" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-xl font-black text-stone-500">{(name.trim()[0] || '?').toUpperCase()}</div>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <input ref={avatarInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={async (event) => {
+                      const file = event.target.files?.[0]; event.target.value = ''; if (!file) return;
+                      setAvatarError('');
+                      if (file.size > 2 * 1024 * 1024) { setAvatarError('Choose an image smaller than 2 MB.'); return; }
+                      if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) { setAvatarError('Use a JPG, PNG, WebP or GIF image.'); return; }
+                      setUploadingAvatar(true);
+                      try {
+                        const { data: { user }, error: authError } = await supabase.auth.getUser();
+                        if (authError || !user || user.id !== currentUser.id) throw new Error('Sign in to this account before uploading a profile picture.');
+                        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-90) || 'avatar';
+                        const objectPath = user.id + '/' + Date.now() + '-' + safeName;
+                        const { error: uploadError } = await supabase.storage.from('profile-avatars').upload(objectPath, file, { upsert: false, contentType: file.type, cacheControl: '3600' });
+                        if (uploadError) throw uploadError;
+                        const { data } = supabase.storage.from('profile-avatars').getPublicUrl(objectPath);
+                        setAvatar(data.publicUrl); setSaveMessage('Photo uploaded — save account details to publish it.');
+                      } catch (error: any) { setAvatarError(error?.message || 'Could not upload that photo. Please try again.'); }
+                      finally { setUploadingAvatar(false); }
+                    }} />
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" disabled={uploadingAvatar} onClick={() => avatarInputRef.current?.click()} className="rounded-xl bg-pink-500 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-pink-600 disabled:opacity-50">{uploadingAvatar ? 'Uploading…' : avatar ? 'Change photo' : 'Upload photo'}</button>
+                      {avatar && <button type="button" onClick={() => { setAvatar(''); setAvatarError(''); setSaveMessage('Photo will be removed when you save.'); }} className="rounded-xl border border-stone-200 px-3 py-2.5 text-xs font-semibold text-stone-600 dark:border-stone-700 dark:text-stone-300">Remove photo</button>}
+                    </div>
+                    <p className="mt-2 text-[11px] leading-5 text-stone-500 dark:text-stone-400">JPG, PNG, WebP or GIF · max 2 MB. Save account details after uploading.</p>
+                  </div>
                 </div>
+                {avatarError && <p role="alert" className="mt-3 text-xs font-semibold text-rose-600 dark:text-rose-300">{avatarError}</p>}
               </div>
 
               {/* Name & Handle */}

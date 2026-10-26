@@ -42,6 +42,31 @@ interface FocusTimerHeroProps {
 
 export type FocusMainType = 'pomodoro' | 'study_time';
 
+type SavedFocusTimer = {
+  focusType: FocusMainType; pomodoroPreset: PomodoroPreset; isRunning: boolean; isBreak: boolean;
+  timeLeft: number; studyTimeSeconds: number; pomodoroCycle: number; laps: string[];
+  selectedCategory: FocusCategory; lastTickAt: number;
+};
+const FOCUS_TIMER_STORAGE_KEY = 'lima4_focus_timer_v1';
+function readSavedFocusTimer(): SavedFocusTimer | null {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = window.localStorage.getItem(FOCUS_TIMER_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedFocusTimer>;
+    if (!['pomodoro','study_time'].includes(String(parsed.focusType))) return null;
+    if (!['25_5','50_10','animedoro','sprint_10'].includes(String(parsed.pomodoroPreset))) return null;
+    return {
+      focusType: parsed.focusType as FocusMainType, pomodoroPreset: parsed.pomodoroPreset as PomodoroPreset,
+      isRunning: Boolean(parsed.isRunning), isBreak: Boolean(parsed.isBreak),
+      timeLeft: Math.max(0, Number(parsed.timeLeft) || 0), studyTimeSeconds: Math.max(0, Number(parsed.studyTimeSeconds) || 0),
+      pomodoroCycle: Math.min(4, Math.max(1, Number(parsed.pomodoroCycle) || 1)),
+      laps: Array.isArray(parsed.laps) ? parsed.laps.filter((lap): lap is string => typeof lap === 'string').slice(0,5) : [],
+      selectedCategory: (parsed.selectedCategory || 'deep_work') as FocusCategory, lastTickAt: Number(parsed.lastTickAt) || Date.now(),
+    };
+  } catch { return null; }
+}
+
 export type PomodoroPreset = '25_5' | '50_10' | 'animedoro' | 'sprint_10';
 
 export interface FocusWallpaper {
@@ -170,20 +195,21 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   onSetVideoBackground,
   onPopOutVideo,
 }) => {
-  // Primary Switch: Pomodoro vs Open-ended Study Time
-  const [focusType, setFocusType] = useState<FocusMainType>('pomodoro');
-  const [pomodoroPreset, setPomodoroPreset] = useState<PomodoroPreset>('25_5');
-
-  // Timer states
-  const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [isBreak, setIsBreak] = useState<boolean>(false);
-  const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
-  const [studyTimeSeconds, setStudyTimeSeconds] = useState<number>(0);
-  const [pomodoroCycle, setPomodoroCycle] = useState<number>(1);
-  const [laps, setLaps] = useState<string[]>([]);
-
-  // Focus Category & Distraction Accountability
-  const [selectedCategory, setSelectedCategory] = useState<FocusCategory>('deep_work');
+  // Restore the active timer across navigation, background suspension and page reloads.
+  const initialTimerRef = useRef<SavedFocusTimer | null | undefined>(undefined);
+  if (initialTimerRef.current === undefined) initialTimerRef.current = readSavedFocusTimer();
+  const initialTimer = initialTimerRef.current;
+  const lastTickAtRef = useRef<number>(initialTimer?.lastTickAt || Date.now());
+  const restoredTimerRef = useRef(false);
+  const [focusType, setFocusType] = useState<FocusMainType>(() => initialTimer?.focusType || 'pomodoro');
+  const [pomodoroPreset, setPomodoroPreset] = useState<PomodoroPreset>(() => initialTimer?.pomodoroPreset || '25_5');
+  const [isRunning, setIsRunning] = useState<boolean>(() => initialTimer?.isRunning || false);
+  const [isBreak, setIsBreak] = useState<boolean>(() => initialTimer?.isBreak || false);
+  const [timeLeft, setTimeLeft] = useState<number>(() => initialTimer?.timeLeft ?? 25 * 60);
+  const [studyTimeSeconds, setStudyTimeSeconds] = useState<number>(() => initialTimer?.studyTimeSeconds || 0);
+  const [pomodoroCycle, setPomodoroCycle] = useState<number>(() => initialTimer?.pomodoroCycle || 1);
+  const [laps, setLaps] = useState<string[]>(() => initialTimer?.laps || []);
+  const [selectedCategory, setSelectedCategory] = useState<FocusCategory>(() => initialTimer?.selectedCategory || 'deep_work');
   const [isPhoneAway, setIsPhoneAway] = useState<boolean>(false);
 
   // Video Background Mute state
@@ -355,31 +381,52 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
     };
   }, [isRunning, isBreak]);
 
-  // Timer Interval Loop
+  // Wall-clock deltas keep the timer accurate when mobile browsers throttle background tabs.
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = window.setInterval(() => {
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - lastTickAtRef.current) / 1000);
+        if (elapsedSeconds < 1) return;
+        lastTickAtRef.current += elapsedSeconds * 1000;
         if (focusType === 'study_time') {
-          setStudyTimeSeconds((prev) => prev + 1);
+          setStudyTimeSeconds((prev) => prev + elapsedSeconds);
         } else {
           setTimeLeft((prev) => {
-            if (prev <= 1) {
-              handleTimerComplete();
-              return 0;
-            }
-            return prev - 1;
+            if (prev <= elapsedSeconds) { handleTimerComplete(); return 0; }
+            return prev - elapsedSeconds;
           });
         }
-      }, 1000);
+      }, 500);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isRunning, focusType, isBreak, pomodoroPreset, pomodoroCycle, selectedCategory, activeSubject, onSessionComplete]);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isRunning, focusType, isBreak, pomodoroPreset, pomodoroCycle]);
+  useEffect(() => {
+    if (restoredTimerRef.current) return;
+    restoredTimerRef.current = true;
+    const saved = initialTimerRef.current;
+    if (!saved?.isRunning) { lastTickAtRef.current = Date.now(); return; }
+    const now = Date.now();
+    const elapsedSeconds = Math.max(0, Math.floor((now - saved.lastTickAt) / 1000));
+    lastTickAtRef.current = now;
+    if (elapsedSeconds > 0) {
+      if (saved.focusType === 'study_time') setStudyTimeSeconds((current) => current + elapsedSeconds);
+      else setTimeLeft((current) => Math.max(0, current - elapsedSeconds));
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(FOCUS_TIMER_STORAGE_KEY, JSON.stringify({
+        focusType, pomodoroPreset, isRunning, isBreak, timeLeft, studyTimeSeconds,
+        pomodoroCycle, laps, selectedCategory, lastTickAt: lastTickAtRef.current,
+      } satisfies SavedFocusTimer));
+    } catch { /* Browser storage may be unavailable. */ }
+  }, [focusType, pomodoroPreset, isRunning, isBreak, timeLeft, studyTimeSeconds, pomodoroCycle, laps, selectedCategory]);
 
   const handleTimerComplete = () => {
     setIsRunning(false);
@@ -398,11 +445,13 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   };
 
   const togglePlay = () => {
+    if (!isRunning) lastTickAtRef.current = Date.now();
     setIsRunning(!isRunning);
     setIsPhoneAway(false);
   };
 
   const handleReset = () => {
+    lastTickAtRef.current = Date.now();
     setIsRunning(false);
     setIsBreak(false);
     setIsPhoneAway(false);
@@ -449,6 +498,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   };
 
   const handleSwitchFocusType = (type: FocusMainType) => {
+    lastTickAtRef.current = Date.now();
     setIsRunning(false);
     setIsBreak(false);
     setFocusType(type);
@@ -460,6 +510,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   };
 
   const handleSwitchPomodoroPreset = (preset: PomodoroPreset) => {
+    lastTickAtRef.current = Date.now();
     setIsRunning(false);
     setIsBreak(false);
     setPomodoroPreset(preset);

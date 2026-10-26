@@ -571,6 +571,26 @@ export async function getFriendsByUser(userUid: string) {
   }
 }
 
+export async function getSuggestedUsers(viewerUid: string) {
+  try {
+    return await db.select({
+      id: users.id, uid: users.uid, name: users.name, handle: users.handle, avatar: users.avatar,
+      bio: users.bio, bannerUrl: users.bannerUrl, profileVisibility: users.profileVisibility,
+      university: users.university, studyField: users.studyField, totalHoursStudied: users.totalHoursStudied,
+      activeDays: sql<number>`COALESCE((SELECT COUNT(DISTINCT fl.date)::int FROM focus_logs fl WHERE fl.user_uid = ${users.uid}), 0)`,
+      currentStreak: users.currentStreak, xp: users.xp,
+    }).from(users).where(and(
+      eq(users.isGhostMode, false), notInArray(users.uid, [viewerUid]),
+      or(eq(users.profileVisibility, 'public'),
+        and(eq(users.profileVisibility, 'friends'),
+          sql`EXISTS (SELECT 1 FROM friendships f WHERE f.user_uid = ${viewerUid} AND f.friend_uid = ${users.uid}) AND EXISTS (SELECT 1 FROM friendships f2 WHERE f2.user_uid = ${users.uid} AND f2.friend_uid = ${viewerUid})`))
+    )).orderBy(desc(users.createdAt)).limit(12);
+  } catch (error) {
+    console.error('Database getSuggestedUsers failed:', error);
+    throw new Error('Could not load suggested members.', { cause: error });
+  }
+}
+
 export async function searchUsersByQuery(query: string, viewerUid: string) {
   try {
     const clean = query.trim().replace(/^@/, '');

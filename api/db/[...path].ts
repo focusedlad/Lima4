@@ -13,6 +13,7 @@ import {
   getLeaderboardByTimeframe,
   getMilestonesFeed,
   getUserByUid,
+  getSuggestedUsers,
   getPendingChallengeRequestsForCreator,
   insertMilestone,
   insertStudyChallenge,
@@ -144,6 +145,11 @@ export default async function handler(req: any, res: any) {
     if (parts.length === 2 && parts[0] === 'friends' && method === 'DELETE') {
       await removeFriend(authUser.id, parts[1]);
       return res.status(200).json({ success: true });
+    }
+
+    if (parts.length === 2 && parts[0] === 'users' && parts[1] === 'suggested' && method === 'GET') {
+      const users = await getSuggestedUsers(authUser.id);
+      return res.status(200).json({ success: true, users });
     }
 
     if (parts.length === 2 && parts[0] === 'users' && parts[1] === 'search' && method === 'GET') {

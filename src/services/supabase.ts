@@ -548,6 +548,18 @@ export const SupabaseService = {
     return [];
   },
 
+  /** Fetch visible members to suggest new study partners. */
+  async fetchSuggestedUsers(): Promise<UserSearchResult[]> {
+    try {
+      const res = await authenticatedFetch('/api/db/users/suggested');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.users)) return json.users;
+      }
+    } catch (_) {}
+    return [];
+  },
+
   /**
    * Fetch Milestones Feed (supports friendsOnly = true/false)
    */

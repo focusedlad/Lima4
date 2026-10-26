@@ -756,7 +756,33 @@ export default function App() {
             <button type="button" onClick={() => setFirstUserNotice(false)} className="shrink-0 rounded-xl px-3 py-2 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/60">Dismiss</button>
           </div>
         )}
-        {currentTab === 'focus' && (
+        {/* Keep the timer mounted while navigating so its session never resets on tab changes. */}
+        <Suspense fallback={<TabLoadingFallback />}>
+          <div className={currentTab === 'focus' ? 'pb-20' : 'hidden'} aria-hidden={currentTab !== 'focus'}>
+            <FocusTimerHero
+              onOpenAudioModal={() => setIsAudioModalOpen(true)}
+              onSessionComplete={handleSessionComplete}
+              syncedCreator={syncedCreator}
+              onDisconnectSync={() => setSyncedCreator(null)}
+              activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
+              onToggleFloatingStream={() => {
+                if (!activeWatchingStream && !syncedCreator && creators.length > 0) setActiveWatchingStream(creators[0]);
+                setIsStreamWidgetVisible((prev) => !prev);
+              }}
+              isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
+              videoBackground={videoBackground}
+              onSetVideoBackground={(stream) => setVideoBackground(stream)}
+              onPopOutVideo={(stream) => {
+                setActiveWatchingStream(stream);
+                setIsStreamWidgetVisible(true);
+                setVideoBackground(null);
+              }}
+            />
+          </div>
+        </Suspense>
+
+        {/* Study overview belongs with rooms, not the timer controls. */}
+        {currentTab === 'rooms' && (
           <section className="lima-welcome mb-6" aria-label="Your study overview">
             <div className="lima-welcome-copy">
               <p className="lima-eyebrow">YOUR STUDY SPACE</p>
@@ -786,33 +812,6 @@ export default function App() {
               </article>
             </div>
           </section>
-        )}
-
-        {/* Tab 1: Focus timer */}
-        {currentTab === 'focus' && (
-          <Suspense fallback={<TabLoadingFallback />}>
-            <div className="pb-20">
-              <FocusTimerHero
-                onOpenAudioModal={() => setIsAudioModalOpen(true)}
-                onSessionComplete={handleSessionComplete}
-                syncedCreator={syncedCreator}
-                onDisconnectSync={() => setSyncedCreator(null)}
-                activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
-                onToggleFloatingStream={() => {
-                  if (!activeWatchingStream && !syncedCreator && creators.length > 0) setActiveWatchingStream(creators[0]);
-                  setIsStreamWidgetVisible((prev) => !prev);
-                }}
-                isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
-                videoBackground={videoBackground}
-                onSetVideoBackground={(stream) => setVideoBackground(stream)}
-                onPopOutVideo={(stream) => {
-                  setActiveWatchingStream(stream);
-                  setIsStreamWidgetVisible(true);
-                  setVideoBackground(null);
-                }}
-              />
-            </div>
-          </Suspense>
         )}
 
         {/* Live, capacity-limited study rooms */}

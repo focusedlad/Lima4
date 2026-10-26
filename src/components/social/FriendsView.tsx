@@ -9,6 +9,8 @@ interface FriendsViewProps {
 
 export const FriendsView: React.FC<FriendsViewProps> = ({ currentUser }) => {
   const [friends, setFriends] = useState<FriendItem[]>([]);
+  const [suggestions, setSuggestions] = useState<UserSearchResult[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
@@ -29,7 +31,12 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ currentUser }) => {
     }
   };
 
-  useEffect(() => { void refreshFriends(); }, [currentUser.id]);
+  useEffect(() => {
+    void refreshFriends();
+    let cancelled = false;
+    SupabaseService.fetchSuggestedUsers().then((items) => { if (!cancelled) setSuggestions(items.filter((person) => person.uid !== currentUser.id)); }).catch(() => {}).finally(() => { if (!cancelled) setLoadingSuggestions(false); });
+    return () => { cancelled = true; };
+  }, [currentUser.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +97,20 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ currentUser }) => {
           </div>
         </div>
       </header>
+
+      <section className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 sm:p-6 dark:border-indigo-900/60 dark:from-indigo-950/30 dark:to-slate-900">
+        <div className="flex items-center justify-between gap-3"><div><h2 className="text-base font-bold text-slate-900 dark:text-white">Suggested study partners</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Discover other Lima4 members and invite them into your study network.</p></div><Users className="h-5 w-5 shrink-0 text-indigo-500" /></div>
+        {loadingSuggestions ? <p className="py-5 text-center text-sm text-slate-500">Finding members…</p> :
+          suggestions.filter((person) => !friends.some((friend) => friend.friendUid === person.uid)).length === 0 ?
+            <p className="mt-4 rounded-xl border border-dashed border-indigo-200 px-4 py-6 text-center text-sm text-slate-500 dark:border-indigo-900">No new suggestions right now. Check back as more people join Lima4.</p> :
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {suggestions.filter((person) => !friends.some((friend) => friend.friendUid === person.uid)).map((person) => <article key={person.uid} className="flex min-w-0 items-center gap-3 rounded-xl border border-white bg-white/90 p-3 dark:border-slate-700 dark:bg-slate-800">
+                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">{person.avatar ? <img src={person.avatar} alt="" loading="lazy" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center font-bold text-slate-500">{(person.name[0] || '?').toUpperCase()}</div>}</div>
+                <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-900 dark:text-white">{person.name}</p><p className="truncate text-xs text-slate-500">@{person.handle}</p>{person.university && <p className="truncate text-xs text-slate-500">{person.university}</p>}</div>
+                <button type="button" disabled={busyUid === person.uid} onClick={() => void toggleFriend(person)} className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"><UserPlus className="h-4 w-4" />Add</button>
+              </article>)}
+            </div>}
+      </section>
 
       {(error || notice) && <p role={error ? 'alert' : 'status'} className={`rounded-xl border px-4 py-3 text-sm ${error ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200' : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'}`}>{error || notice}</p>}
 
