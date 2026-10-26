@@ -432,3 +432,58 @@ html.dark #root {
     overscroll-behavior-y: none;
   }
 }
+
+
+/* Lima4 refresh: quiet, crisp surfaces; no gradients, no emoji assets. */
+:root {
+  --lima-paper: #F7F8FA;
+  --lima-surface: #FFFFFF;
+  --lima-ink: #18212B;
+  --lima-muted: #687583;
+  --lima-line: #E3E7EC;
+  --lima-accent: #365F78;
+  --lima-accent-soft: #EAF1F5;
+  --lima-radius: 18px;
+}
+html:not(.dark) body { background: var(--lima-paper); color: var(--lima-ink); }
+html:not(.dark) #root { background: var(--lima-paper); }
+html:not(.dark) .squircle-card,
+html:not(.dark) .liquid-glass,
+html:not(.dark) [class*="rounded-3xl"][class*="bg-white"],
+html:not(.dark) [class*="rounded-2xl"][class*="bg-white"] {
+  border-color: var(--lima-line);
+  box-shadow: 0 1px 2px rgba(20, 32, 44, .035);
+}
+.squircle-card { border-radius: var(--lima-radius); }
+.clay-card-purple, .clay-card-yellow, .clay-card-mint, .clay-card-pink, .clay-card-coral, .clay-card-sky {
+  border-radius: var(--lima-radius);
+  background: var(--lima-surface) !important;
+  border: 1px solid var(--lima-line) !important;
+  box-shadow: 0 1px 2px rgba(20, 32, 44, .035) !important;
+}
+button, a, input, select, textarea { touch-action: manipulation; }
+button { transition: background-color .14s ease, border-color .14s ease, color .14s ease; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #6F9BB5;
+  outline-offset: 2px;
+}
+main { padding-top: clamp(1rem, 2.2vw, 2rem) !important; }
+@media (min-width: 768px) {
+  main { padding-left: clamp(1.25rem, 3vw, 3rem) !important; padding-right: clamp(1.25rem, 3vw, 3rem) !important; }
+}
+@media (min-width: 1280px) {
+  main { padding-left: clamp(2rem, 4vw, 4.5rem) !important; padding-right: clamp(2rem, 4vw, 4.5rem) !important; }
+}
+@media (max-width: 767px) {
+  main { padding-left: 1rem !important; padding-right: 1rem !important; padding-bottom: calc(6.25rem + env(safe-area-inset-bottom)) !important; }
+  .pb-20, .pb-24 { padding-bottom: 1.25rem !important; }
+  .squircle-card, .clay-card-purple, .clay-card-yellow, .clay-card-mint, .clay-card-pink, .clay-card-coral, .clay-card-sky { border-radius: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
