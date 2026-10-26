@@ -710,8 +710,10 @@ export async function getMilestonesFeed(userUid?: string, friendsOnly?: boolean)
           .from(friendships)
           .where(or(eq(friendships.userUid, userUid), eq(friendships.friendUid, userUid)))
       : [];
-    const friendUids = [...new Set(friendRows.map((f) => f.userUid === userUid ? f.friendUid : f.userUid))]
-      .filter((uid) => uid !== userUid);
+    // Milestones shared with friends require a mutual connection (both users added each other).
+    const outgoingFriendUids = new Set(friendRows.filter((f) => f.userUid === userUid).map((f) => f.friendUid));
+    const incomingFriendUids = new Set(friendRows.filter((f) => f.friendUid === userUid).map((f) => f.userUid));
+    const friendUids = [...outgoingFriendUids].filter((uid) => incomingFriendUids.has(uid) && uid !== userUid);
 
     if (friendsOnly) {
       const visibleUids = [...new Set([...(userUid ? [userUid] : []), ...friendUids])];
