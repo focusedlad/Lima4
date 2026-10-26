@@ -145,7 +145,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <form onSubmit={handleSave} className="space-y-4 text-xs">
             <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3">
               <div className="relative overflow-hidden rounded-xl bg-stone-200 dark:bg-stone-800">
-                {bannerUrl ? <img src={bannerUrl} alt="Profile banner preview" className="h-24 w-full object-cover" /> : <div className="h-24 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-400" />}
+                {bannerUrl ? <img src={bannerUrl} alt="Profile banner preview" className="h-24 w-full object-cover" /> : <div className="h-24 bg-slate-100 dark:bg-slate-800" />}
                 <div className="absolute bottom-2 left-2 rounded-lg bg-black/55 px-2 py-1 text-[10px] font-bold text-white">PROFILE BANNER</div>
               </div>
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 font-bold text-indigo-800 hover:bg-indigo-50">

@@ -589,9 +589,9 @@ export default function App() {
   }
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#F8FAFC] dark:bg-[#05070B] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-indigo-200 dark:selection:bg-indigo-900 transition-colors duration-200 relative">
+    <div className="lima-app-shell w-full max-w-full overflow-x-hidden min-h-screen bg-[#F8FAFC] dark:bg-[#05070B] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-indigo-200 dark:selection:bg-indigo-900 transition-colors duration-200 relative">
       {/* Top Global Header Bar */}
-      <header className="sticky top-0 z-40 bg-[#F8FAFC]/90 dark:bg-[#05070B]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden md:pl-[100px]">
+      <header className="lima-topbar sticky top-0 z-40 bg-[#F8FAFC]/90 dark:bg-[#05070B]/95 border-b border-slate-200 dark:border-white/10 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden md:pl-[100px]">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Logo & Slogan */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
@@ -747,13 +747,45 @@ export default function App() {
       )}
 
       {/* Main Page Body */}
-      <main className="flex-1 w-full max-w-6xl mx-auto p-3 pb-24 sm:p-8 md:ml-[84px] md:mr-0 md:w-[calc(100%-84px)] md:max-w-none md:pb-8 overflow-x-hidden">
+      <main className="lima-main flex-1 w-full max-w-6xl mx-auto p-3 pb-24 sm:p-8 md:ml-[84px] md:mr-0 md:w-[calc(100%-84px)] md:max-w-none md:pb-8 overflow-x-hidden">
         {firstUserNotice && (
           <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-400/20 dark:bg-indigo-950/40 dark:text-indigo-100" role="status">
             <p className="m-0">Welcome — you are the first registered member of Lima4. You are helping start the real community; other members will appear as they join.</p>
             <button type="button" onClick={() => setFirstUserNotice(false)} className="shrink-0 rounded-xl px-3 py-2 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/60">Dismiss</button>
           </div>
         )}
+        {currentTab === 'focus' && (
+          <section className="lima-welcome mb-6" aria-label="Your study overview">
+            <div className="lima-welcome-copy">
+              <p className="lima-eyebrow">YOUR STUDY SPACE</p>
+              <h1>Make today count{currentUser.name ? `, ${currentUser.name.split(' ')[0]}` : ''}.</h1>
+              <p>Small, focused sessions add up. Pick a goal and settle into your next session.</p>
+            </div>
+            <div className="lima-stat-grid">
+              <article className="lima-stat-card">
+                <span className="lima-stat-label">Study time</span>
+                <strong>{Number(currentUser.totalHoursStudied || 0).toFixed(1)} <small>hrs</small></strong>
+                <span className="lima-stat-foot">Total time focused</span>
+              </article>
+              <article className="lima-stat-card">
+                <span className="lima-stat-label">Current streak</span>
+                <strong>{Number(currentUser.currentStreak || 0)} <small>days</small></strong>
+                <span className="lima-stat-foot">Keep your rhythm</span>
+              </article>
+              <article className="lima-stat-card">
+                <span className="lima-stat-label">Active days</span>
+                <strong>{new Set(focusLogs.map((log) => log.date).filter(Boolean)).size}</strong>
+                <span className="lima-stat-foot">Days with logged focus</span>
+              </article>
+              <article className="lima-stat-card">
+                <span className="lima-stat-label">Experience</span>
+                <strong>{Number(currentUser.xp || 0).toLocaleString()}</strong>
+                <span className="lima-stat-foot">XP earned</span>
+              </article>
+            </div>
+          </section>
+        )}
+
         {/* Tab 1: Focus timer */}
         {currentTab === 'focus' && (
           <Suspense fallback={<TabLoadingFallback />}>

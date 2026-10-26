@@ -529,3 +529,130 @@ button, a, input, select, textarea { touch-action: manipulation; }
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Lima4 redesigned dashboard shell — structural styling for the real app, not a cache workaround. */
+:root {
+  --lima-paper: #F5F7F9;
+  --lima-surface: #FFFFFF;
+  --lima-ink: #182632;
+  --lima-muted: #6B7884;
+  --lima-line: #E0E6EB;
+  --lima-accent: #365F78;
+  --lima-accent-soft: #EAF2F6;
+  --lima-radius: 16px;
+}
+html:not(.dark) body, html:not(.dark) #root, html:not(.dark) .lima-app-shell {
+  background: var(--lima-paper) !important;
+  color: var(--lima-ink);
+}
+.lima-topbar {
+  background: rgba(255,255,255,.97) !important;
+  border-bottom: 1px solid var(--lima-line) !important;
+  box-shadow: 0 2px 8px rgba(24,38,50,.025);
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.lima-topbar > div { max-width: 1440px !important; }
+.lima-main { max-width: 1440px !important; }
+.lima-welcome {
+  display: grid;
+  gap: 1.25rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid #DCE5EA;
+  border-radius: 22px;
+  background: #FFFFFF;
+  box-shadow: 0 5px 18px rgba(28,47,60,.035);
+}
+.lima-welcome-copy { max-width: 680px; }
+.lima-eyebrow {
+  margin: 0 0 .65rem;
+  color: #527B91;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .15em;
+}
+.lima-welcome-copy h1 {
+  margin: 0;
+  color: #1B2A35;
+  font-size: clamp(1.6rem, 3.3vw, 2.35rem);
+  font-weight: 750;
+  line-height: 1.12;
+  letter-spacing: -.045em;
+}
+.lima-welcome-copy > p:last-child {
+  margin: .7rem 0 0;
+  max-width: 550px;
+  color: #697985;
+  font-size: .94rem;
+  line-height: 1.6;
+}
+.lima-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
+}
+.lima-stat-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .3rem;
+  padding: 1rem;
+  border: 1px solid #E4E9ED;
+  border-radius: 14px;
+  background: #FAFBFC;
+}
+.lima-stat-label { color: #657481; font-size: .75rem; font-weight: 650; }
+.lima-stat-card strong {
+  color: #203B4B;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -.04em;
+  overflow-wrap: anywhere;
+}
+.lima-stat-card strong small { font-size: .75rem; font-weight: 650; letter-spacing: 0; }
+.lima-stat-foot { color: #84919B; font-size: .68rem; line-height: 1.4; }
+.lima-navigation {
+  background: #FFFFFF !important;
+  border-color: var(--lima-line) !important;
+  box-shadow: 0 0 0 1px rgba(24,38,50,.015);
+}
+.lima-navigation button[aria-current="page"] {
+  background: #EAF1F5 !important;
+  color: #234B62 !important;
+}
+.lima-navigation button[aria-current="page"] svg { color: #234B62 !important; }
+.lima-navigation button[aria-label="Open quick actions"] { background: #24495D !important; }
+.lima-navigation button[aria-label="Open quick actions"]:hover { background: #17394B !important; }
+.lima-footer { background: #F5F7F9 !important; border-color: var(--lima-line) !important; }
+html.dark .lima-welcome {
+  background: #0E1720;
+  border-color: #243746;
+  box-shadow: none;
+}
+html.dark .lima-welcome-copy h1 { color: #F0F5F8; }
+html.dark .lima-welcome-copy > p:last-child, html.dark .lima-eyebrow { color: #A7BAC6; }
+html.dark .lima-stat-card { background: #111D27; border-color: #293A46; }
+html.dark .lima-stat-label, html.dark .lima-stat-foot { color: #A3B3BE; }
+html.dark .lima-stat-card strong { color: #E3EDF2; }
+html.dark .lima-navigation { background: #0B1219 !important; border-color: #253540 !important; }
+html.dark .lima-navigation button[aria-current="page"] { background: #1A2D39 !important; color: #D8EAF3 !important; }
+@media (min-width: 768px) {
+  .lima-welcome { margin-bottom: 1.75rem; }
+  .lima-stat-grid { gap: .9rem; }
+}
+@media (max-width: 767px) {
+  .lima-welcome { gap: 1rem; padding: 1.15rem; border-radius: 18px; }
+  .lima-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .lima-stat-card { padding: .85rem; }
+  .lima-stat-foot { font-size: .65rem; }
+}
+@media (max-width: 360px) {
+  .lima-stat-card { padding: .7rem; }
+  .lima-stat-label { font-size: .68rem; }
+}
+@media (display-mode: standalone) {
+  .lima-topbar { padding-top: max(env(safe-area-inset-top), .5rem) !important; }
+}
