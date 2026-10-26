@@ -89,15 +89,18 @@ function makeAvatar(person: RoomPerson, scene: THREE.Scene, target: THREE.Vector
   if (cfg.accessory === 'headphones') { const band=new THREE.Mesh(new THREE.TorusGeometry(.255,.035,7,20,Math.PI),mat('#252b31')); band.position.set(0,1.56,0); band.rotation.z=Math.PI; group.add(band); sphere(group,.055,'#252b31',[-.25,1.52,0]); sphere(group,.055,'#252b31',[.25,1.52,0]); }
   if (cfg.accessory === 'watch') { box(group,[.13,.045,.065],'#caa75d',[-.31,.83,.12]); box(group,[.075,.035,.055],'#26333b',[-.31,.86,.155]); }
   const pants = '#33414c', shoe = cfg.shoeColor || '#f0e8db';
-  // legs: seated thighs extend towards the desk; lower legs and shoes hang naturally.
+  // Articulated limb parts switch between a relaxed seated pose and a standing walk cycle.
+  const legParts: {side:number;thigh:THREE.Mesh;shin:THREE.Mesh;foot:THREE.Mesh}[]=[];
+  const armParts: {side:number;upper:THREE.Mesh;forearm:THREE.Mesh;hand:THREE.Mesh}[]=[];
   for (const side of [-1,1]) {
     const hipX=side*.105;
-    cylinder(group,.085,.095,.31,pants,[hipX,.48,.03],[Math.PI/2,0,side*.08]);
-    cylinder(group,.065,.08,.32,pants,[hipX,.28,.16],[.15,0,0]);
-    sphere(group,.075,shoe,[hipX,.12,.18],[1,.55,1.35]);
-    cylinder(group,.075,.065,.36,skin,[side*.25,1.0,.02],[0,0,side*.22]);
-    sphere(group,.07,skin,[side*.31,.83,.05]);
-    cylinder(group,.065,.055,.18,skin,[side*.28,.78,-.01],[0,0,-side*.16]);
+    const thigh=cylinder(group,.085,.095,.31,pants,[hipX,.48,.03],[Math.PI/2,0,side*.08]);
+    const shin=cylinder(group,.065,.08,.32,pants,[hipX,.28,.16],[.15,0,0]);
+    const foot=sphere(group,.075,shoe,[hipX,.12,.18],[1,.55,1.35]);
+    const upper=cylinder(group,.075,.065,.36,skin,[side*.25,1.0,.02],[0,0,side*.22]);
+    const hand=sphere(group,.07,skin,[side*.31,.83,.05]);
+    const forearm=cylinder(group,.065,.055,.18,skin,[side*.28,.78,-.01],[0,0,-side*.16]);
+    legParts.push({side,thigh,shin,foot}); armParts.push({side,upper,forearm,hand});
   }
   // Reader item on the desktop.
   if (person.reading_item === 'laptop') {
@@ -117,8 +120,21 @@ function makeAvatar(person: RoomPerson, scene: THREE.Scene, target: THREE.Vector
     if (pet.species==='cat' || pet.species==='owl') { sphere(group,.045,pc,[.42,.4,.47]); sphere(group,.045,pc,[.54,.4,.47]); }
     sphere(group,.018,'#30251f',[.45,.33,.55]); sphere(group,.018,'#30251f',[.51,.33,.55]);
   }
-  group.position.copy(target); group.rotation.y = Math.PI; group.userData = { uid: person.user_uid, target: target.clone(), walking: mine, started: performance.now(), targetYaw: Math.PI, mine };
+  group.position.copy(target); group.rotation.y = Math.PI; group.userData = { uid: person.user_uid, target: target.clone(), walking: false, seated: true, legs: legParts, arms: armParts, started: performance.now(), targetYaw: Math.PI, mine };
   return group;
+}
+function poseAvatar(group: THREE.Group, seated: boolean) {
+  const data=group.userData;
+  data.seated=seated;
+  for(const l of (data.legs||[]) as {side:number;thigh:THREE.Mesh;shin:THREE.Mesh;foot:THREE.Mesh}[]) {
+    const x=l.side*.105;
+    if(seated){l.thigh.position.set(x,.48,.03);l.thigh.rotation.set(Math.PI/2,0,l.side*.08);l.shin.position.set(x,.28,.16);l.shin.rotation.set(.15,0,0);l.foot.position.set(x,.12,.18);l.foot.rotation.set(0,0,0);}
+    else {l.thigh.position.set(x,.38,.02);l.thigh.rotation.set(0,0,0);l.shin.position.set(x,.17,.02);l.shin.rotation.set(0,0,0);l.foot.position.set(x,.045,.07);l.foot.rotation.set(0,0,0);}
+  }
+  for(const a of (data.arms||[]) as {side:number;upper:THREE.Mesh;forearm:THREE.Mesh;hand:THREE.Mesh}[]) {
+    if(seated){a.upper.position.set(a.side*.25,.98,-.04);a.upper.rotation.set(.45,0,a.side*.18);a.forearm.position.set(a.side*.28,.82,-.2);a.forearm.rotation.set(.18,0,-a.side*.08);a.hand.position.set(a.side*.28,.78,-.32);}
+    else {a.upper.position.set(a.side*.25,.98,.02);a.upper.rotation.set(0,0,a.side*.2);a.forearm.position.set(a.side*.28,.78,.02);a.forearm.rotation.set(0,0,-a.side*.16);a.hand.position.set(a.side*.29,.68,.04);}
+  }
 }
 
 export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }: Props) {
@@ -212,7 +228,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     renderer.domElement.addEventListener('pointerdown',down); renderer.domElement.addEventListener('pointermove',move); renderer.domElement.addEventListener('pointerup',up); renderer.domElement.addEventListener('pointercancel',up); renderer.domElement.addEventListener('wheel',wheel,{passive:false});
     rendererRef.current=renderer; sceneRef.current=scene; cameraRef.current=camera;
     let frame=0, alive=true;
-    const animate=(time:number)=>{if(!alive)return;frame++;const targetDistance=Number(camera.userData.targetDistance||29);if(!drag){distance+=(targetDistance-distance)*.035;updateCamera();}modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/1750);g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1)d.walking=false;}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});if(doorRef.current){const d=doorRef.current;const target=d.userData.open?-1.15:0;d.rotation.y+=(target-d.rotation.y)*.1;}renderer.render(scene,camera);
+    const animate=(time:number)=>{if(!alive)return;frame++;const targetDistance=Number(camera.userData.targetDistance||29);if(!drag){distance+=(targetDistance-distance)*.035;updateCamera();}modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/1750);const phase=(time-d.started)/115;for(const l of d.legs||[]){const swing=Math.sin(phase+(l.side<0?0:Math.PI))*.28;l.thigh.rotation.z=swing;l.shin.rotation.z=-swing*.72;l.foot.rotation.z=swing*.38;}for(const a of d.arms||[]){const swing=Math.sin(phase+(a.side<0?Math.PI:0))*.18;a.upper.rotation.z=a.side*.18+swing;a.forearm.rotation.z=-a.side*.16-swing*.5;}g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1){d.walking=false;poseAvatar(g,true);}}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});if(doorRef.current){const d=doorRef.current;const target=d.userData.open?-1.15:0;d.rotation.y+=(target-d.rotation.y)*.1;}renderer.render(scene,camera);
       if(frame%8===0){const next:OverlayPerson[]=[];for(const p of peopleRef.current){if(p.room_id!==roomId)continue;const model=modelsRef.current.get(p.user_uid);if(!model)continue;const v=model.position.clone().add(new THREE.Vector3(0,2.05,0)).project(camera);next.push({uid:p.user_uid,name:p.user_name,x:(v.x*.5+.5)*host.clientWidth,y:(-.5*v.y+.5)*host.clientHeight,timer:elapsed(p.session_started_at),mine:p.user_uid===uid,breakMode:p.study_status==='break'});}setLabels(next);}
       requestAnimationFrame(animate);
     };
@@ -230,8 +246,8 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     const ids=new Set(active.map(p=>p.user_uid));
     for(const [id,model] of map)if(!ids.has(id)){scene.remove(model);map.delete(id);}
     for(const p of active){const targetSeat=(p.seat_index-1),col=targetSeat%10,row=Math.floor(targetSeat/10);const target=new THREE.Vector3((col-4.5)*2.05,.03,(row-2)*2.1+.72);let model=map.get(p.user_uid);
-      if(!model){model=makeAvatar(p,scene,target,p.user_uid===uid);map.set(p.user_uid,model);if(p.user_uid===uid&&entering){model.userData.start=new THREE.Vector3(9,.03,6.5);model.position.copy(model.userData.start);model.rotation.y=0;model.userData.walking=true;model.userData.started=performance.now();model.userData.target=target.clone();model.userData.targetYaw=Math.PI;}}
-      else {model.userData.target.copy(target);model.userData.walking=false;}
+      if(!model){model=makeAvatar(p,scene,target,p.user_uid===uid);map.set(p.user_uid,model);if(p.user_uid===uid&&entering){model.userData.start=new THREE.Vector3(9,.03,6.5);model.position.copy(model.userData.start);model.rotation.y=0;model.userData.walking=true;poseAvatar(model,false);model.userData.started=performance.now();model.userData.target=target.clone();model.userData.targetYaw=Math.PI;}}
+      else if(!model.userData.walking) {model.userData.target.copy(target);}
     }
   },[people,roomId,uid,entering]);
 
