@@ -113,6 +113,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
   const rendererRef = useRef<THREE.WebGLRenderer|null>(null);
   const sceneRef = useRef<THREE.Scene|null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera|null>(null);
+  const doorRef = useRef<THREE.Group|null>(null);
   const modelsRef = useRef<Map<string,THREE.Group>>(new Map());
   const [labels,setLabels] = useState<OverlayPerson[]>([]);
   const [webglError,setWebglError] = useState(false);
@@ -153,6 +154,13 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
         box(scene,[.09,2.05,.16],'#f5e9d6',[x,3.25,-7.57]); box(scene,[3.2,.09,.16],'#f5e9d6',[x,3.25,-7.57]);
       }
     }
+    // Entrance on the open side: a framed, hinged door swings as the student walks in.
+    const doorFrame = new THREE.Group(); doorFrame.position.set(10.15,0,6.35); scene.add(doorFrame);
+    box(doorFrame,[.16,2.8,.16],c.trim,[-.55,1.4,0]); box(doorFrame,[.16,2.8,.16],c.trim,[.55,1.4,0]); box(doorFrame,[1.25,.16,.16],c.trim,[0,2.8,0]);
+    const doorLeaf = new THREE.Group(); doorLeaf.position.set(-.48,0,.04); doorFrame.add(doorLeaf);
+    box(doorLeaf,[.92,2.55,.09],roomType==='fireplace'?'#805542':roomType==='classroom'?'#8c6749':'#9a6b48',[.46,1.3,0]);
+    box(doorLeaf,[.68,1.7,.035],roomType==='cafe'?'#d5b58b':'#b9a07f',[.46,1.48,.06]); sphere(doorLeaf,.055,'#d8b56f',[.79,1.2,.1]);
+    doorRef.current=doorLeaf;
     // Theme landmarks.
     if (roomType==='classroom') {
       box(scene,[5.2,1.8,.2],'#294d4d',[-3.5,3.05,-7.55]); box(scene,[5.35,.13,.3],'#7e6044',[-3.5,2.1,-7.45]);
@@ -190,14 +198,16 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     renderer.domElement.addEventListener('pointerdown',down); renderer.domElement.addEventListener('pointermove',move); renderer.domElement.addEventListener('pointerup',up); renderer.domElement.addEventListener('pointercancel',up); renderer.domElement.addEventListener('wheel',wheel,{passive:false});
     rendererRef.current=renderer; sceneRef.current=scene; cameraRef.current=camera;
     let frame=0, alive=true;
-    const animate=(time:number)=>{if(!alive)return;frame++;modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/1750);g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1)d.walking=false;}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});renderer.render(scene,camera);
+    const animate=(time:number)=>{if(!alive)return;frame++;modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/1750);g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1)d.walking=false;}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});if(doorRef.current){const d=doorRef.current;const target=d.userData.open?-1.15:0;d.rotation.y+=(target-d.rotation.y)*.1;}renderer.render(scene,camera);
       if(frame%8===0){const next:OverlayPerson[]=[];for(const p of peopleRef.current){if(p.room_id!==roomId)continue;const model=modelsRef.current.get(p.user_uid);if(!model)continue;const v=model.position.clone().add(new THREE.Vector3(0,2.05,0)).project(camera);next.push({uid:p.user_uid,name:p.user_name,x:(v.x*.5+.5)*host.clientWidth,y:(-.5*v.y+.5)*host.clientHeight,timer:elapsed(p.session_started_at),mine:p.user_uid===uid,breakMode:p.study_status==='break'});}setLabels(next);}
       requestAnimationFrame(animate);
     };
     const raf=requestAnimationFrame(animate);
-    return()=>{alive=false;cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointermove',move);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('pointercancel',up);renderer.domElement.removeEventListener('wheel',wheel);renderer.dispose();scene.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const m=o.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m.dispose();}});modelsRef.current.clear();rendererRef.current=null;sceneRef.current=null;cameraRef.current=null;};
+    return()=>{alive=false;cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointermove',move);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('pointercancel',up);renderer.domElement.removeEventListener('wheel',wheel);renderer.dispose();scene.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const m=o.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m.dispose();}});modelsRef.current.clear();rendererRef.current=null;sceneRef.current=null;cameraRef.current=null;doorRef.current=null;};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomType, roomId]);
+
+  useEffect(() => { if (doorRef.current) doorRef.current.userData.open = entering; }, [entering]);
 
   const peopleRef = useRef(people); peopleRef.current = people;
   useEffect(() => {
