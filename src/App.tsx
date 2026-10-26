@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Compass,
   Sparkles,
@@ -74,6 +74,20 @@ import { FirebaseService } from './services/firebase';
 import { supabase, SupabaseService } from './services/supabase';
 import { ApiDatabase } from './services/apiDatabase';
 import { SettingsView } from './components/settings/SettingsView';
+
+
+const FocusTimerHero = lazy(() => import('./components/focus/FocusTimerHero').then((m) => ({ default: m.FocusTimerHero })));
+const StudyChallengesView = lazy(() => import('./components/social/StudyChallengesView').then((m) => ({ default: m.StudyChallengesView })));
+const LeaderboardView = lazy(() => import('./components/social/LeaderboardView').then((m) => ({ default: m.LeaderboardView })));
+const AnalyticsView = lazy(() => import('./components/analytics/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
+const GlobalActivityFeed = lazy(() => import('./components/social/GlobalActivityFeed').then((m) => ({ default: m.GlobalActivityFeed })));
+const SettingsView = lazy(() => import('./components/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
+
+const TabLoadingFallback = () => (
+  <div className="min-h-[40vh] flex items-center justify-center text-sm text-slate-500" role="status" aria-live="polite">
+    Loading view…
+  </div>
+);
 
 
 export default function App() {
@@ -749,6 +763,7 @@ export default function App() {
         )}
         {/* Tab 1: Pure Distraction-Free Study Space (Pomodoro & Study Time Stopwatch) */}
         {currentTab === 'focus' && (
+          <Suspense fallback={<TabLoadingFallback />}>
           <div className="pb-20">
             <FocusTimerHero
               onOpenAudioModal={() => setIsAudioModalOpen(true)}
@@ -772,35 +787,38 @@ export default function App() {
               }}
             />
           </div>
+          </Suspense>
         )}
 
         {/* Tab 2: Friends & Global Milestones Feed */}
         {currentTab === 'feed' && (
+          <Suspense fallback={<TabLoadingFallback />}>
           <div className="pb-20">
             <GlobalActivityFeed
               currentUser={currentUser}
               onToggleGhostMode={handleToggleGhostMode}
             />
           </div>
+          </Suspense>
         )}
-
-        {/* Tab 3: Study Challenges */}
         {currentTab === 'challenges' && (
+          <Suspense fallback={<TabLoadingFallback />}>
           <StudyChallengesView
             currentUser={currentUser}
             onSelectChallengeLeaderboard={() => {
               setCurrentTab('leaderboard');
             }}
           />
+          </Suspense>
         )}
-
-        {/* Tab 4: Competitive Leaderboards */}
         {currentTab === 'leaderboard' && (
-          <LeaderboardView currentUser={currentUser} />
+          <Suspense fallback={<TabLoadingFallback />}>
+          <Suspense fallback={<TabLoadingFallback />}><LeaderboardView currentUser={currentUser} /></Suspense>
         )}
 
         {/* Tab 5: Analytics, Macronutrients & Desk Pet */}
         {currentTab === 'analytics' && (
+          <Suspense fallback={<TabLoadingFallback />}>
           <div className="pb-24">
             <AnalyticsView
               currentUser={currentUser}
@@ -814,10 +832,10 @@ export default function App() {
               }
             />
           </div>
-        )}
-
-        {/* Tab 6: Settings (Theme, Account Details, Focus Preferences) */}
+          </Suspense>
+        )} (Theme, Account Details, Focus Preferences) */}
         {currentTab === 'settings' && (
+          <Suspense fallback={<TabLoadingFallback />}>
           <div className="pb-24">
             <SettingsView
               currentUser={currentUser}
@@ -832,6 +850,7 @@ export default function App() {
               onSignOut={async () => { await SupabaseService.signOut(); setFocusLogs([]); setCurrentUser(INITIAL_USER); setProfileLoaded(false); setIsAuthModalOpen(true); setCurrentTab('focus'); }}
             />
           </div>
+          </Suspense>
         )}
       </main>
 
