@@ -1,7 +1,7 @@
 import React from 'react';
-import { Timer, Users, Target, Trophy, BarChart3, Settings, Plus } from 'lucide-react';
+import { Timer, Users, Target, Trophy, BarChart3, Settings, Plus, Compass, DoorOpen } from 'lucide-react';
 
-export type MainNavTab = 'focus' | 'friends' | 'feed' | 'challenges' | 'leaderboard' | 'analytics' | 'settings';
+export type MainNavTab = 'focus' | 'friends' | 'rooms' | 'feed' | 'challenges' | 'leaderboard' | 'analytics' | 'settings';
 
 interface NavbarProps {
   currentTab: MainNavTab;
@@ -12,6 +12,7 @@ interface NavbarProps {
 const items: { id: MainNavTab; label: string; Icon: React.ElementType }[] = [
   { id: 'focus', label: 'Focus', Icon: Timer },
   { id: 'friends', label: 'Friends', Icon: Users },
+  { id: 'rooms', label: 'Rooms', Icon: DoorOpen },
   { id: 'feed', label: 'Community', Icon: Compass },
   { id: 'challenges', label: 'Challenges', Icon: Target },
   { id: 'leaderboard', label: 'Rankings', Icon: Trophy },

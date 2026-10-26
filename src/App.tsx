@@ -75,6 +75,7 @@ const LeaderboardView = lazy(() => import('./components/social/LeaderboardView')
 const AnalyticsView = lazy(() => import('./components/analytics/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
 const GlobalActivityFeed = lazy(() => import('./components/social/GlobalActivityFeed').then((m) => ({ default: m.GlobalActivityFeed })));
 const FriendsView = lazy(() => import('./components/social/FriendsView').then((m) => ({ default: m.FriendsView })));
+const RoomsView = lazy(() => import('./components/social/RoomsView').then((m) => ({ default: m.RoomsView })));
 const SettingsView = lazy(() => import('./components/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
 
 const TabLoadingFallback = () => (
@@ -811,6 +812,13 @@ export default function App() {
                 }}
               />
             </div>
+          </Suspense>
+        )}
+
+        {/* Live, capacity-limited study rooms */}
+        {currentTab === 'rooms' && (
+          <Suspense fallback={<TabLoadingFallback />}>
+            <div className="pb-20"><RoomsView currentUser={currentUser} onSignIn={() => setIsAuthModalOpen(true)} /></div>
           </Suspense>
         )}
 
