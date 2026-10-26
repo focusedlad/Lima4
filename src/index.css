@@ -656,3 +656,10 @@ html.dark .lima-navigation button[aria-current="page"] { background: #1A2D39 !im
 @media (display-mode: standalone) {
   .lima-topbar { padding-top: max(env(safe-area-inset-top), .5rem) !important; }
 }
+
+@media (max-width: 767px) {
+  .lima-navigation { padding-bottom: max(env(safe-area-inset-bottom), .35rem) !important; }
+  .lima-navigation nav { max-width: none !important; }
+  .lima-navigation nav > button { min-height: 42px; }
+  .lima-main { padding-bottom: max(9.25rem, calc(8.5rem + env(safe-area-inset-bottom))) !important; }
+}

@@ -74,6 +74,7 @@ const StudyChallengesView = lazy(() => import('./components/social/StudyChalleng
 const LeaderboardView = lazy(() => import('./components/social/LeaderboardView').then((m) => ({ default: m.LeaderboardView })));
 const AnalyticsView = lazy(() => import('./components/analytics/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
 const GlobalActivityFeed = lazy(() => import('./components/social/GlobalActivityFeed').then((m) => ({ default: m.GlobalActivityFeed })));
+const FriendsView = lazy(() => import('./components/social/FriendsView').then((m) => ({ default: m.FriendsView })));
 const SettingsView = lazy(() => import('./components/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
 
 const TabLoadingFallback = () => (
@@ -813,7 +814,14 @@ export default function App() {
           </Suspense>
         )}
 
-        {/* Tab 2: Friends and milestones */}
+        {/* Dedicated friend directory */}
+        {currentTab === 'friends' && (
+          <Suspense fallback={<TabLoadingFallback />}>
+            <div className="pb-20"><FriendsView currentUser={currentUser} /></div>
+          </Suspense>
+        )}
+
+        {/* Community milestones feed */}
         {currentTab === 'feed' && (
           <Suspense fallback={<TabLoadingFallback />}>
             <div className="pb-20">
