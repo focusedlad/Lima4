@@ -87,7 +87,7 @@ export default async function handler(req: any, res: any) {
       await joinStudyChallenge({
         challengeId, userUid: authUser.id,
         userName: profile?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Studier',
-        userAvatar: profile?.avatar || '', status,
+        userAvatar: profile?.avatar || '',
       });
       return res.status(200).json({ success: true, status });
     }
