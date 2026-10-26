@@ -487,3 +487,45 @@ main { padding-top: clamp(1rem, 2.2vw, 2rem) !important; }
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Final Lima4 performance and visual guardrails */
+:root {
+  --lima-paper: #F7F8FA;
+  --lima-surface: #FFFFFF;
+  --lima-ink: #18212B;
+  --lima-muted: #687583;
+  --lima-line: #E3E7EC;
+  --lima-accent: #365F78;
+}
+html:not(.dark) body,
+html:not(.dark) #root { background: var(--lima-paper); color: var(--lima-ink); }
+html:not(.dark) header,
+html:not(.dark) footer,
+html:not(.dark) main { color: var(--lima-ink); }
+[class*="bg-gradient-to-"] { background-image: none !important; }
+.liquid-glass,
+html.dark .liquid-glass {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+}
+.liquid-interactive:hover,
+.liquid-interactive:active { transform: none !important; }
+.animate-indeterminate,
+.animate-pulse,
+.animate-bounce,
+.animate-spin { animation: none !important; }
+button, a, input, select, textarea { touch-action: manipulation; }
+@media (max-width: 767px) {
+  main { padding-bottom: calc(6.25rem + env(safe-area-inset-bottom)) !important; }
+  .lima-navigation { padding-bottom: max(env(safe-area-inset-bottom), 8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
