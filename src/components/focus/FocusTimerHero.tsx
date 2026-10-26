@@ -210,6 +210,8 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   const [pomodoroCycle, setPomodoroCycle] = useState<number>(() => initialTimer?.pomodoroCycle || 1);
   const [laps, setLaps] = useState<string[]>(() => initialTimer?.laps || []);
   const [selectedCategory, setSelectedCategory] = useState<FocusCategory>(() => initialTimer?.selectedCategory || 'deep_work');
+  const timeLeftRef = useRef(timeLeft);
+  timeLeftRef.current = timeLeft;
   const [isPhoneAway, setIsPhoneAway] = useState<boolean>(false);
 
   // Video Background Mute state
@@ -392,10 +394,14 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
         if (focusType === 'study_time') {
           setStudyTimeSeconds((prev) => prev + elapsedSeconds);
         } else {
-          setTimeLeft((prev) => {
-            if (prev <= elapsedSeconds) { handleTimerComplete(); return 0; }
-            return prev - elapsedSeconds;
-          });
+          const remaining = timeLeftRef.current;
+          if (remaining <= elapsedSeconds) {
+            // Avoid side effects inside a React state updater; completion may set the next interval.
+            setTimeLeft(0);
+            handleTimerComplete();
+          } else {
+            setTimeLeft(remaining - elapsedSeconds);
+          }
         }
       }, 500);
     } else if (intervalRef.current) {
