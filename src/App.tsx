@@ -323,7 +323,7 @@ export default function App() {
         xp: Number(saved.xp || 0),
         totalHoursStudied: Number(saved.totalHoursStudied || 0),
         currentStreak: Number(saved.currentStreak || 0),
-      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier', bio: '', bannerUrl: '', profileVisibility: 'public', sessionVisibility: 'private', xp: 0, totalHoursStudied: 0, currentStreak: 0, deskPet: { ...INITIAL_USER.deskPet, level: 1, currentXp: 0, nextLevelXp: 250 } };
+      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier', bio: '', bannerUrl: '', profileVisibility: 'public' as const, sessionVisibility: 'private' as const, xp: 0, totalHoursStudied: 0, currentStreak: 0, deskPet: { ...INITIAL_USER.deskPet, level: 1, currentXp: 0, nextLevelXp: 250 } };
       setCurrentUser(base);
       setProfileLoaded(true);
       setIsAuthModalOpen(false);
