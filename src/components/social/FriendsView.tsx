@@ -132,7 +132,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ currentUser }) => {
               results.map((person) => {
                 const added = isFriend(person.uid);
                 return <article key={person.uid} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-                  <img src={person.avatar} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-full bg-slate-100 object-cover dark:bg-slate-800" />
+                  {person.avatar ? <img src={person.avatar} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-full bg-slate-100 object-cover dark:bg-slate-800" /> : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200">{(person.name[0] || '?').toUpperCase()}</div>}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{person.name}</p>
                     <p className="truncate text-xs text-slate-500">@{person.handle}</p>
@@ -170,7 +170,7 @@ export const FriendsView: React.FC<FriendsViewProps> = ({ currentUser }) => {
           </div> :
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {friends.map((friend) => <article key={friend.friendUid} className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-              <img src={friend.friendAvatar} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-full bg-slate-100 object-cover dark:bg-slate-800" />
+              {friend.friendAvatar ? <img src={friend.friendAvatar} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-full bg-slate-100 object-cover dark:bg-slate-800" /> : <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200">{(friend.friendName[0] || '?').toUpperCase()}</div>}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{friend.friendName}</p>
                 <p className="truncate text-xs text-slate-500">@{friend.friendHandle}</p>
