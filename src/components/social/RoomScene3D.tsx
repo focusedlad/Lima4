@@ -148,6 +148,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     scene.fog = new THREE.Fog(scene.background, 32, 58);
     const camera = new THREE.PerspectiveCamera(42,1,.1,100);
     let azimuth = .15, elevation = .83, distance = 29;
+    camera.userData.targetDistance = 29;
     const aim = new THREE.Vector3(0,0,0);
     const updateCamera = () => { camera.position.set(aim.x+Math.sin(azimuth)*Math.cos(elevation)*distance, aim.y+Math.sin(elevation)*distance, aim.z+Math.cos(azimuth)*Math.cos(elevation)*distance); camera.lookAt(aim); };
     updateCamera();
@@ -207,11 +208,11 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     const down=(e:PointerEvent)=>{drag={x:e.clientX,y:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)};
     const move=(e:PointerEvent)=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag={x:e.clientX,y:e.clientY};azimuth-=dx*.006;elevation=Math.max(.35,Math.min(1.18,elevation+dy*.004));updateCamera()};
     const up=()=>{drag=null};
-    const wheel=(e:WheelEvent)=>{distance=Math.max(20,Math.min(38,distance+e.deltaY*.025));updateCamera();e.preventDefault()};
+    const wheel=(e:WheelEvent)=>{distance=Math.max(20,Math.min(38,distance+e.deltaY*.025));camera.userData.targetDistance=distance;updateCamera();e.preventDefault()};
     renderer.domElement.addEventListener('pointerdown',down); renderer.domElement.addEventListener('pointermove',move); renderer.domElement.addEventListener('pointerup',up); renderer.domElement.addEventListener('pointercancel',up); renderer.domElement.addEventListener('wheel',wheel,{passive:false});
     rendererRef.current=renderer; sceneRef.current=scene; cameraRef.current=camera;
     let frame=0, alive=true;
-    const animate=(time:number)=>{if(!alive)return;frame++;modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/1750);g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1)d.walking=false;}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});if(doorRef.current){const d=doorRef.current;const target=d.userData.open?-1.15:0;d.rotation.y+=(target-d.rotation.y)*.1;}renderer.render(scene,camera);
+    const animate=(time:number)=>{if(!alive)return;frame++;const targetDistance=Number(camera.userData.targetDistance||29);if(!drag){distance+=(targetDistance-distance)*.035;updateCamera();}modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/1750);g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1)d.walking=false;}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});if(doorRef.current){const d=doorRef.current;const target=d.userData.open?-1.15:0;d.rotation.y+=(target-d.rotation.y)*.1;}renderer.render(scene,camera);
       if(frame%8===0){const next:OverlayPerson[]=[];for(const p of peopleRef.current){if(p.room_id!==roomId)continue;const model=modelsRef.current.get(p.user_uid);if(!model)continue;const v=model.position.clone().add(new THREE.Vector3(0,2.05,0)).project(camera);next.push({uid:p.user_uid,name:p.user_name,x:(v.x*.5+.5)*host.clientWidth,y:(-.5*v.y+.5)*host.clientHeight,timer:elapsed(p.session_started_at),mine:p.user_uid===uid,breakMode:p.study_status==='break'});}setLabels(next);}
       requestAnimationFrame(animate);
     };
@@ -220,7 +221,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomType, roomId]);
 
-  useEffect(() => { if (doorRef.current) doorRef.current.userData.open = entering; }, [entering]);
+  useEffect(() => { if (doorRef.current) doorRef.current.userData.open = entering; if (cameraRef.current) cameraRef.current.userData.targetDistance = entering ? 23 : 29; }, [entering]);
 
   const peopleRef = useRef(people); peopleRef.current = people;
   useEffect(() => {
