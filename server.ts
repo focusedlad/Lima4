@@ -21,6 +21,7 @@ import {
   cheerMilestoneInDb,
 } from './src/db/queries';
 import { optionalAuth, AuthRequest } from './src/middleware/auth';
+import { getAuthenticatedSupabaseUser } from './src/lib/supabase-request-auth';
 
 dotenv.config();
 
@@ -28,6 +29,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// This server serves the Supabase-authenticated web client. Do not verify its
+// access token with the legacy Firebase middleware.
+const requireSupabaseAuth = async (req: any, res: any, next: any) => {
+  const user = await getAuthenticatedSupabaseUser(req);
+  if (!user) return res.status(401).json({ error: 'Sign in with a verified account to continue.' });
+  req.user = { uid: user.id, email: user.email, user_metadata: user.user_metadata } as any;
+  next();
+};
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: '20mb' }));
@@ -297,9 +307,9 @@ app.post('/api/db/challenges', optionalAuth, async (req: AuthRequest, res) => {
   }
 });
 
-app.get('/api/db/challenges', async (_req, res) => {
+app.get('/api/db/challenges', requireSupabaseAuth, async (req: AuthRequest, res) => {
   try {
-    const challenges = await getAllStudyChallenges();
+    const challenges = await getAllStudyChallenges(req.user!.uid);
     res.json({ success: true, challenges });
   } catch (error: any) {
     console.error('Failed to fetch study challenges from database:', error);
@@ -399,10 +409,10 @@ app.delete('/api/db/friends/:friendUid', optionalAuth, async (req: AuthRequest, 
 });
 
 // Search users by unique handle, name, or university
-app.get('/api/db/users/search', async (req, res) => {
+app.get('/api/db/users/search', requireSupabaseAuth, async (req: AuthRequest, res) => {
   try {
     const query = (req.query.q as string) || '';
-    const usersList = await searchUsersByQuery(query);
+    const usersList = await searchUsersByQuery(query, req.user!.uid);
     res.json({ success: true, users: usersList });
   } catch (error: any) {
     console.error('Failed to search users:', error);
@@ -463,9 +473,9 @@ app.post('/api/db/milestones', optionalAuth, async (req: AuthRequest, res) => {
   }
 });
 
-app.post('/api/db/milestones/:id/cheer', async (req, res) => {
+app.post('/api/db/milestones/:id/cheer', requireSupabaseAuth, async (req: AuthRequest, res) => {
   try {
-    await cheerMilestoneInDb(req.params.id);
+    await cheerMilestoneInDb(req.params.id, req.user!.uid);
     res.json({ success: true });
   } catch (error: any) {
     console.error('Failed to cheer milestone:', error);

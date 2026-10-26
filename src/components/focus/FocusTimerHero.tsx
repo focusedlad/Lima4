@@ -226,7 +226,7 @@ export const FocusTimerHero: React.FC<FocusTimerHeroProps> = ({
   const exitZenFullscreen = async () => {
     setIsZenFullscreen(false);
     try {
-      const doc = document as Document & { webkitExitFullscreen?: () => Promise<void> | void };
+      const doc = document as Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => Promise<void> | void };
       if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
         await document.exitFullscreen();
       } else if (doc.webkitFullscreenElement && typeof doc.webkitExitFullscreen === 'function') {

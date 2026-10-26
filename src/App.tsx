@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Compass,
   Sparkles,
@@ -29,7 +29,6 @@ import {
   Smile,
   Bird,
   Tv,
-  Cherry,
   Settings,
 } from 'lucide-react';
 import {
@@ -57,14 +56,9 @@ import { Navbar, MainNavTab } from './components/common/Navbar';
 import { NotificationCenter } from './components/common/NotificationCenter';
 import { QuickActionModal } from './components/common/QuickActionModal';
 import { SoundSynthesizerModal } from './components/audio/SoundSynthesizerModal';
-import { FocusTimerHero } from './components/focus/FocusTimerHero';
 import { FloatingStreamerWidget } from './components/focus/FloatingStreamerWidget';
-import { StudyChallengesView } from './components/social/StudyChallengesView';
-import { LeaderboardView } from './components/social/LeaderboardView';
-import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { ProfileModal } from './components/common/ProfileModal';
 import { AuthModal } from './components/common/AuthModal';
-import { GlobalActivityFeed } from './components/social/GlobalActivityFeed';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { SubscriptionModal } from './components/subscription/SubscriptionModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -72,9 +66,21 @@ import { AdminLoginModal } from './components/admin/AdminLoginModal';
 import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal';
 import { FirebaseService } from './services/firebase';
 import { supabase, SupabaseService } from './services/supabase';
-import { FluidLiquidBackground } from './components/common/FluidLiquidBackground';
 import { ApiDatabase } from './services/apiDatabase';
-import { SettingsView } from './components/settings/SettingsView';
+
+
+const FocusTimerHero = lazy(() => import('./components/focus/FocusTimerHero').then((m) => ({ default: m.FocusTimerHero })));
+const StudyChallengesView = lazy(() => import('./components/social/StudyChallengesView').then((m) => ({ default: m.StudyChallengesView })));
+const LeaderboardView = lazy(() => import('./components/social/LeaderboardView').then((m) => ({ default: m.LeaderboardView })));
+const AnalyticsView = lazy(() => import('./components/analytics/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
+const GlobalActivityFeed = lazy(() => import('./components/social/GlobalActivityFeed').then((m) => ({ default: m.GlobalActivityFeed })));
+const SettingsView = lazy(() => import('./components/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
+
+const TabLoadingFallback = () => (
+  <div className="min-h-[40vh] flex items-center justify-center text-sm text-slate-500" role="status" aria-live="polite">
+    Loading view…
+  </div>
+);
 
 
 export default function App() {
@@ -323,7 +329,7 @@ export default function App() {
         xp: Number(saved.xp || 0),
         totalHoursStudied: Number(saved.totalHoursStudied || 0),
         currentStreak: Number(saved.currentStreak || 0),
-      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier', bio: '', bannerUrl: '', profileVisibility: 'public', sessionVisibility: 'private', xp: 0, totalHoursStudied: 0, currentStreak: 0, deskPet: { ...INITIAL_USER.deskPet, level: 1, currentXp: 0, nextLevelXp: 250 } };
+      } : { ...INITIAL_USER, id: authUser.id, email, name: metadataName || email.split('@')[0] || 'New Studier', bio: '', bannerUrl: '', profileVisibility: 'public' as const, sessionVisibility: 'private' as const, xp: 0, totalHoursStudied: 0, currentStreak: 0, deskPet: { ...INITIAL_USER.deskPet, level: 1, currentXp: 0, nextLevelXp: 250 } };
       setCurrentUser(base);
       setProfileLoaded(true);
       setIsAuthModalOpen(false);
@@ -500,7 +506,7 @@ export default function App() {
 
     const newLog: FocusSessionLog = {
       id: 'log_' + Date.now(),
-      date: new Date().toISOString().slice(0, 10),
+      date: new Intl.DateTimeFormat('en-CA', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
       durationMinutes, category, subject, xpEarned: earnedXp,
     };
     setFocusLogs((previous) => [newLog, ...previous]);
@@ -584,20 +590,18 @@ export default function App() {
 
   return (
     <div className="w-full max-w-full overflow-x-hidden min-h-screen bg-[#F8FAFC] dark:bg-[#05070B] text-stone-900 dark:text-stone-100 flex flex-col font-sans selection:bg-indigo-200 dark:selection:bg-indigo-900 transition-colors duration-200 relative">
-      {/* Fluid Liquid Motion Interactive Background */}
-      <FluidLiquidBackground />
       {/* Top Global Header Bar */}
       <header className="sticky top-0 z-40 bg-[#F8FAFC]/90 dark:bg-[#05070B]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3 sm:px-6 py-3 transition-all pt-safe w-full max-w-full overflow-x-hidden md:pl-[100px]">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Logo & Slogan */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-pink-200/70 dark:ring-pink-900 shrink-0">
-              <Cherry className="w-5 h-5 text-pink-600 dark:text-pink-400 fill-pink-500/20" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-slate-200 dark:ring-slate-700 shrink-0">
+              <Compass className="w-5 h-5 text-slate-700 dark:text-slate-200" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="font-extrabold text-base sm:text-lg tracking-tight text-stone-900 dark:text-white truncate">
-                  cheri
+                  Lima4
                 </span>
                 <span
                   onClick={() => {
@@ -693,7 +697,7 @@ export default function App() {
             <button
               onClick={() => setCurrentTab('settings')}
               className="flex items-center gap-2 p-1 pl-2.5 pr-1.5 rounded-2xl bg-white dark:bg-[#141315] border border-pink-100 dark:border-stone-800 hover:border-pink-300 text-xs font-semibold text-stone-800 dark:text-stone-200 shadow-xs transition-all hover:scale-102"
-              title="Open cheri Settings & Profile"
+              title="Open Lima4 Settings & Profile"
             >
               <span className="hidden sm:inline font-bold text-stone-900 dark:text-stone-100">{currentUser.name.split(' ')[0]}</span>
               <img
@@ -746,95 +750,102 @@ export default function App() {
       <main className="flex-1 w-full max-w-6xl mx-auto p-3 pb-24 sm:p-8 md:ml-[84px] md:mr-0 md:w-[calc(100%-84px)] md:max-w-none md:pb-8 overflow-x-hidden">
         {firstUserNotice && (
           <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-400/20 dark:bg-indigo-950/40 dark:text-indigo-100" role="status">
-            <p className="m-0">Welcome — you are the first registered member of cheri. You are helping start the real community; other members will appear as they join.</p>
+            <p className="m-0">Welcome — you are the first registered member of Lima4. You are helping start the real community; other members will appear as they join.</p>
             <button type="button" onClick={() => setFirstUserNotice(false)} className="shrink-0 rounded-xl px-3 py-2 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/60">Dismiss</button>
           </div>
         )}
-        {/* Tab 1: Pure Distraction-Free Study Space (Pomodoro & Study Time Stopwatch) */}
+        {/* Tab 1: Focus timer */}
         {currentTab === 'focus' && (
-          <div className="pb-20">
-            <FocusTimerHero
-              onOpenAudioModal={() => setIsAudioModalOpen(true)}
-              onSessionComplete={handleSessionComplete}
-              syncedCreator={syncedCreator}
-              onDisconnectSync={() => setSyncedCreator(null)}
-              activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
-              onToggleFloatingStream={() => {
-                if (!activeWatchingStream && !syncedCreator && creators.length > 0) {
-                  setActiveWatchingStream(creators[0]);
-                }
-                setIsStreamWidgetVisible((prev) => !prev);
-              }}
-              isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
-              videoBackground={videoBackground}
-              onSetVideoBackground={(stream) => setVideoBackground(stream)}
-              onPopOutVideo={(stream) => {
-                setActiveWatchingStream(stream);
-                setIsStreamWidgetVisible(true);
-                setVideoBackground(null);
-              }}
-            />
-          </div>
+          <Suspense fallback={<TabLoadingFallback />}>
+            <div className="pb-20">
+              <FocusTimerHero
+                onOpenAudioModal={() => setIsAudioModalOpen(true)}
+                onSessionComplete={handleSessionComplete}
+                syncedCreator={syncedCreator}
+                onDisconnectSync={() => setSyncedCreator(null)}
+                activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
+                onToggleFloatingStream={() => {
+                  if (!activeWatchingStream && !syncedCreator && creators.length > 0) setActiveWatchingStream(creators[0]);
+                  setIsStreamWidgetVisible((prev) => !prev);
+                }}
+                isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
+                videoBackground={videoBackground}
+                onSetVideoBackground={(stream) => setVideoBackground(stream)}
+                onPopOutVideo={(stream) => {
+                  setActiveWatchingStream(stream);
+                  setIsStreamWidgetVisible(true);
+                  setVideoBackground(null);
+                }}
+              />
+            </div>
+          </Suspense>
         )}
 
-        {/* Tab 2: Friends & Global Milestones Feed */}
+        {/* Tab 2: Friends and milestones */}
         {currentTab === 'feed' && (
-          <div className="pb-20">
-            <GlobalActivityFeed
-              currentUser={currentUser}
-              onToggleGhostMode={handleToggleGhostMode}
-            />
-          </div>
+          <Suspense fallback={<TabLoadingFallback />}>
+            <div className="pb-20">
+              <GlobalActivityFeed currentUser={currentUser} onToggleGhostMode={handleToggleGhostMode} />
+            </div>
+          </Suspense>
         )}
 
-        {/* Tab 3: Study Challenges */}
+        {/* Tab 3: Study challenges */}
         {currentTab === 'challenges' && (
-          <StudyChallengesView
-            currentUser={currentUser}
-            onSelectChallengeLeaderboard={() => {
-              setCurrentTab('leaderboard');
-            }}
-          />
+          <Suspense fallback={<TabLoadingFallback />}>
+            <StudyChallengesView
+              currentUser={currentUser}
+              onSelectChallengeLeaderboard={() => setCurrentTab('leaderboard')}
+            />
+          </Suspense>
         )}
 
-        {/* Tab 4: Competitive Leaderboards */}
+        {/* Tab 4: Leaderboards */}
         {currentTab === 'leaderboard' && (
-          <LeaderboardView currentUser={currentUser} />
+          <Suspense fallback={<TabLoadingFallback />}>
+            <LeaderboardView currentUser={currentUser} />
+          </Suspense>
         )}
 
-        {/* Tab 5: Analytics, Macronutrients & Desk Pet */}
+        {/* Tab 5: Analytics and progress */}
         {currentTab === 'analytics' && (
-          <div className="pb-24">
-            <AnalyticsView
-              currentUser={currentUser}
-              heatmapDays={heatmapDays}
-              logs={focusLogs}
-              onUpdateDeskPet={(pet) =>
-                setCurrentUser((prev) => ({
-                  ...prev,
-                  deskPet: pet,
-                }))
-              }
-            />
-          </div>
+          <Suspense fallback={<TabLoadingFallback />}>
+            <div className="pb-24">
+              <AnalyticsView
+                currentUser={currentUser}
+                heatmapDays={heatmapDays}
+                logs={focusLogs}
+                onUpdateDeskPet={(pet) => setCurrentUser((prev) => ({ ...prev, deskPet: pet }))}
+              />
+            </div>
+          </Suspense>
         )}
 
-        {/* Tab 6: Settings (Theme, Account Details, Focus Preferences) */}
+        {/* Tab 6: Settings */}
         {currentTab === 'settings' && (
-          <div className="pb-24">
-            <SettingsView
-              currentUser={currentUser}
-              onUpdateUser={(updated) => {
-                setCurrentUser(updated);
-                StorageService.saveUser(updated);
-              }}
-              themePreference={themePreference}
-              onSelectThemePreference={setThemePreference}
-              isDarkMode={isDarkMode}
-              onOpenAuthModal={() => setIsAuthModalOpen(true)}
-              onSignOut={async () => { await SupabaseService.signOut(); setFocusLogs([]); setCurrentUser(INITIAL_USER); setProfileLoaded(false); setIsAuthModalOpen(true); setCurrentTab('focus'); }}
-            />
-          </div>
+          <Suspense fallback={<TabLoadingFallback />}>
+            <div className="pb-24">
+              <SettingsView
+                currentUser={currentUser}
+                onUpdateUser={(updated) => {
+                  setCurrentUser(updated);
+                  StorageService.saveUser(updated);
+                }}
+                themePreference={themePreference}
+                onSelectThemePreference={setThemePreference}
+                isDarkMode={isDarkMode}
+                onOpenAuthModal={() => setIsAuthModalOpen(true)}
+                onSignOut={async () => {
+                  await SupabaseService.signOut();
+                  setFocusLogs([]);
+                  setCurrentUser(INITIAL_USER);
+                  setProfileLoaded(false);
+                  setIsAuthModalOpen(true);
+                  setCurrentTab('focus');
+                }}
+              />
+            </div>
+          </Suspense>
         )}
       </main>
 
@@ -842,8 +853,8 @@ export default function App() {
       <footer className="mt-auto border-t border-slate-200 dark:border-white/10 bg-white/70 dark:bg-[#05070B]/90 py-6 px-4 sm:px-8 text-xs text-stone-500 pb-28 sm:pb-24">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Cherry className="w-4 h-4 text-pink-500 fill-pink-500/20" />
-            <span className="font-extrabold text-stone-800 dark:text-stone-200">cheri</span>
+            <Compass className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+            <span className="font-extrabold text-stone-800 dark:text-stone-200">Lima4</span>
             <span>•</span>
             <span className="text-stone-600 dark:text-stone-400 font-medium">Aesthetic Focus & Study Timer</span>
             <span>•</span>
@@ -869,7 +880,7 @@ export default function App() {
               Account Settings
             </button>
             <span>•</span>
-            <span className="text-stone-400">© 2026 cheri</span>
+            <span className="text-stone-400">© 2026 Lima4</span>
           </div>
         </div>
       </footer>

@@ -20,12 +20,25 @@ export default async function handler(req: any, res: any) {
     const durationMinutes = Number(body.durationMinutes);
     const category = typeof body.category === 'string' ? body.category.trim() : '';
     const subject = typeof body.subject === 'string' ? body.subject.trim() : '';
+    const requestedTimeZone = typeof body.timeZone === 'string' ? body.timeZone.trim() : 'UTC';
+    let timeZone = 'UTC';
+    try {
+      // Accept only real IANA zones; the client cannot submit an arbitrary date.
+      new Intl.DateTimeFormat('en-US', { timeZone: requestedTimeZone }).format(new Date());
+      timeZone = requestedTimeZone;
+    } catch {
+      return res.status(400).json({ error: 'A valid IANA time zone is required.' });
+    }
     if (!Number.isFinite(durationMinutes) || durationMinutes <= 0 || durationMinutes > 24 * 60 || !category || !subject) {
       return res.status(400).json({ error: 'Valid duration, category and subject are required.' });
     }
     try {
       const profile = await getUserByUid(authUser.id);
-      const visibility = profile?.isGhostMode ? 'private' : (['private', 'friends', 'public'].includes(profile?.sessionVisibility) ? profile.sessionVisibility : 'private');
+      const visibility: 'private' | 'friends' | 'public' = profile?.isGhostMode
+        ? 'private'
+        : profile?.sessionVisibility === 'public' || profile?.sessionVisibility === 'friends' || profile?.sessionVisibility === 'private'
+          ? profile.sessionVisibility
+          : 'private';
       const log = await insertFocusLog({
         userUid: authUser.id,
         durationMinutes: Math.round(durationMinutes),
@@ -33,8 +46,8 @@ export default async function handler(req: any, res: any) {
         subject: subject.slice(0, 200),
         // XP is derived server-side from accepted duration, not trusted from client input.
         xpEarned: Math.min(5760, Math.round(durationMinutes * 4)),
-        // Sessions use the server's current date to prevent retroactive challenge credit.
-        date: new Date().toISOString().slice(0, 10),
+        // Use the server clock and validated device time zone for the student's local study day.
+        date: new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
         visibility,
       });
       return res.status(201).json({ success: true, log });
