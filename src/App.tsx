@@ -761,95 +761,97 @@ export default function App() {
             <button type="button" onClick={() => setFirstUserNotice(false)} className="shrink-0 rounded-xl px-3 py-2 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/60">Dismiss</button>
           </div>
         )}
-        {/* Tab 1: Pure Distraction-Free Study Space (Pomodoro & Study Time Stopwatch) */}
+        {/* Tab 1: Focus timer */}
         {currentTab === 'focus' && (
           <Suspense fallback={<TabLoadingFallback />}>
-          <div className="pb-20">
-            <FocusTimerHero
-              onOpenAudioModal={() => setIsAudioModalOpen(true)}
-              onSessionComplete={handleSessionComplete}
-              syncedCreator={syncedCreator}
-              onDisconnectSync={() => setSyncedCreator(null)}
-              activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
-              onToggleFloatingStream={() => {
-                if (!activeWatchingStream && !syncedCreator && creators.length > 0) {
-                  setActiveWatchingStream(creators[0]);
-                }
-                setIsStreamWidgetVisible((prev) => !prev);
-              }}
-              isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
-              videoBackground={videoBackground}
-              onSetVideoBackground={(stream) => setVideoBackground(stream)}
-              onPopOutVideo={(stream) => {
-                setActiveWatchingStream(stream);
-                setIsStreamWidgetVisible(true);
-                setVideoBackground(null);
-              }}
-            />
-          </div>
+            <div className="pb-20">
+              <FocusTimerHero
+                onOpenAudioModal={() => setIsAudioModalOpen(true)}
+                onSessionComplete={handleSessionComplete}
+                syncedCreator={syncedCreator}
+                onDisconnectSync={() => setSyncedCreator(null)}
+                activeSubject={currentUser.currentSubject?.replace(/^#/, '')}
+                onToggleFloatingStream={() => {
+                  if (!activeWatchingStream && !syncedCreator && creators.length > 0) setActiveWatchingStream(creators[0]);
+                  setIsStreamWidgetVisible((prev) => !prev);
+                }}
+                isStreamActive={Boolean(isStreamWidgetVisible && (activeWatchingStream || syncedCreator))}
+                videoBackground={videoBackground}
+                onSetVideoBackground={(stream) => setVideoBackground(stream)}
+                onPopOutVideo={(stream) => {
+                  setActiveWatchingStream(stream);
+                  setIsStreamWidgetVisible(true);
+                  setVideoBackground(null);
+                }}
+              />
+            </div>
           </Suspense>
         )}
 
-        {/* Tab 2: Friends & Global Milestones Feed */}
+        {/* Tab 2: Friends and milestones */}
         {currentTab === 'feed' && (
           <Suspense fallback={<TabLoadingFallback />}>
-          <div className="pb-20">
-            <GlobalActivityFeed
-              currentUser={currentUser}
-              onToggleGhostMode={handleToggleGhostMode}
-            />
-          </div>
+            <div className="pb-20">
+              <GlobalActivityFeed currentUser={currentUser} onToggleGhostMode={handleToggleGhostMode} />
+            </div>
           </Suspense>
-        )}
-        {currentTab === 'challenges' && (
-          <Suspense fallback={<TabLoadingFallback />}>
-          <StudyChallengesView
-            currentUser={currentUser}
-            onSelectChallengeLeaderboard={() => {
-              setCurrentTab('leaderboard');
-            }}
-          />
-          </Suspense>
-        )}
-        {currentTab === 'leaderboard' && (
-          <Suspense fallback={<TabLoadingFallback />}>
-          <Suspense fallback={<TabLoadingFallback />}><LeaderboardView currentUser={currentUser} /></Suspense>
         )}
 
-        {/* Tab 5: Analytics, Macronutrients & Desk Pet */}
+        {/* Tab 3: Study challenges */}
+        {currentTab === 'challenges' && (
+          <Suspense fallback={<TabLoadingFallback />}>
+            <StudyChallengesView
+              currentUser={currentUser}
+              onSelectChallengeLeaderboard={() => setCurrentTab('leaderboard')}
+            />
+          </Suspense>
+        )}
+
+        {/* Tab 4: Leaderboards */}
+        {currentTab === 'leaderboard' && (
+          <Suspense fallback={<TabLoadingFallback />}>
+            <LeaderboardView currentUser={currentUser} />
+          </Suspense>
+        )}
+
+        {/* Tab 5: Analytics and progress */}
         {currentTab === 'analytics' && (
           <Suspense fallback={<TabLoadingFallback />}>
-          <div className="pb-24">
-            <AnalyticsView
-              currentUser={currentUser}
-              heatmapDays={heatmapDays}
-              logs={focusLogs}
-              onUpdateDeskPet={(pet) =>
-                setCurrentUser((prev) => ({
-                  ...prev,
-                  deskPet: pet,
-                }))
-              }
-            />
-          </div>
+            <div className="pb-24">
+              <AnalyticsView
+                currentUser={currentUser}
+                heatmapDays={heatmapDays}
+                logs={focusLogs}
+                onUpdateDeskPet={(pet) => setCurrentUser((prev) => ({ ...prev, deskPet: pet }))}
+              />
+            </div>
           </Suspense>
-        )} (Theme, Account Details, Focus Preferences) */}
+        )}
+
+        {/* Tab 6: Settings */}
         {currentTab === 'settings' && (
           <Suspense fallback={<TabLoadingFallback />}>
-          <div className="pb-24">
-            <SettingsView
-              currentUser={currentUser}
-              onUpdateUser={(updated) => {
-                setCurrentUser(updated);
-                StorageService.saveUser(updated);
-              }}
-              themePreference={themePreference}
-              onSelectThemePreference={setThemePreference}
-              isDarkMode={isDarkMode}
-              onOpenAuthModal={() => setIsAuthModalOpen(true)}
-              onSignOut={async () => { await SupabaseService.signOut(); setFocusLogs([]); setCurrentUser(INITIAL_USER); setProfileLoaded(false); setIsAuthModalOpen(true); setCurrentTab('focus'); }}
-            />
-          </div>
+            <div className="pb-24">
+              <SettingsView
+                currentUser={currentUser}
+                onUpdateUser={(updated) => {
+                  setCurrentUser(updated);
+                  StorageService.saveUser(updated);
+                }}
+                themePreference={themePreference}
+                onSelectThemePreference={setThemePreference}
+                isDarkMode={isDarkMode}
+                onOpenAuthModal={() => setIsAuthModalOpen(true)}
+                onSignOut={async () => {
+                  await SupabaseService.signOut();
+                  setFocusLogs([]);
+                  setCurrentUser(INITIAL_USER);
+                  setProfileLoaded(false);
+                  setIsAuthModalOpen(true);
+                  setCurrentTab('focus');
+                }}
+              />
+            </div>
           </Suspense>
         )}
       </main>
