@@ -588,6 +588,7 @@ export async function searchUsersByQuery(query: string, viewerUid: string) {
         university: users.university,
         studyField: users.studyField,
         totalHoursStudied: users.totalHoursStudied,
+        activeDays: sql<number>`COALESCE((SELECT COUNT(DISTINCT fl.date)::int FROM focus_logs fl WHERE fl.user_uid = ${users.uid}), 0)`,
         currentStreak: users.currentStreak,
         xp: users.xp,
       })

@@ -125,6 +125,7 @@ export interface UserSearchResult {
   university?: string;
   studyField?: string;
   totalHoursStudied: number;
+  activeDays: number;
   currentStreak: number;
   xp: number;
   isFriend?: boolean;
