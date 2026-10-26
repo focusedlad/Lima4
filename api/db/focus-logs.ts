@@ -34,7 +34,11 @@ export default async function handler(req: any, res: any) {
     }
     try {
       const profile = await getUserByUid(authUser.id);
-      const visibility = profile?.isGhostMode ? 'private' : (['private', 'friends', 'public'].includes(profile?.sessionVisibility) ? profile.sessionVisibility : 'private');
+      const visibility: 'private' | 'friends' | 'public' = profile?.isGhostMode
+        ? 'private'
+        : profile?.sessionVisibility === 'public' || profile?.sessionVisibility === 'friends' || profile?.sessionVisibility === 'private'
+          ? profile.sessionVisibility
+          : 'private';
       const log = await insertFocusLog({
         userUid: authUser.id,
         durationMinutes: Math.round(durationMinutes),
