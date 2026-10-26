@@ -20,8 +20,8 @@ import {
   joinStudyChallenge,
   removeFriend,
   searchUsersByQuery,
-} from '../../src/db/queries.js';
-import { getAuthenticatedSupabaseUser } from '../../src/lib/supabase-request-auth.js';
+} from '../src/db/queries.js';
+import { getAuthenticatedSupabaseUser } from '../src/lib/supabase-request-auth.js';
 
 export default async function handler(req: any, res: any) {
   const authUser = await getAuthenticatedSupabaseUser(req);
