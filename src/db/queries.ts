@@ -596,7 +596,7 @@ export async function searchUsersByQuery(query: string, viewerUid: string) {
       .where(
         and(
           eq(users.isGhostMode, false),
-          sql`(${users.profileVisibility} = 'public' OR (${users.profileVisibility} = 'friends' AND EXISTS (SELECT 1 FROM friendships f WHERE (f.user_uid = ${viewerUid} AND f.friend_uid = ${users.uid}) OR (f.friend_uid = ${viewerUid} AND f.user_uid = ${users.uid}))))`,
+          sql`(${users.profileVisibility} = 'public' OR (${users.profileVisibility} = 'friends' AND EXISTS (SELECT 1 FROM friendships f WHERE f.user_uid = ${viewerUid} AND f.friend_uid = ${users.uid}) AND EXISTS (SELECT 1 FROM friendships f2 WHERE f2.user_uid = ${users.uid} AND f2.friend_uid = ${viewerUid})))`,
           or(
             ilike(users.handle, `%${clean}%`),
             ilike(users.name, `%${clean}%`),

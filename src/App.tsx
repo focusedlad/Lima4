@@ -29,7 +29,6 @@ import {
   Smile,
   Bird,
   Tv,
-  Cherry,
   Settings,
 } from 'lucide-react';
 import {
@@ -597,7 +596,7 @@ export default function App() {
           {/* Logo & Slogan */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-pink-200/70 dark:ring-pink-900 shrink-0">
-              <Cherry className="w-5 h-5 text-pink-600 dark:text-pink-400 fill-pink-500/20" />
+              <Compass className="w-5 h-5 text-slate-700 dark:text-slate-200" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
@@ -698,7 +697,7 @@ export default function App() {
             <button
               onClick={() => setCurrentTab('settings')}
               className="flex items-center gap-2 p-1 pl-2.5 pr-1.5 rounded-2xl bg-white dark:bg-[#141315] border border-pink-100 dark:border-stone-800 hover:border-pink-300 text-xs font-semibold text-stone-800 dark:text-stone-200 shadow-xs transition-all hover:scale-102"
-              title="Open cheri Settings & Profile"
+              title="Open Lima4 Settings & Profile"
             >
               <span className="hidden sm:inline font-bold text-stone-900 dark:text-stone-100">{currentUser.name.split(' ')[0]}</span>
               <img
@@ -854,7 +853,7 @@ export default function App() {
       <footer className="mt-auto border-t border-slate-200 dark:border-white/10 bg-white/70 dark:bg-[#05070B]/90 py-6 px-4 sm:px-8 text-xs text-stone-500 pb-28 sm:pb-24">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Cherry className="w-4 h-4 text-pink-500 fill-pink-500/20" />
+            <Compass className="w-4 h-4 text-slate-600 dark:text-slate-300" />
             <span className="font-extrabold text-stone-800 dark:text-stone-200">cheri</span>
             <span>•</span>
             <span className="text-stone-600 dark:text-stone-400 font-medium">Aesthetic Focus & Study Timer</span>
