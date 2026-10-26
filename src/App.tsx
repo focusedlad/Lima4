@@ -595,13 +595,13 @@ export default function App() {
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Logo & Slogan */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-pink-200/70 dark:ring-pink-900 shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center font-bold text-base sm:text-lg shadow-xs ring-2 ring-slate-200 dark:ring-slate-700 shrink-0">
               <Compass className="w-5 h-5 text-slate-700 dark:text-slate-200" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="font-extrabold text-base sm:text-lg tracking-tight text-stone-900 dark:text-white truncate">
-                  cheri
+                  Lima4
                 </span>
                 <span
                   onClick={() => {
@@ -750,7 +750,7 @@ export default function App() {
       <main className="flex-1 w-full max-w-6xl mx-auto p-3 pb-24 sm:p-8 md:ml-[84px] md:mr-0 md:w-[calc(100%-84px)] md:max-w-none md:pb-8 overflow-x-hidden">
         {firstUserNotice && (
           <div className="mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950 dark:border-indigo-400/20 dark:bg-indigo-950/40 dark:text-indigo-100" role="status">
-            <p className="m-0">Welcome — you are the first registered member of cheri. You are helping start the real community; other members will appear as they join.</p>
+            <p className="m-0">Welcome — you are the first registered member of Lima4. You are helping start the real community; other members will appear as they join.</p>
             <button type="button" onClick={() => setFirstUserNotice(false)} className="shrink-0 rounded-xl px-3 py-2 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/60">Dismiss</button>
           </div>
         )}
@@ -854,7 +854,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-            <span className="font-extrabold text-stone-800 dark:text-stone-200">cheri</span>
+            <span className="font-extrabold text-stone-800 dark:text-stone-200">Lima4</span>
             <span>•</span>
             <span className="text-stone-600 dark:text-stone-400 font-medium">Aesthetic Focus & Study Timer</span>
             <span>•</span>
@@ -880,7 +880,7 @@ export default function App() {
               Account Settings
             </button>
             <span>•</span>
-            <span className="text-stone-400">© 2026 cheri</span>
+            <span className="text-stone-400">© 2026 Lima4</span>
           </div>
         </div>
       </footer>
