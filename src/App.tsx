@@ -57,14 +57,9 @@ import { Navbar, MainNavTab } from './components/common/Navbar';
 import { NotificationCenter } from './components/common/NotificationCenter';
 import { QuickActionModal } from './components/common/QuickActionModal';
 import { SoundSynthesizerModal } from './components/audio/SoundSynthesizerModal';
-import { FocusTimerHero } from './components/focus/FocusTimerHero';
 import { FloatingStreamerWidget } from './components/focus/FloatingStreamerWidget';
-import { StudyChallengesView } from './components/social/StudyChallengesView';
-import { LeaderboardView } from './components/social/LeaderboardView';
-import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { ProfileModal } from './components/common/ProfileModal';
 import { AuthModal } from './components/common/AuthModal';
-import { GlobalActivityFeed } from './components/social/GlobalActivityFeed';
 import { AnnouncementBanner } from './components/common/AnnouncementBanner';
 import { SubscriptionModal } from './components/subscription/SubscriptionModal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -73,7 +68,6 @@ import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal
 import { FirebaseService } from './services/firebase';
 import { supabase, SupabaseService } from './services/supabase';
 import { ApiDatabase } from './services/apiDatabase';
-import { SettingsView } from './components/settings/SettingsView';
 
 
 const FocusTimerHero = lazy(() => import('./components/focus/FocusTimerHero').then((m) => ({ default: m.FocusTimerHero })));
