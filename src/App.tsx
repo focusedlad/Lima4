@@ -500,7 +500,7 @@ export default function App() {
 
     const newLog: FocusSessionLog = {
       id: 'log_' + Date.now(),
-      date: new Date().toISOString().slice(0, 10),
+      date: new Intl.DateTimeFormat('en-CA', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
       durationMinutes, category, subject, xpEarned: earnedXp,
     };
     setFocusLogs((previous) => [newLog, ...previous]);
