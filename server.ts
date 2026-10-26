@@ -20,7 +20,7 @@ import {
   getMilestonesFeed,
   cheerMilestoneInDb,
 } from './src/db/queries';
-import { optionalAuth, AuthRequest } from './src/middleware/auth';
+import { optionalAuth, requireAuth, AuthRequest } from './src/middleware/auth';
 
 dotenv.config();
 
@@ -297,9 +297,9 @@ app.post('/api/db/challenges', optionalAuth, async (req: AuthRequest, res) => {
   }
 });
 
-app.get('/api/db/challenges', async (_req, res) => {
+app.get('/api/db/challenges', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const challenges = await getAllStudyChallenges();
+    const challenges = await getAllStudyChallenges(req.user!.uid);
     res.json({ success: true, challenges });
   } catch (error: any) {
     console.error('Failed to fetch study challenges from database:', error);
@@ -399,10 +399,10 @@ app.delete('/api/db/friends/:friendUid', optionalAuth, async (req: AuthRequest, 
 });
 
 // Search users by unique handle, name, or university
-app.get('/api/db/users/search', async (req, res) => {
+app.get('/api/db/users/search', requireAuth, async (req: AuthRequest, res) => {
   try {
     const query = (req.query.q as string) || '';
-    const usersList = await searchUsersByQuery(query);
+    const usersList = await searchUsersByQuery(query, req.user!.uid);
     res.json({ success: true, users: usersList });
   } catch (error: any) {
     console.error('Failed to search users:', error);
@@ -463,9 +463,9 @@ app.post('/api/db/milestones', optionalAuth, async (req: AuthRequest, res) => {
   }
 });
 
-app.post('/api/db/milestones/:id/cheer', async (req, res) => {
+app.post('/api/db/milestones/:id/cheer', requireAuth, async (req: AuthRequest, res) => {
   try {
-    await cheerMilestoneInDb(req.params.id);
+    await cheerMilestoneInDb(req.params.id, req.user!.uid);
     res.json({ success: true });
   } catch (error: any) {
     console.error('Failed to cheer milestone:', error);
