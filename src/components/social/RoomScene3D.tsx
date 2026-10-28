@@ -39,9 +39,30 @@ function addPlant(scene: THREE.Scene, x: number, z: number, leafy: boolean) {
   for (let i=0;i<5;i++) sphere(scene, leafy ? .52 : .34, ['#477d53','#5b925e','#6ca66a'][i%3], [x+Math.sin(i*1.3)*.28, .8+(i%2)*.24, z+Math.cos(i*1.3)*.25], [1,.9,1]);
 }
 function addSeat(scene: THREE.Scene, x: number, z: number, c: typeof colors.cafe, kind: string) {
-  const tableW = kind === 'cafe' || kind === 'fireplace' ? 1.45 : 1.3;
-  box(scene,[tableW,.12,1.05],c.desk,[x,.86,z]);
-  for (const dx of [-tableW*.36,tableW*.36]) for (const dz of [-.34,.34]) box(scene,[.08,.82,.08],c.trim,[x+dx,.42,z+dz]);
+  if (kind === 'cafe') {
+    // Compact round café table, with a proper chair pulled up to the near edge.
+    cylinder(scene,.67,.67,.13,c.desk,[x,.86,z]);
+    cylinder(scene,.12,.16,.72,c.trim,[x,.46,z]);
+    cylinder(scene,.32,.32,.09,c.chair,[x,.52,z+.92]);
+    cylinder(scene,.34,.34,.09,c.chair,[x,.9,z+1.12],[Math.PI/2,0,0]);
+    for (const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]) cylinder(scene,.035,.045,.43,c.trim,[x+Math.cos(a)*.2,.25,z+.92+Math.sin(a)*.2]);
+    // Coffee cup and saucer give the café its own visual language.
+    cylinder(scene,.11,.13,.12,'#f7efe0',[x-.26,.98,z-.12]);
+    cylinder(scene,.15,.15,.025,'#d7b78c',[x-.26,.91,z-.12]);
+    return;
+  }
+  if (kind === 'fireplace') {
+    // A low timber log bench and cushion, rather than classroom desks.
+    cylinder(scene,.31,.34,1.35,'#8c573b',[x,.48,z+.92],[Math.PI/2,0,0]);
+    box(scene,[.72,.13,.62],'#b7835b',[x,.62,z+.92]);
+    box(scene,[.72,.54,.10],'#8d5c43',[x,.84,z+1.22]);
+    box(scene,[.54,.06,.43,'#e3b18a',[x,.72,z+.88]);
+    return;
+  }
+  // Classroom desks face the teaching wall; nature uses a small picnic table.
+  const tableW = kind === 'nature' ? 1.05 : 1.3;
+  box(scene,[tableW,.12,kind==='nature'?.78:1.05],c.desk,[x,.86,z]);
+  for (const dx of [-tableW*.36,tableW*.36]) for (const dz of [-.28,.28]) box(scene,[.08,.82,.08],c.trim,[x+dx,.42,z+dz]);
   box(scene,[.62,.12,.62],c.chair,[x,.54,z+.9]);
   box(scene,[.62,.66,.10],c.chair,[x,.85,z+1.16]);
   for (const dx of [-.24,.24]) for (const dz of [.68,1.1]) box(scene,[.07,.5,.07],c.trim,[x+dx,.27,z+dz]);
@@ -196,12 +217,30 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
       box(scene,[5.2,1.8,.2],'#294d4d',[-3.5,3.05,-7.55]); box(scene,[5.35,.13,.3],'#7e6044',[-3.5,2.1,-7.45]);
       for (let i=0;i<5;i++) sphere(scene,.1,'#f1e4bb',[6.8+Math.sin(i)*.2,4.5,-7.2]);
     } else if (roomType==='fireplace') {
-      box(scene,[3.1,2.5,.8],'#76554a',[6.6,1.35,-7.15]); box(scene,[2.35,1.5,.1],'#2d2528',[6.6,1.25,-6.7]);
-      box(scene,[2.6,.22,.35],'#bd8d6b',[6.6,2.65,-6.8]); box(scene,[3.5,.2,.8],'#bd8d6b',[6.6,.12,-6.9]);
-      const fireLight = new THREE.PointLight(0xff7c32,5,8); fireLight.position.set(6.6,1.3,-6.1); scene.add(fireLight);
-      for (let i=0;i<8;i++) { const flame=sphere(scene,.16,['#ffb044','#f47a32','#ffe08a'][i%3],[6.2+(i%4)*.27,1.0+(i%3)*.22,-6.55],[.75,1.7,.6]); flame.userData.flicker=Math.random()*4; }
+      // A central stone hearth, surrounded by low log seating and warm ambient light.
+      cylinder(scene,1.35,1.55,.34,'#a77a61',[0,.18,0]);
+      cylinder(scene,1.08,1.08,.18,'#493432',[0,.43,0]);
+      for (const angle of [0,Math.PI/2,Math.PI,Math.PI*1.5]) {
+        const x=Math.cos(angle)*1.2,z=Math.sin(angle)*1.2;
+        box(scene,[.95,.2,.3],'#89583f',[x,.38,z],[0,angle,0]);
+      }
+      const fireLight = new THREE.PointLight(0xff7c32,6,12); fireLight.position.set(0,1.25,0); scene.add(fireLight);
+      for (let i=0;i<12;i++) { const angle=i*2.399, radius=.18+(i%3)*.12; const flame=sphere(scene,.13,['#ffb044','#f47a32','#ffe08a'][i%3],[Math.cos(angle)*radius,.72+(i%4)*.19,Math.sin(angle)*radius],[.75,1.7,.6]); flame.userData.flicker=Math.random()*4; }
+      // Tree-stump stools and a few floor cushions create a campfire circle.
+      for (let i=0;i<8;i++) { const a=i*Math.PI/4, x=Math.cos(a)*3.4,z=Math.sin(a)*3.1; cylinder(scene,.34,.38,.42,'#80513a',[x,.21,z]); cylinder(scene,.32,.32,.08,i%2?'#d2a078':'#bd8762',[x,.46,z]); }
     } else if (roomType==='nature') {
       for (const [x,z] of [[-10,-6],[-8,-4],[9,-6],[10,-2],[-10,4],[10,5]] as number[][]) addPlant(scene,x,z,true);
+      // Park swings: timber A-frames, crossbar, hanging chains and wooden seats.
+      for (const sx of [-5.5,5.5]) {
+        for (const side of [-1,1]) cylinder(scene,.07,.1,3.2,'#806147',[sx+side*.72,1.58,-2.6],[0,0,side*.42]);
+        cylinder(scene,.07,.07,1.7,'#806147',[sx,3.12,-2.6],[0,0,Math.PI/2]);
+        for (const side of [-1,1]) cylinder(scene,.018,.018,1.7,'#9aa5a1',[sx+side*.28,2.12,-2.6]);
+        box(scene,[.72,.12,.32],'#c49a68',[sx,.98,-2.6]);
+      }
+      // Picnic blankets, soft cushions and stepping stones on the grass.
+      box(scene,[3.2,.045,2.2],'#e9d7bd',[-5,.045,3.4]);
+      box(scene,[3.2,.05,2.2],'#b8c6a0',[-5,.07,3.4]);
+      for (let i=0;i<4;i++) cylinder(scene,.18,.18,.12,['#d9a7a1','#e6d4b2','#a7c6b0','#d2bd8d'][i],[ -6.1+(i%2)*2.2,.16,2.7+Math.floor(i/2)*1.3 ]);
       for (let i=0;i<16;i++) sphere(scene,.06,['#e5d89d','#f3d5bc','#c8d8a4'][i%3],[-9+(i%8)*2.5,.06,4+Math.floor(i/8)*2],[1,.35,1]);
     } else {
       addPlant(scene,-9,-6,true); addPlant(scene,9,-6,true);
@@ -228,7 +267,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     renderer.domElement.addEventListener('pointerdown',down); renderer.domElement.addEventListener('pointermove',move); renderer.domElement.addEventListener('pointerup',up); renderer.domElement.addEventListener('pointercancel',up); renderer.domElement.addEventListener('wheel',wheel,{passive:false});
     rendererRef.current=renderer; sceneRef.current=scene; cameraRef.current=camera;
     let frame=0, alive=true;
-    const animate=(time:number)=>{if(!alive)return;frame++;const targetDistance=Number(camera.userData.targetDistance||29);if(!drag){distance+=(targetDistance-distance)*.035;updateCamera();}modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/1750);const phase=(time-d.started)/115;for(const l of d.legs||[]){const swing=Math.sin(phase+(l.side<0?0:Math.PI))*.28;l.thigh.rotation.z=swing;l.shin.rotation.z=-swing*.72;l.foot.rotation.z=swing*.38;}for(const a of d.arms||[]){const swing=Math.sin(phase+(a.side<0?Math.PI:0))*.18;a.upper.rotation.z=a.side*.18+swing;a.forearm.rotation.z=-a.side*.16-swing*.5;}g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1){d.walking=false;poseAvatar(g,true);}}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});if(doorRef.current){const d=doorRef.current;const target=d.userData.open?-1.15:0;d.rotation.y+=(target-d.rotation.y)*.1;}renderer.render(scene,camera);
+    const animate=(time:number)=>{if(!alive)return;frame++;const targetDistance=Number(camera.userData.targetDistance||29);if(!drag){distance+=(targetDistance-distance)*.035;updateCamera();}modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/2600);const phase=(time-d.started)/115;for(const l of d.legs||[]){const swing=Math.sin(phase+(l.side<0?0:Math.PI))*.28;l.thigh.rotation.z=swing;l.shin.rotation.z=-swing*.72;l.foot.rotation.z=swing*.38;}for(const a of d.arms||[]){const swing=Math.sin(phase+(a.side<0?Math.PI:0))*.18;a.upper.rotation.z=a.side*.18+swing;a.forearm.rotation.z=-a.side*.16-swing*.5;}g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1){d.walking=false;poseAvatar(g,true);}}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});if(doorRef.current){const d=doorRef.current;const target=d.userData.open?-1.15:0;d.rotation.y+=(target-d.rotation.y)*.1;}renderer.render(scene,camera);
       if(frame%8===0){const next:OverlayPerson[]=[];for(const p of peopleRef.current){if(p.room_id!==roomId)continue;const model=modelsRef.current.get(p.user_uid);if(!model)continue;const v=model.position.clone().add(new THREE.Vector3(0,2.05,0)).project(camera);next.push({uid:p.user_uid,name:p.user_name,x:(v.x*.5+.5)*host.clientWidth,y:(-.5*v.y+.5)*host.clientHeight,timer:elapsed(p.session_started_at),mine:p.user_uid===uid,breakMode:p.study_status==='break'});}setLabels(next);}
       requestAnimationFrame(animate);
     };
@@ -240,15 +279,27 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
   useEffect(() => { if (doorRef.current) doorRef.current.userData.open = entering; if (cameraRef.current) cameraRef.current.userData.targetDistance = entering ? 23 : 29; }, [entering]);
 
   const peopleRef = useRef(people); peopleRef.current = people;
+  const hasSeenRoomRosterRef = useRef(false);
   useEffect(() => {
     const scene=sceneRef.current;if(!scene)return;
     const map=modelsRef.current;const active=people.filter(p=>p.room_id===roomId);
     const ids=new Set(active.map(p=>p.user_uid));
     for(const [id,model] of map)if(!ids.has(id)){scene.remove(model);map.delete(id);}
     for(const p of active){const targetSeat=(p.seat_index-1),col=targetSeat%10,row=Math.floor(targetSeat/10);const target=new THREE.Vector3((col-4.5)*2.05,.03,(row-2)*2.1+.72);let model=map.get(p.user_uid);
-      if(!model){model=makeAvatar(p,scene,target,p.user_uid===uid);map.set(p.user_uid,model);if(p.user_uid===uid&&entering){model.userData.start=new THREE.Vector3(9,.03,6.5);model.position.copy(model.userData.start);model.rotation.y=0;model.userData.walking=true;poseAvatar(model,false);model.userData.started=performance.now();model.userData.target=target.clone();model.userData.targetYaw=Math.PI;}}
+      if(!model){
+        model=makeAvatar(p,scene,target,p.user_uid===uid); map.set(p.user_uid,model);
+        // First snapshot is the existing room roster; animate only genuine arrivals after it.
+        const firstSnapshot = !hasSeenRoomRosterRef.current;
+        if (!firstSnapshot && (p.user_uid===uid ? entering : true)) {
+          model.userData.start=new THREE.Vector3(9,.03,6.5); model.position.copy(model.userData.start); model.rotation.y=0;
+          model.userData.walking=true; poseAvatar(model,false); model.userData.started=performance.now();
+          model.userData.target=target.clone(); model.userData.targetYaw=Math.PI;
+          if (doorRef.current) doorRef.current.userData.open=true;
+        }
+      }
       else if(!model.userData.walking) {model.userData.target.copy(target);}
     }
+    hasSeenRoomRosterRef.current = true;
   },[people,roomId,uid,entering]);
 
   return <div className="room3d-root" style={{position:'relative',width:'100%',height:'clamp(360px,58vh,680px)',minHeight:360,borderRadius:24,overflow:'hidden',background:'linear-gradient(135deg,#e9e2d8,#b4c4bb)',boxShadow:'inset 0 0 0 1px #ffffff80'}}>
