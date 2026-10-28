@@ -259,12 +259,13 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     const floorMat = new THREE.Mesh(new THREE.PlaneGeometry(23,16),mat(c.floor)); floorMat.rotation.x=-Math.PI/2; floorMat.position.y=.012; floorMat.receiveShadow=true; scene.add(floorMat);
     const resize = () => { const w=Math.max(1,host.clientWidth), h=Math.max(1,host.clientHeight); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); };
     const ro = new ResizeObserver(resize); ro.observe(host); resize();
-    let drag: {x:number;y:number}|null=null;
-    const down=(e:PointerEvent)=>{drag={x:e.clientX,y:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)};
+    let drag: {x:number;y:number}|null=null; let pointerStart:{x:number;y:number}|null=null;
+    const raycaster=new THREE.Raycaster(); const pointer=new THREE.Vector2();
+    const down=(e:PointerEvent)=>{drag={x:e.clientX,y:e.clientY};pointerStart={x:e.clientX,y:e.clientY};renderer.domElement.setPointerCapture?.(e.pointerId)};
     const move=(e:PointerEvent)=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag={x:e.clientX,y:e.clientY};azimuth-=dx*.006;elevation=Math.max(.35,Math.min(1.18,elevation+dy*.004));updateCamera()};
-    const up=()=>{drag=null};
+    const up=(e:PointerEvent)=>{const start=pointerStart;pointerStart=null;drag=null;if(!start||Math.hypot(e.clientX-start.x,e.clientY-start.y)>7)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects([...modelsRef.current.values()],true);let picked:THREE.Object3D|null=null;for(const hit of hits){let node:THREE.Object3D|null=hit.object;while(node&&node.parent&&!(node.userData&&node.userData.uid))node=node.parent;if(node?.userData?.uid){picked=node;break;}}if(picked){aim.copy(picked.position);camera.userData.targetDistance=13;}else{aim.set(0,0,0);camera.userData.targetDistance=29;}};
     const wheel=(e:WheelEvent)=>{distance=Math.max(20,Math.min(38,distance+e.deltaY*.025));camera.userData.targetDistance=distance;updateCamera();e.preventDefault()};
-    renderer.domElement.addEventListener('pointerdown',down); renderer.domElement.addEventListener('pointermove',move); renderer.domElement.addEventListener('pointerup',up); renderer.domElement.addEventListener('pointercancel',up); renderer.domElement.addEventListener('wheel',wheel,{passive:false});
+    renderer.domElement.addEventListener('pointerdown',down); renderer.domElement.addEventListener('pointermove',move); renderer.domElement.addEventListener('pointerup',up); renderer.domElement.addEventListener('pointercancel',()=>{drag=null;pointerStart=null}); renderer.domElement.addEventListener('wheel',wheel,{passive:false});
     rendererRef.current=renderer; sceneRef.current=scene; cameraRef.current=camera;
     let frame=0, alive=true;
     const animate=(time:number)=>{if(!alive)return;frame++;const targetDistance=Number(camera.userData.targetDistance||29);if(!drag){distance+=(targetDistance-distance)*.035;updateCamera();}modelsRef.current.forEach(g=>{const d=g.userData;if(d.walking){const p=Math.min(1,(time-d.started)/2600);const phase=(time-d.started)/115;for(const l of d.legs||[]){const swing=Math.sin(phase+(l.side<0?0:Math.PI))*.28;l.thigh.rotation.z=swing;l.shin.rotation.z=-swing*.72;l.foot.rotation.z=swing*.38;}for(const a of d.arms||[]){const swing=Math.sin(phase+(a.side<0?Math.PI:0))*.18;a.upper.rotation.z=a.side*.18+swing;a.forearm.rotation.z=-a.side*.16-swing*.5;}g.position.lerpVectors(d.start||d.target,d.target,p);g.rotation.y=d.targetYaw*(.15+.85*p);if(p>=1){d.walking=false;poseAvatar(g,true);}}g.position.y=.02+Math.sin(time*.002+(d.phase||0))*.008;});scene.traverse(o=>{if(o.userData.flicker!==undefined){const s=1+Math.sin(time*.009+o.userData.flicker)*.18;o.scale.y=s*1.7;}});if(doorRef.current){const d=doorRef.current;const target=d.userData.open?-1.15:0;d.rotation.y+=(target-d.rotation.y)*.1;}renderer.render(scene,camera);
@@ -272,7 +273,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
       requestAnimationFrame(animate);
     };
     const raf=requestAnimationFrame(animate);
-    return()=>{alive=false;cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointermove',move);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('pointercancel',up);renderer.domElement.removeEventListener('wheel',wheel);renderer.dispose();scene.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const m=o.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m.dispose();}});modelsRef.current.clear();rendererRef.current=null;sceneRef.current=null;cameraRef.current=null;doorRef.current=null;};
+    return()=>{alive=false;cancelAnimationFrame(raf);ro.disconnect();renderer.domElement.removeEventListener('pointerdown',down);renderer.domElement.removeEventListener('pointermove',move);renderer.domElement.removeEventListener('pointerup',up);renderer.domElement.removeEventListener('wheel',wheel);renderer.dispose();scene.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const m=o.material;if(Array.isArray(m))m.forEach(x=>x.dispose());else m.dispose();}});modelsRef.current.clear();rendererRef.current=null;sceneRef.current=null;cameraRef.current=null;doorRef.current=null;};
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomType, roomId]);
 
@@ -307,6 +308,6 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     <div ref={hostRef} style={{position:'absolute',inset:0}} />
     {webglError&&<><div className="room3d-error">3D view is unavailable here. Showing a lightweight room roster instead.</div><div className="room3d-fallback">{people.filter(p=>p.room_id===roomId).map(p=><div key={p.user_uid} className="room3d-fallback-person"><b>{p.user_uid===uid?'You':p.user_name.split(' ')[0]}</b><span>{elapsed(p.session_started_at)}</span></div>)}</div></>}
     {!webglError&&labels.map(p=><div key={p.uid} className={'room3d-label'+(p.mine?' mine':'')} style={{left:p.x,top:Math.max(56,p.y)}}><strong>{p.mine?'You':p.name.split(' ')[0]}</strong><span>{p.breakMode?'On break · ':''}{p.timer}</span></div>)}
-    <div className="room3d-hint">3D room · drag to look around · scroll to zoom</div>
+    <div className="room3d-hint">Tap a student to focus · tap empty space to reset · drag to look around</div>
   </div>;
 }
