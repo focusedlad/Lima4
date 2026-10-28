@@ -313,6 +313,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     for(const p of active){const spot=seatPose(p.seat_index,roomType);const target=new THREE.Vector3(spot.x,.03,spot.z);let model=map.get(p.user_uid);
       if(!model){
         model=makeAvatar(p,scene,target,p.user_uid===uid); map.set(p.user_uid,model);
+        model.rotation.y=spot.yaw; model.userData.targetYaw=spot.yaw;
         // First snapshot is the existing room roster; animate only genuine arrivals after it.
         const firstSnapshot = !hasSeenRoomRosterRef.current;
         if (p.user_uid===uid ? entering : !firstSnapshot) {
