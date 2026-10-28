@@ -68,11 +68,12 @@ function addSeat(scene: THREE.Scene, x: number, z: number, c: typeof colors.cafe
     return;
   }
   if (kind === 'fireplace') {
-    // A low timber log bench and cushion, rather than classroom desks.
-    cylinder(scene,.31,.34,1.35,'#8c573b',[x,.48,z+.92],[Math.PI/2,0,0]);
-    box(scene,[.72,.13,.62],'#b7835b',[x,.62,z+.92]);
-    box(scene,[.72,.54,.10],'#8d5c43',[x,.84,z+1.22]);
-    box(scene,[.54,.06,.43],'#e3b18a',[x,.72,z+.88]);
+    // A low log seat aligned with the ring and turned toward the central hearth.
+    const seat = new THREE.Group(); seat.position.set(x,0,z); seat.rotation.y=yaw; scene.add(seat);
+    cylinder(seat,.31,.34,1.05,'#8c573b',[0,.39,0],[Math.PI/2,0,0]);
+    box(seat,[.72,.13,.62],'#b7835b',[0,.61,0]);
+    box(seat,[.72,.46,.10],'#8d5c43',[0,.83,-.25]);
+    box(seat,[.54,.06,.43],'#e3b18a',[0,.70,.02]);
     return;
   }
   if (kind === 'nature') {
@@ -274,7 +275,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     // Fifty seat locations, each using furniture that belongs to this room's purpose.
     for (let seat=1;seat<=50;seat++) {
       const spot = seatPose(seat, roomType);
-      const furnitureZ = roomType === 'fireplace' ? spot.z : spot.z - .72;
+      const furnitureZ = (roomType === 'fireplace' || roomType === 'nature') ? spot.z : spot.z - .72;
       addSeat(scene,spot.x,furnitureZ,c,roomType,spot.yaw);
       if (roomType==='cafe') { cylinder(scene,.045,.045,.05,'#f4ead7',[spot.x-.38,.96,furnitureZ-.1]); cylinder(scene,.045,.045,.05,'#d3a36a',[spot.x-.38,.99,furnitureZ-.1]); }
       if (roomType==='nature' && seat%5===0) sphere(scene,.1,'#79a66c',[spot.x-.65,.18,furnitureZ-.5],[1,.4,1]);
