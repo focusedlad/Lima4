@@ -21,10 +21,10 @@ const colors = {
 };
 
 function mat(color: string, roughness = 0.84) { return new THREE.MeshStandardMaterial({ color, roughness }); }
-function box(parent: THREE.Object3D, size: [number,number,number], color: string, pos: [number,number,number], radius = 0) {
+function box(parent: THREE.Object3D, size: [number,number,number], color: string, pos: [number,number,number], rotation?: [number,number,number]) {
   const geometry = new THREE.BoxGeometry(...size);
   const mesh = new THREE.Mesh(geometry, mat(color));
-  mesh.position.set(...pos); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
+  mesh.position.set(...pos); if (rotation) mesh.rotation.set(...rotation); mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
 }
 function sphere(parent: THREE.Object3D, radius: number, color: string, pos: [number,number,number], scale?: [number,number,number]) {
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 12), mat(color));
@@ -38,7 +38,23 @@ function addPlant(scene: THREE.Scene, x: number, z: number, leafy: boolean) {
   cylinder(scene, .14, .2, .45, '#9d6849', [x,.23,z]);
   for (let i=0;i<5;i++) sphere(scene, leafy ? .52 : .34, ['#477d53','#5b925e','#6ca66a'][i%3], [x+Math.sin(i*1.3)*.28, .8+(i%2)*.24, z+Math.cos(i*1.3)*.25], [1,.9,1]);
 }
-function addSeat(scene: THREE.Scene, x: number, z: number, c: typeof colors.cafe, kind: string) {
+function seatPose(seat: number, kind: string) {
+  const index = Math.max(0, seat - 1);
+  if (kind === 'fireplace') {
+    const ring = index < 12 ? 0 : index < 30 ? 1 : 2;
+    const start = ring === 0 ? 0 : ring === 1 ? 12 : 30;
+    const count = ring === 0 ? 12 : ring === 1 ? 18 : 20;
+    const radius = ring === 0 ? 2.35 : ring === 1 ? 4.45 : 6.35;
+    const angle = ((index - start) / count) * Math.PI * 2 - Math.PI / 2;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius * .62;
+    return { x, z, yaw: Math.atan2(-x, -z) };
+  }
+  const col = index % 10, row = Math.floor(index / 10);
+  const x = (col - 4.5) * 2.05, z = (row - 2) * 2.1 - .15;
+  return { x, z: z + .72, yaw: Math.PI };
+}
+function addSeat(scene: THREE.Scene, x: number, z: number, c: typeof colors.cafe, kind: string, yaw = Math.PI) {
   if (kind === 'cafe') {
     // Compact round café table, with a proper chair pulled up to the near edge.
     cylinder(scene,.67,.67,.13,c.desk,[x,.86,z]);
@@ -59,9 +75,16 @@ function addSeat(scene: THREE.Scene, x: number, z: number, c: typeof colors.cafe
     box(scene,[.54,.06,.43],'#e3b18a',[x,.72,z+.88]);
     return;
   }
-  // Classroom desks face the teaching wall; nature uses a small picnic table.
-  const tableW = kind === 'nature' ? 1.05 : 1.3;
-  box(scene,[tableW,.12,kind==='nature'?.78:1.05],c.desk,[x,.86,z]);
+  if (kind === 'nature') {
+    // Park seating is low, informal timber and cushions: no classroom desks.
+    cylinder(scene,.34,.39,.48,'#806147',[x,.25,z]);
+    cylinder(scene,.35,.35,.08,'#d4b18a',[x,.52,z]);
+    sphere(scene,.08,'#e8d8c1',[x-.1,.59,z-.04],[1.2,.45,1]);
+    return;
+  }
+  // Classroom desks and chairs face the teaching wall, not the back wall.
+  const tableW = 1.3;
+  box(scene,[tableW,.12,1.05],c.desk,[x,.86,z]);
   for (const dx of [-tableW*.36,tableW*.36]) for (const dz of [-.28,.28]) box(scene,[.08,.82,.08],c.trim,[x+dx,.42,z+dz]);
   box(scene,[.62,.12,.62],c.chair,[x,.54,z+.9]);
   box(scene,[.62,.66,.10],c.chair,[x,.85,z+1.16]);
@@ -248,13 +271,13 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
       const bookColors = ['#bb6a50','#d6ad68','#6d968b','#6683a3'];
       for (let i=0;i<4;i++) box(scene,[.3,.8,.4],bookColors[i],[-8.65+i*.43,1.7,-6.8]);
     }
-    // Fifty individually modelled desks, chairs, and reading spaces.
+    // Fifty seat locations, each using furniture that belongs to this room's purpose.
     for (let seat=1;seat<=50;seat++) {
-      const col=(seat-1)%10, row=Math.floor((seat-1)/10);
-      const x=(col-4.5)*2.05, z=(row-2)*2.1-.15;
-      addSeat(scene,x,z,c,roomType);
-      if (roomType==='cafe') { cylinder(scene,.045,.045,.05,'#f4ead7',[x-.38,.96,z-.1]); cylinder(scene,.045,.045,.05,'#d3a36a',[x-.38,.99,z-.1]); }
-      if (roomType==='nature' && seat%4===0) sphere(scene,.1,'#79a66c',[x-.65,.18,z-.5],[1,.4,1]);
+      const spot = seatPose(seat, roomType);
+      const furnitureZ = roomType === 'fireplace' ? spot.z : spot.z - .72;
+      addSeat(scene,spot.x,furnitureZ,c,roomType,spot.yaw);
+      if (roomType==='cafe') { cylinder(scene,.045,.045,.05,'#f4ead7',[spot.x-.38,.96,furnitureZ-.1]); cylinder(scene,.045,.045,.05,'#d3a36a',[spot.x-.38,.99,furnitureZ-.1]); }
+      if (roomType==='nature' && seat%5===0) sphere(scene,.1,'#79a66c',[spot.x-.65,.18,furnitureZ-.5],[1,.4,1]);
     }
     const floorMat = new THREE.Mesh(new THREE.PlaneGeometry(23,16),mat(c.floor)); floorMat.rotation.x=-Math.PI/2; floorMat.position.y=.012; floorMat.receiveShadow=true; scene.add(floorMat);
     const resize = () => { const w=Math.max(1,host.clientWidth), h=Math.max(1,host.clientHeight); renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); };
@@ -286,7 +309,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
     const map=modelsRef.current;const active=people.filter(p=>p.room_id===roomId);
     const ids=new Set(active.map(p=>p.user_uid));
     for(const [id,model] of map)if(!ids.has(id)){scene.remove(model);map.delete(id);}
-    for(const p of active){const targetSeat=(p.seat_index-1),col=targetSeat%10,row=Math.floor(targetSeat/10);const target=new THREE.Vector3((col-4.5)*2.05,.03,(row-2)*2.1+.72);let model=map.get(p.user_uid);
+    for(const p of active){const spot=seatPose(p.seat_index,roomType);const target=new THREE.Vector3(spot.x,.03,spot.z);let model=map.get(p.user_uid);
       if(!model){
         model=makeAvatar(p,scene,target,p.user_uid===uid); map.set(p.user_uid,model);
         // First snapshot is the existing room roster; animate only genuine arrivals after it.
@@ -294,11 +317,11 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
         if (p.user_uid===uid ? entering : !firstSnapshot) {
           model.userData.start=new THREE.Vector3(9,.03,6.5); model.position.copy(model.userData.start); model.rotation.y=0;
           model.userData.walking=true; poseAvatar(model,false); model.userData.started=performance.now();
-          model.userData.target=target.clone(); model.userData.targetYaw=Math.PI;
+          model.userData.target=target.clone(); model.userData.targetYaw=spot.yaw;
           if (doorRef.current) doorRef.current.userData.open=true;
         }
       }
-      else if(!model.userData.walking) {model.userData.target.copy(target);}
+      else if(!model.userData.walking) {model.userData.target.copy(target);model.userData.targetYaw=spot.yaw;model.rotation.y=spot.yaw;}
     }
     hasSeenRoomRosterRef.current = true;
   },[people,roomId,uid,entering]);
