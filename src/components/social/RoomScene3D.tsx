@@ -56,7 +56,7 @@ function addSeat(scene: THREE.Scene, x: number, z: number, c: typeof colors.cafe
     cylinder(scene,.31,.34,1.35,'#8c573b',[x,.48,z+.92],[Math.PI/2,0,0]);
     box(scene,[.72,.13,.62],'#b7835b',[x,.62,z+.92]);
     box(scene,[.72,.54,.10],'#8d5c43',[x,.84,z+1.22]);
-    box(scene,[.54,.06,.43,'#e3b18a',[x,.72,z+.88]);
+    box(scene,[.54,.06,.43],'#e3b18a',[x,.72,z+.88]);
     return;
   }
   // Classroom desks face the teaching wall; nature uses a small picnic table.
