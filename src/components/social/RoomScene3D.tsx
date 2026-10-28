@@ -290,7 +290,7 @@ export function RoomScene3D({ roomType, roomId, people, uid, entering, elapsed }
         model=makeAvatar(p,scene,target,p.user_uid===uid); map.set(p.user_uid,model);
         // First snapshot is the existing room roster; animate only genuine arrivals after it.
         const firstSnapshot = !hasSeenRoomRosterRef.current;
-        if (!firstSnapshot && (p.user_uid===uid ? entering : true)) {
+        if (p.user_uid===uid ? entering : !firstSnapshot) {
           model.userData.start=new THREE.Vector3(9,.03,6.5); model.position.copy(model.userData.start); model.rotation.y=0;
           model.userData.walking=true; poseAvatar(model,false); model.userData.started=performance.now();
           model.userData.target=target.clone(); model.userData.targetYaw=Math.PI;
