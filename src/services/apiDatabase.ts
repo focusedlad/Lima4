@@ -6,11 +6,10 @@ export const ApiDatabase = {
       if (!idToken) return null;
       const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` };
 
-      const res = await fetch('/api/db/sync-user', {
+      const res = await fetch('/api/profile-sync', {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          uid: user.id,
           email: user.email || '',
           name: user.name,
           handle: user.handle,
@@ -26,14 +25,6 @@ export const ApiDatabase = {
           currentSubject: user.currentSubject,
           currentGoal: user.currentGoal,
           isGhostMode: user.isGhostMode,
-          subscriptionTier: user.subscriptionTier,
-          subscriptionStatus: user.subscriptionStatus,
-          termsAccepted: user.termsAccepted,
-          termsAcceptedAt: user.termsAcceptedAt,
-          termsVersion: user.termsVersion,
-          xp: user.xp,
-          totalHoursStudied: Math.round(user.totalHoursStudied),
-          currentStreak: user.currentStreak,
         }),
       });
       if (!res.ok) return null;
@@ -49,7 +40,7 @@ export const ApiDatabase = {
       if (!idToken) return null;
       const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` };
 
-      const res = await fetch('/api/db/focus-logs', {
+      const res = await fetch('/api/focus-logs', {
         method: 'POST',
         headers,
         body: JSON.stringify({
