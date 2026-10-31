@@ -188,6 +188,7 @@ export default function App() {
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isLegalCenterOpen, setIsLegalCenterOpen] = useState(false);
 
   // Admin & Subscription States
   const [allUsers, setAllUsers] = useState<UserProfile[]>(() => StorageService.getAllUsers());
