@@ -67,6 +67,7 @@ import { RulesAndFeaturesModal } from './components/common/RulesAndFeaturesModal
 import { FirebaseService } from './services/firebase';
 import { supabase, SupabaseService } from './services/supabase';
 import { ApiDatabase } from './services/apiDatabase';
+import { LegalCenterModal } from './components/common/LegalCenterModal';
 
 
 const FocusTimerHero = lazy(() => import('./components/focus/FocusTimerHero').then((m) => ({ default: m.FocusTimerHero })));
@@ -187,6 +188,7 @@ export default function App() {
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isLegalCenterOpen, setIsLegalCenterOpen] = useState(false);
 
   // Admin & Subscription States
   const [allUsers, setAllUsers] = useState<UserProfile[]>(() => StorageService.getAllUsers());
@@ -913,11 +915,11 @@ export default function App() {
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
             <button
-              onClick={() => setIsTermsModalOpen(true)}
+              onClick={() => setIsLegalCenterOpen(true)}
               className="font-bold text-stone-700 dark:text-stone-300 hover:text-pink-600 underline flex items-center gap-1.5 transition-colors"
             >
               <Scale className="w-3.5 h-3.5 text-pink-500" />
-              <span>Platform Rules & Legal Terms</span>
+              <span>Terms, Privacy & Policies</span>
             </button>
             <span>•</span>
             <button
@@ -1046,6 +1048,9 @@ export default function App() {
         plans={subscriptionPlans}
         onSelectPlan={handleSelectPlan}
       />
+
+      {/* Dedicated Terms, Privacy and Platform Policies centre */}
+      {isLegalCenterOpen && <LegalCenterModal onClose={() => setIsLegalCenterOpen(false)} />}
 
       {/* Global Platform Rules, Regulations & Features Legal Modal */}
       <RulesAndFeaturesModal

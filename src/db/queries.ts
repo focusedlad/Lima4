@@ -132,6 +132,18 @@ export async function insertFocusLog(input: {
   try {
     // Save the session and update only challenges active on the session's date in one transaction.
     return await db.transaction(async (tx) => {
+      // Serialize writes per account/day so concurrent requests cannot bypass the daily cap.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${input.userUid}), hashtext(${input.date}))`);
+      const [dailyTotals] = await tx.select({
+        totalMinutes: sql<number>`COALESCE(SUM(${focusLogs.durationMinutes}), 0)::int`,
+      }).from(focusLogs).where(and(
+        eq(focusLogs.userUid, input.userUid),
+        eq(focusLogs.date, input.date),
+      ));
+      if (Number(dailyTotals?.totalMinutes || 0) + input.durationMinutes > 960) {
+        throw new Error('FOCUS_DAILY_LIMIT');
+      }
+
       const [result] = await tx
         .insert(focusLogs)
         .values({
