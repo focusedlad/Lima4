@@ -1,4 +1,5 @@
 import { syncPublicProfile } from '../src/db/profile-sync.js';
+import { getUserByUid } from '../src/db/queries.js';
 import { getAuthenticatedSupabaseUser } from '../src/lib/supabase-request-auth.js';
 
 const visibilityOptions = ['public', 'friends', 'private'];
@@ -6,12 +7,23 @@ const textField = (value: unknown, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed.' });
-  }
   const authUser = await getAuthenticatedSupabaseUser(req);
   if (!authUser) return res.status(401).json({ error: 'A valid signed-in account is required.' });
+
+  if (req.method === 'GET') {
+    try {
+      const user = await getUserByUid(authUser.id);
+      return res.status(200).json({ success: true, user });
+    } catch (error) {
+      console.error('Profile fetch failed:', error);
+      return res.status(500).json({ error: 'Profile could not be loaded.' });
+    }
+  }
+
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'GET, POST');
+    return res.status(405).json({ error: 'Method not allowed.' });
+  }
 
   const body = req.body || {};
   const name = textField(body.name, 80);
