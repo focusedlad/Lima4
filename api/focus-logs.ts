@@ -36,10 +36,8 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const requestedXp = Number(body.xpEarned);
-    const xpEarned = Number.isFinite(requestedXp)
-      ? Math.max(0, Math.min(Math.floor(requestedXp), durationMinutes * 10))
-      : 0;
+    // XP is calculated on the server; never accept a client-supplied reward value.
+    const xpEarned = durationMinutes * 4;
     const log = await insertFocusLog({
       userUid: authUser.id,
       durationMinutes,
