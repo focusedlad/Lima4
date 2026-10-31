@@ -280,7 +280,7 @@ export default function App() {
       const metadataName = authUser.user_metadata?.full_name || authUser.user_metadata?.name;
       let saved: any = null;
       try {
-        const response = await fetch('/api/db/sync-user', { headers: { Authorization: 'Bearer ' + session.access_token } });
+        const response = await fetch('/api/profile-sync', { headers: { Authorization: 'Bearer ' + session.access_token } });
         if (response.ok) {
           const payload = await response.json();
           saved = payload?.user || null;
@@ -289,7 +289,7 @@ export default function App() {
         console.warn('Could not load saved account profile:', error);
       }
       try {
-        const logsResponse = await fetch('/api/db/focus-logs', { headers: { Authorization: 'Bearer ' + session.access_token } });
+        const logsResponse = await fetch('/api/focus-logs', { headers: { Authorization: 'Bearer ' + session.access_token } });
         if (logsResponse.ok) {
           const logsPayload = await logsResponse.json();
           if (Array.isArray(logsPayload?.logs)) {
