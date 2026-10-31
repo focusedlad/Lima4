@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ShieldCheck, FileText, Lock, ExternalLink } from 'lucide-react';
+import { ShieldCheck, FileText, Lock } from 'lucide-react';
 
 type LegalCenterProps = { onClose: () => void };
 
