@@ -48,6 +48,9 @@ export default async function handler(req: any, res: any) {
     });
     return res.status(201).json({ success: true, log });
   } catch (error) {
+    if (error instanceof Error && error.message === 'FOCUS_DAILY_LIMIT') {
+      return res.status(429).json({ error: 'Daily focus-time limit reached. Your saved study history is safe.' });
+    }
     console.error('Focus log write failed:', error);
     return res.status(500).json({ error: 'Focus session could not be saved.' });
   }
